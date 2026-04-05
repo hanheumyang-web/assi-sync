@@ -27,6 +27,11 @@ export default function ProjectView({ isMobile }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkSelected, setBulkSelected] = useState(new Set())
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkCustomCat, setBulkCustomCat] = useState('')
+  const [bulkSaving, setBulkSaving] = useState(false)
   const folderInputRef = useRef(null)
   const [folderImporting, setFolderImporting] = useState(false)
   const [importProgress, setImportProgress] = useState({ step: '', current: 0, total: 0, projectName: '', totalBytes: 0, uploadedBytes: 0, eta: '' })
@@ -63,6 +68,63 @@ export default function ProjectView({ isMobile }) {
 
   const cancelImport = () => {
     importCancelRef.current = true
+  }
+
+  const toggleBulkSelect = (id) => {
+    setBulkSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const selectAllFiltered = () => {
+    if (bulkSelected.size === filtered.length) {
+      setBulkSelected(new Set())
+    } else {
+      setBulkSelected(new Set(filtered.map(p => p.id)))
+    }
+  }
+
+  const applyBulkCategory = async () => {
+    if (!bulkCategory || bulkSelected.size === 0) return
+    setBulkSaving(true)
+    try {
+      for (const id of bulkSelected) {
+        await updateProject(id, { category: bulkCategory })
+      }
+      setBulkSelected(new Set())
+      setBulkMode(false)
+      setBulkCategory('')
+    } catch (err) {
+      alert('일괄 수정 실패: ' + err.message)
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  const bulkDelete = async () => {
+    if (bulkSelected.size === 0) return
+    if (!window.confirm(`${bulkSelected.size}개 프로젝트를 삭제하시겠습니까?`)) return
+    setBulkSaving(true)
+    try {
+      for (const id of bulkSelected) {
+        await deleteProject(id)
+      }
+      setBulkSelected(new Set())
+      setBulkMode(false)
+    } catch (err) {
+      alert('일괄 삭제 실패: ' + err.message)
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  const exitBulkMode = () => {
+    setBulkMode(false)
+    setBulkSelected(new Set())
+    setBulkCategory('')
+    setBulkCustomCat('')
   }
 
   // ── 로컬 폴더 불러오기 ──
@@ -250,6 +312,16 @@ export default function ProjectView({ isMobile }) {
               className={`pl-9 pr-4 py-2.5 bg-white rounded-full text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 shadow-sm ${isMobile ? 'w-full' : 'w-52'}`}
             />
           </div>
+          <button
+            onClick={() => bulkMode ? exitBulkMode() : setBulkMode(true)}
+            className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border ${
+              bulkMode
+                ? 'bg-[#828DF8] text-white border-[#828DF8] shadow-md'
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 shadow-sm'
+            }`}
+          >
+            {bulkMode ? '선택 취소' : '선택'}
+          </button>
           <input
             ref={folderInputRef}
             type="file"
@@ -257,19 +329,31 @@ export default function ProjectView({ isMobile }) {
             onChange={handleFolderImport}
             {...{ webkitdirectory: '', directory: '' }}
           />
-          <button
-            onClick={() => folderInputRef.current?.click()}
-            disabled={folderImporting}
-            className="px-5 py-2.5 bg-white text-gray-700 rounded-full text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex-shrink-0 border border-gray-200 disabled:opacity-50"
-          >
-            📁 폴더 불러오기
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-5 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all flex-shrink-0"
-          >
-            + 새 프로젝트
-          </button>
+          {!bulkMode && (
+            <>
+              <button
+                onClick={() => folderInputRef.current?.click()}
+                disabled={folderImporting}
+                className="px-5 py-2.5 bg-white text-gray-700 rounded-full text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex-shrink-0 border border-gray-200 disabled:opacity-50"
+              >
+                📁 폴더 불러오기
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-5 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all flex-shrink-0"
+              >
+                + 새 프로젝트
+              </button>
+            </>
+          )}
+          {bulkMode && (
+            <button
+              onClick={selectAllFiltered}
+              className="px-4 py-2.5 bg-white text-gray-600 rounded-full text-xs font-bold shadow-sm border border-gray-200 hover:bg-gray-50 transition-all flex-shrink-0"
+            >
+              {bulkSelected.size === filtered.length ? '전체 해제' : '전체 선택'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -303,14 +387,27 @@ export default function ProjectView({ isMobile }) {
           {filtered.map((p, i) => (
             <div
               key={p.id}
-              className="bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all text-left group relative cursor-pointer"
-              onClick={() => setSelectedId(p.id)}
+              className={`bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all text-left group relative cursor-pointer ${
+                bulkMode && bulkSelected.has(p.id) ? 'ring-3 ring-[#828DF8] shadow-lg shadow-[#828DF8]/20' : ''
+              }`}
+              onClick={() => bulkMode ? toggleBulkSelect(p.id) : setSelectedId(p.id)}
             >
               <div className={`${isMobile ? 'h-32' : 'h-40'} relative overflow-hidden ${p.thumbnailUrl ? '' : `bg-gradient-to-br ${getColor(i)}`}`}>
                 {p.thumbnailUrl && (
                   <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 )}
-                {p.embargoStatus === 'active' && (
+                {bulkMode && (
+                  <div className={`absolute top-3 left-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                    bulkSelected.has(p.id)
+                      ? 'bg-[#828DF8] border-[#828DF8] text-white'
+                      : 'bg-white/80 border-gray-300'
+                  }`}>
+                    {bulkSelected.has(p.id) && (
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                  </div>
+                )}
+                {!bulkMode && p.embargoStatus === 'active' && (
                   <div className="absolute top-3 left-3 bg-amber-400 text-white text-[9px] font-bold px-3 py-1 rounded-full">
                     EMBARGO
                   </div>
@@ -319,20 +416,22 @@ export default function ProjectView({ isMobile }) {
                   {(p.imageCount || 0) + (p.videoCount || 0)}장
                 </div>
                 {/* 호버 수정 버튼 */}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all flex gap-1.5">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingProject(p) }}
-                    className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-[#828DF8] transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); if (window.confirm('이 프로젝트를 삭제하시겠습니까?')) deleteProject(p.id) }}
-                    className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-red-500 transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  </button>
-                </div>
+                {!bulkMode && (
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all flex gap-1.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingProject(p) }}
+                      className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-[#828DF8] transition-all"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (window.confirm('이 프로젝트를 삭제하시겠습니까?')) deleteProject(p.id) }}
+                      className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-red-500 transition-all"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                )}
               </div>
               <div className={isMobile ? 'p-3' : 'p-5'}>
                 <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold truncate">{p.client || 'CLIENT'}</p>
@@ -344,6 +443,54 @@ export default function ProjectView({ isMobile }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 일괄 편집 액션바 */}
+      {bulkMode && bulkSelected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-[24px] shadow-2xl border border-gray-100 px-5 py-4 z-40 max-w-[90vw]" style={{ minWidth: 320 }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="text-sm font-black tracking-tighter text-gray-900 whitespace-nowrap">
+              {bulkSelected.size}개 선택
+            </div>
+            <div className="w-px h-6 bg-gray-200" />
+            <span className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold whitespace-nowrap">CATEGORY</span>
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {[...DEFAULT_CATEGORIES, ...customCats].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setBulkCategory(c)}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all
+                    ${bulkCategory === c ? 'bg-[#828DF8] text-white shadow-sm' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <input
+              className="w-20 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-[10px] text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              placeholder="직접 입력"
+              value={bulkCustomCat}
+              onChange={(e) => setBulkCustomCat(e.target.value.toUpperCase())}
+              onKeyDown={(e) => { if (e.key === 'Enter' && bulkCustomCat.trim()) { setBulkCategory(bulkCustomCat.trim()); setBulkCustomCat('') } }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={applyBulkCategory}
+              disabled={!bulkCategory || bulkSaving}
+              className="flex-1 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all disabled:opacity-50"
+            >
+              {bulkSaving ? '적용 중...' : '일괄 적용'}
+            </button>
+            <button
+              onClick={bulkDelete}
+              disabled={bulkSaving}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg shadow-red-500/25 hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              삭제
+            </button>
+          </div>
         </div>
       )}
 
