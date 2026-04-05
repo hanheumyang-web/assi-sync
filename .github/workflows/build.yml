@@ -55,3 +55,45 @@ jobs:
         with:
           name: ASSI-Sync-Windows
           path: dist/*.exe
+
+  release:
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Mac artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ASSI-Sync-Mac
+          path: release-assets
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ASSI-Sync-Windows
+          path: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: ASSI Sync v${{ steps.version.outputs.version }}
+          body: |
+            ## ASSI Sync v${{ steps.version.outputs.version }}
+
+            ### 다운로드
+            - **Mac**: `.dmg` 파일 다운로드 후 설치
+            - **Windows**: `.exe` 파일 실행하여 설치
+
+            > Mac에서 "확인되지 않은 개발자" 경고가 뜨면: 우클릭 → 열기
+          files: release-assets/*
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
