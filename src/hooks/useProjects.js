@@ -23,13 +23,17 @@ export function useProjects() {
     const unsub = onSnapshot(q, async (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 
-      // 자동 엠바고 업로드 전환: 날짜가 지난 active 엠바고를 released로 변경
-      const now = new Date().toISOString().slice(0, 10)
+      // 자동 엠바고 해금: 날짜+시간이 지난 active 엠바고를 released로 변경
+      const now = new Date()
       for (const p of data) {
-        if (p.embargoStatus === 'active' && p.embargoDate && p.embargoDate <= now) {
-          const ref = doc(db, 'projects', p.id)
-          await updateDoc(ref, { embargoStatus: 'released', updatedAt: new Date().toISOString() })
-          p.embargoStatus = 'released'
+        if (p.embargoStatus === 'active' && p.embargoDate) {
+          // embargoDate: "YYYY-MM-DD" (레거시) 또는 "YYYY-MM-DDTHH:mm"
+          const embargoTime = p.embargoDate.includes('T') ? new Date(p.embargoDate) : new Date(p.embargoDate + 'T00:00')
+          if (embargoTime <= now) {
+            const ref = doc(db, 'projects', p.id)
+            await updateDoc(ref, { embargoStatus: 'released', updatedAt: new Date().toISOString() })
+            p.embargoStatus = 'released'
+          }
         }
       }
 

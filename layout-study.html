@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ASSI Layout Library</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard Variable', sans-serif; background: #F4F3EE; color: #1a1a1a; }
+  .nav { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #e8e8e4; padding: 12px 32px; display: flex; align-items: center; gap: 24px; }
+  .nav-logo { font-size: 18px; font-weight: 900; letter-spacing: -0.03em; }
+  .nav-logo span { color: #828DF8; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #999; transition: all 0.2s; }
+  .nav-tab:hover { background: #F4F3EE; color: #666; }
+  .nav-tab.active { background: #1a1a1a; color: #fff; }
+  .nav-orient { margin-left: auto; display: flex; gap: 4px; }
+  .nav-orient button { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; border: 2px solid transparent; background: #F4F3EE; color: #999; transition: all 0.2s; }
+  .nav-orient button.active { border-color: #828DF8; background: rgba(130,141,248,0.08); color: #828DF8; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px; }
+  .section { display: none; }
+  .section.visible { display: block; }
+  .section-head { margin-bottom: 24px; }
+  .section-head h2 { font-size: 28px; font-weight: 900; letter-spacing: -0.03em; }
+  .section-head p { font-size: 12px; color: #999; margin-top: 4px; }
+
+  .orient-group { margin-bottom: 40px; }
+  .orient-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #828DF8; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #828DF8; display: inline-block; }
+  .layout-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+  .layout-card { background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); transition: all 0.2s; position: relative; }
+  .layout-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .layout-card .label { font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .layout-card .name { font-size: 12px; font-weight: 800; color: #1a1a1a; margin-top: 8px; }
+  .layout-card .tags { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .tag { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #F4F3EE; color: #999; }
+  .tag.hero { background: rgba(130,141,248,0.1); color: #828DF8; }
+  .tag.bleed { background: rgba(239,68,68,0.08); color: #ef4444; }
+  .tag.text { background: rgba(34,197,94,0.08); color: #22c55e; }
+  .tag.new { background: #ff6b35; color: #fff; font-weight: 800; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .new-badge { position: absolute; top: 8px; right: 8px; background: #ff6b35; color: #fff; font-size: 8px; font-weight: 800; padding: 2px 7px; border-radius: 8px; letter-spacing: 0.05em; z-index: 2; }
+
+  .page { position: relative; overflow: hidden; border: 1px solid #e8e8e4; background: #fff; }
+  .page.portrait { width: 160px; height: 226px; }
+  .page.landscape { width: 226px; height: 160px; }
+  .slot { position: absolute; background: #1a1a1a; border-radius: 1px; }
+  .tz { position: absolute; display: flex; flex-direction: column; gap: 3px; justify-content: center; }
+  .tl { height: 2px; background: #ccc; border-radius: 1px; }
+  .tl.t { height: 4px; background: #888; }
+  .tl.s { height: 1.5px; background: #ddd; }
+
+  .section[data-id="all"] .layout-grid { gap: 16px; }
+  .section[data-id="all"] .layout-card { padding: 10px; }
+  .section[data-id="all"] .page.portrait { width: 120px; height: 170px; }
+  .section[data-id="all"] .page.landscape { width: 170px; height: 120px; }
+
+  .summary-bar { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+  .summary-item { background: #fff; border-radius: 12px; padding: 16px 20px; flex: 1; min-width: 120px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); text-align: center; }
+  .summary-item .num { font-size: 28px; font-weight: 900; color: #828DF8; }
+  .summary-item .desc { font-size: 10px; color: #999; font-weight: 600; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-logo">ASSI <span>Layout Library</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('all')">전체</button>
+    <button class="nav-tab" onclick="showSection('1')">1장</button>
+    <button class="nav-tab" onclick="showSection('2')">2장</button>
+    <button class="nav-tab" onclick="showSection('3')">3장</button>
+    <button class="nav-tab" onclick="showSection('4')">4장</button>
+    <button class="nav-tab" onclick="showSection('5')">5장</button>
+    <button class="nav-tab" onclick="showSection('6')">6장</button>
+  </div>
+  <div class="nav-orient">
+    <button class="active" onclick="filterOrient('all',this)">전체</button>
+    <button onclick="filterOrient('portrait',this)">세로 ▯</button>
+    <button onclick="filterOrient('landscape',this)">가로 ▬</button>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="summary-bar">
+  <div class="summary-item"><div class="num">48</div><div class="desc">총 레이아웃</div></div>
+  <div class="summary-item"><div class="num">26</div><div class="desc">세로 (Portrait)</div></div>
+  <div class="summary-item"><div class="num">22</div><div class="desc">가로 (Landscape)</div></div>
+  <div class="summary-item"><div class="num" style="color:#ff6b35;">15</div><div class="desc">NEW 추가</div></div>
+</div>
+
+<!-- ═══ 전체 ═══ -->
+<div class="section visible" data-id="all">
+  <div class="section-head"><h2>전체 레이아웃</h2><p>1~6장 · 세로/가로 전체 미리보기 — NEW 뱃지 = 신규 학습</p></div>
+  <div class="layout-grid" id="all-grid"></div>
+</div>
+
+<!-- ═══════════════ 1장 ═══════════════ -->
+<div class="section" data-id="1">
+  <div class="section-head"><h2>1장 레이아웃</h2><p>히어로 사진 한 장으로 임팩트</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <!-- P1-A 풀블리드 -->
+      <div class="layout-card" data-count="1" data-orient="portrait">
+        <div class="label">P1-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;bottom:0;"></div></div>
+        <div class="name">풀블리드</div>
+        <div class="tags"><span class="tag bleed">FULL-BLEED</span></div>
+      </div>
+      <!-- P1-B 히어로+텍스트 -->
+      <div class="layout-card" data-count="1" data-orient="portrait">
+        <div class="label">P1-B</div>
+        <div class="page portrait">
+          <div class="slot" style="left:5%;top:4%;width:90%;height:68%;"></div>
+          <div class="tz" style="left:5%;top:76%;width:50%;height:18%;"><div class="tl s" style="width:40%;"></div><div class="tl t" style="width:85%;"></div><div class="tl s" style="width:55%;"></div></div>
+        </div>
+        <div class="name">히어로 + 하단 텍스트</div>
+        <div class="tags"><span class="tag hero">HERO</span><span class="tag text">TEXT</span></div>
+      </div>
+      <!-- P1-C 상단블리드+텍스트 -->
+      <div class="layout-card" data-count="1" data-orient="portrait">
+        <div class="label">P1-C</div>
+        <div class="page portrait">
+          <div class="slot" style="left:0;top:0;right:0;height:60%;"></div>
+          <div class="tz" style="left:6%;top:65%;width:55%;height:30%;"><div class="tl s" style="width:45%;"></div><div class="tl t" style="width:90%;"></div><div class="tl t" style="width:65%;"></div><div class="tl s" style="width:70%;margin-top:4px;"></div></div>
+        </div>
+        <div class="name">상단 블리드 + 텍스트</div>
+        <div class="tags"><span class="tag bleed">BLEED-TOP</span><span class="tag text">TEXT</span></div>
+      </div>
+      <!-- P1-D NEW: 센터 마진 -->
+      <div class="layout-card" data-count="1" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P1-D</div>
+        <div class="page portrait">
+          <div class="slot" style="left:8%;top:8%;width:84%;height:84%;"></div>
+        </div>
+        <div class="name">마진 센터</div>
+        <div class="tags"><span class="tag new">NEW</span><span class="tag">MARGIN</span></div>
+      </div>
+      <!-- P1-E NEW: 파노라마 스트립 -->
+      <div class="layout-card" data-count="1" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P1-E</div>
+        <div class="page portrait">
+          <div class="slot" style="left:0;top:30%;right:0;height:35%;"></div>
+          <div class="tz" style="left:6%;top:70%;width:50%;height:22%;"><div class="tl t" style="width:80%;"></div><div class="tl t" style="width:55%;"></div><div class="tl s" style="width:65%;margin-top:3px;"></div></div>
+        </div>
+        <div class="name">파노라마 스트립</div>
+        <div class="tags"><span class="tag new">NEW</span><span class="tag">PANORAMIC</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <!-- L1-A 풀블리드 -->
+      <div class="layout-card" data-count="1" data-orient="landscape">
+        <div class="label">L1-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;right:0;bottom:0;"></div></div>
+        <div class="name">풀블리드</div>
+        <div class="tags"><span class="tag bleed">FULL-BLEED</span></div>
+      </div>
+      <!-- L1-B 좌텍스트+우사진 -->
+      <div class="layout-card" data-count="1" data-orient="landscape">
+        <div class="label">L1-B</div>
+        <div class="page landscape">
+          <div class="tz" style="left:5%;top:25%;width:28%;height:50%;"><div class="tl s" style="width:55%;"></div><div class="tl t" style="width:90%;"></div><div class="tl t" style="width:65%;"></div><div class="tl s" style="width:80%;margin-top:4px;"></div></div>
+          <div class="slot" style="left:36%;top:0;right:0;bottom:0;"></div>
+        </div>
+        <div class="name">좌 텍스트 + 우 사진</div>
+        <div class="tags"><span class="tag text">TEXT-LEFT</span><span class="tag bleed">BLEED-R</span></div>
+      </div>
+      <!-- L1-C 좌사진+우텍스트 -->
+      <div class="layout-card" data-count="1" data-orient="landscape">
+        <div class="label">L1-C</div>
+        <div class="page landscape">
+          <div class="slot" style="left:0;top:0;width:64%;bottom:0;"></div>
+          <div class="tz" style="right:4%;top:25%;width:28%;height:50%;"><div class="tl s" style="width:55%;"></div><div class="tl t" style="width:90%;"></div><div class="tl t" style="width:65%;"></div><div class="tl s" style="width:80%;margin-top:4px;"></div></div>
+        </div>
+        <div class="name">좌 사진 + 우 텍스트</div>
+        <div class="tags"><span class="tag bleed">BLEED-L</span><span class="tag text">TEXT-RIGHT</span></div>
+      </div>
+      <!-- L1-D NEW: 에디토리얼 45+55 -->
+      <div class="layout-card" data-count="1" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L1-D</div>
+        <div class="page landscape">
+          <div class="slot" style="left:5%;top:8%;width:42%;height:56%;"></div>
+          <div class="tz" style="right:5%;top:10%;width:42%;height:60%;"><div class="tl t" style="width:70%;"></div><div class="tl s" style="width:50%;margin-top:6px;"></div><div class="tl s" style="width:90%;margin-top:6px;"></div><div class="tl s" style="width:85%;"></div><div class="tl s" style="width:75%;"></div><div class="tl s" style="width:80%;"></div></div>
+        </div>
+        <div class="name">에디토리얼 좌사진+우텍스트블록</div>
+        <div class="tags"><span class="tag new">NEW</span><span class="tag text">EDITORIAL</span></div>
+      </div>
+      <!-- L1-E NEW: 파노라마 상단+텍스트 -->
+      <div class="layout-card" data-count="1" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L1-E</div>
+        <div class="page landscape">
+          <div class="slot" style="left:0;top:0;right:0;height:55%;"></div>
+          <div class="tz" style="left:5%;top:62%;width:40%;height:30%;"><div class="tl t" style="width:90%;"></div><div class="tl s" style="width:60%;margin-top:4px;"></div><div class="tl s" style="width:80%;margin-top:4px;"></div></div>
+          <div class="tz" style="right:5%;top:62%;width:40%;height:30%;"><div class="tl s" style="width:100%;"></div><div class="tl s" style="width:95%;"></div><div class="tl s" style="width:85%;"></div><div class="tl s" style="width:90%;"></div></div>
+        </div>
+        <div class="name">파노라마 + 하단 2컬럼 텍스트</div>
+        <div class="tags"><span class="tag new">NEW</span><span class="tag">PANORAMIC</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 2장 ═══════════════ -->
+<div class="section" data-id="2">
+  <div class="section-head"><h2>2장 레이아웃</h2><p>두 사진의 균형과 대비</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="2" data-orient="portrait">
+        <div class="label">P2-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:49.3%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:49.3%;bottom:0;"></div></div>
+        <div class="name">좌우 5:5</div><div class="tags"><span class="tag">EQUAL-SPLIT</span></div>
+      </div>
+      <div class="layout-card" data-count="2" data-orient="portrait">
+        <div class="label">P2-B</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;right:0;height:49.3%;"></div></div>
+        <div class="name">상하 5:5</div><div class="tags"><span class="tag">STACK</span></div>
+      </div>
+      <div class="layout-card" data-count="2" data-orient="portrait">
+        <div class="label">P2-C</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:64%;bottom:0;"></div><div class="slot" style="right:0;top:15%;width:34.5%;height:70%;"></div></div>
+        <div class="name">비대칭 대소</div><div class="tags"><span class="tag hero">HERO+SIDE</span></div>
+      </div>
+      <!-- P2-D NEW: 마진 상하 -->
+      <div class="layout-card" data-count="2" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P2-D</div>
+        <div class="page portrait"><div class="slot" style="left:6%;top:4%;width:88%;height:46%;"></div><div class="slot" style="left:6%;bottom:4%;width:88%;height:46%;"></div></div>
+        <div class="name">마진 상하</div><div class="tags"><span class="tag new">NEW</span><span class="tag">MARGIN-STACK</span></div>
+      </div>
+      <!-- P2-E NEW: 대소 상하 6:4 -->
+      <div class="layout-card" data-count="2" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P2-E</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:63%;"></div><div class="slot" style="left:0;bottom:0;right:0;height:35.5%;"></div></div>
+        <div class="name">상대 하소</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">BIG-TOP</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="2" data-orient="landscape">
+        <div class="label">L2-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:49.3%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:49.3%;bottom:0;"></div></div>
+        <div class="name">좌우 5:5</div><div class="tags"><span class="tag">EQUAL-SPLIT</span></div>
+      </div>
+      <div class="layout-card" data-count="2" data-orient="landscape">
+        <div class="label">L2-B</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:59%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:39.5%;bottom:0;"></div></div>
+        <div class="name">대소 6:4</div><div class="tags"><span class="tag hero">HERO+SIDE</span></div>
+      </div>
+      <div class="layout-card" data-count="2" data-orient="landscape">
+        <div class="label">L2-C</div>
+        <div class="page landscape">
+          <div class="slot" style="left:0;top:0;width:49.3%;bottom:0;"></div>
+          <div class="slot" style="right:0;top:0;width:49.3%;height:58%;"></div>
+          <div class="tz" style="right:3%;bottom:6%;width:44%;height:28%;"><div class="tl s" style="width:40%;"></div><div class="tl t" style="width:80%;"></div><div class="tl s" style="width:60%;"></div></div>
+        </div>
+        <div class="name">좌사진 + 우사진+텍스트</div><div class="tags"><span class="tag text">TEXT</span></div>
+      </div>
+      <!-- L2-D NEW: 마진 좌우 -->
+      <div class="layout-card" data-count="2" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L2-D</div>
+        <div class="page landscape"><div class="slot" style="left:4%;top:6%;width:44%;height:88%;"></div><div class="slot" style="right:4%;top:6%;width:44%;height:88%;"></div></div>
+        <div class="name">마진 좌우</div><div class="tags"><span class="tag new">NEW</span><span class="tag">MARGIN</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 3장 ═══════════════ -->
+<div class="section" data-id="3">
+  <div class="section-head"><h2>3장 레이아웃</h2><p>히어로+서브 또는 균등 분할</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="3" data-orient="portrait">
+        <div class="label">P3-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:58%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:40.5%;"></div></div>
+        <div class="name">1히어로 + 2하단</div><div class="tags"><span class="tag hero">HERO-TOP</span></div>
+      </div>
+      <div class="layout-card" data-count="3" data-orient="portrait">
+        <div class="label">P3-B</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:40.5%;height:49.3%;"></div></div>
+        <div class="name">1대좌 + 2우스택</div><div class="tags"><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+      <div class="layout-card" data-count="3" data-orient="portrait">
+        <div class="label">P3-C</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:32.8%;bottom:0;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:32.8%;bottom:0;"></div></div>
+        <div class="name">3등분 컬럼</div><div class="tags"><span class="tag">EQUAL-COL</span></div>
+      </div>
+      <!-- P3-D NEW: 3등분 행 -->
+      <div class="layout-card" data-count="3" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P3-D</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:32.8%;"></div><div class="slot" style="left:0;top:33.6%;right:0;height:32.8%;"></div><div class="slot" style="left:0;bottom:0;right:0;height:32.8%;"></div></div>
+        <div class="name">3등분 행(가로사진용)</div><div class="tags"><span class="tag new">NEW</span><span class="tag">ROW-STACK</span></div>
+      </div>
+      <!-- P3-E NEW: L자형 -->
+      <div class="layout-card" data-count="3" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P3-E</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:49.3%;height:58%;"></div><div class="slot" style="right:0;top:0;width:49.3%;bottom:0;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:40.5%;"></div></div>
+        <div class="name">L자형</div><div class="tags"><span class="tag new">NEW</span><span class="tag">L-SHAPE</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="3" data-orient="landscape">
+        <div class="label">L3-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:32.8%;bottom:0;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:32.8%;bottom:0;"></div></div>
+        <div class="name">3등분 컬럼</div><div class="tags"><span class="tag">EQUAL-COL</span></div>
+      </div>
+      <div class="layout-card" data-count="3" data-orient="landscape">
+        <div class="label">L3-B</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:58%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:40.5%;height:49.3%;"></div></div>
+        <div class="name">1히어로좌 + 2우</div><div class="tags"><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+      <div class="layout-card" data-count="3" data-orient="landscape">
+        <div class="label">L3-C</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:40.5%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:40.5%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:58%;bottom:0;"></div></div>
+        <div class="name">2좌 + 1히어로우</div><div class="tags"><span class="tag hero">HERO-RIGHT</span></div>
+      </div>
+      <!-- L3-D NEW: 1상단 + 2하단 -->
+      <div class="layout-card" data-count="3" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L3-D</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;right:0;height:58%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:40.5%;"></div></div>
+        <div class="name">1히어로상 + 2하단</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">HERO-TOP</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 4장 ═══════════════ -->
+<div class="section" data-id="4">
+  <div class="section-head"><h2>4장 레이아웃</h2><p>그리드와 벤토 스타일</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="label">P4-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:49.3%;"></div></div>
+        <div class="name">2x2 균등</div><div class="tags"><span class="tag">GRID</span></div>
+      </div>
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="label">P4-B</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:58%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:40.5%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:40.5%;"></div></div>
+        <div class="name">1히어로 + 3하단</div><div class="tags"><span class="tag hero">HERO-TOP</span></div>
+      </div>
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="label">P4-C</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;height:58%;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:58%;"></div><div class="slot" style="left:0;bottom:0;width:40.5%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:58%;height:40.5%;"></div></div>
+        <div class="name">벤토 비대칭</div><div class="tags"><span class="tag hero">BENTO</span></div>
+      </div>
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="label">P4-D</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:32.8%;"></div><div class="slot" style="right:0;top:33.6%;width:40.5%;height:32.8%;"></div><div class="slot" style="right:0;bottom:0;width:40.5%;height:32.8%;"></div></div>
+        <div class="name">1대좌 + 3우스택</div><div class="tags"><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+      <!-- P4-E NEW: 골든 벤토 -->
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P4-E</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:64%;height:64%;"></div><div class="slot" style="right:0;top:0;width:34.5%;height:34%;"></div><div class="slot" style="right:0;top:35.5%;width:34.5%;height:28.5%;"></div><div class="slot" style="left:0;bottom:0;right:0;height:34.5%;"></div></div>
+        <div class="name">골든 벤토</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">GOLDEN</span></div>
+      </div>
+      <!-- P4-F NEW: 4세로컬럼 -->
+      <div class="layout-card" data-count="4" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P4-F</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:24.3%;bottom:0;"></div><div class="slot" style="left:25.2%;top:0;width:24.3%;bottom:0;"></div><div class="slot" style="left:50.4%;top:0;width:24.3%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:24.3%;bottom:0;"></div></div>
+        <div class="name">4등분 세로컬럼</div><div class="tags"><span class="tag new">NEW</span><span class="tag">COLUMN</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="4" data-orient="landscape">
+        <div class="label">L4-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:49.3%;"></div></div>
+        <div class="name">2x2 균등</div><div class="tags"><span class="tag">GRID</span></div>
+      </div>
+      <div class="layout-card" data-count="4" data-orient="landscape">
+        <div class="label">L4-B</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:58%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:32.8%;"></div><div class="slot" style="right:0;top:33.6%;width:40.5%;height:32.8%;"></div><div class="slot" style="right:0;bottom:0;width:40.5%;height:32.8%;"></div></div>
+        <div class="name">1히어로 + 3우스택</div><div class="tags"><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+      <div class="layout-card" data-count="4" data-orient="landscape">
+        <div class="label">L4-C</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:58%;height:58%;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:58%;"></div><div class="slot" style="left:0;bottom:0;width:40.5%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:58%;height:40.5%;"></div></div>
+        <div class="name">벤토 비대칭</div><div class="tags"><span class="tag hero">BENTO</span></div>
+      </div>
+      <!-- L4-D NEW: 골든 벤토 가로 -->
+      <div class="layout-card" data-count="4" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L4-D</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:60%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:38.5%;height:49.3%;"></div><div class="slot" style="left:61.5%;bottom:0;width:18.5%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:18.5%;height:49.3%;"></div></div>
+        <div class="name">골든 벤토</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">GOLDEN</span></div>
+      </div>
+      <!-- L4-E NEW: 3상+1하 -->
+      <div class="layout-card" data-count="4" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L4-E</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;right:0;height:49.3%;"></div></div>
+        <div class="name">3상단 + 1히어로하</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">HERO-BOT</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 5장 ═══════════════ -->
+<div class="section" data-id="5">
+  <div class="section-head"><h2>5장 레이아웃</h2><p>2+3 또는 히어로+그리드 조합</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="5" data-orient="portrait">
+        <div class="label">P5-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:49.3%;"></div></div>
+        <div class="name">2상 + 3하</div><div class="tags"><span class="tag">2+3 SPLIT</span></div>
+      </div>
+      <div class="layout-card" data-count="5" data-orient="portrait">
+        <div class="label">P5-B</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:49.3%;"></div></div>
+        <div class="name">3상 + 2하</div><div class="tags"><span class="tag">3+2 SPLIT</span></div>
+      </div>
+      <div class="layout-card" data-count="5" data-orient="portrait">
+        <div class="label">P5-C</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;right:0;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:24.3%;height:49.3%;"></div><div class="slot" style="left:25.2%;bottom:0;width:24.3%;height:49.3%;"></div><div class="slot" style="left:50.4%;bottom:0;width:24.3%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:24.3%;height:49.3%;"></div></div>
+        <div class="name">1히어로 + 4하단</div><div class="tags"><span class="tag hero">HERO-TOP</span></div>
+      </div>
+      <!-- P5-D NEW: 1대좌 + 4우그리드 -->
+      <div class="layout-card" data-count="5" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P5-D</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;bottom:0;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:24.3%;"></div><div class="slot" style="right:0;top:25.2%;width:40.5%;height:24.3%;"></div><div class="slot" style="right:0;top:50.4%;width:40.5%;height:24.3%;"></div><div class="slot" style="right:0;bottom:0;width:40.5%;height:24.3%;"></div></div>
+        <div class="name">1대좌 + 4우스택</div><div class="tags"><span class="tag new">NEW</span><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="5" data-orient="landscape">
+        <div class="label">L5-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:49.3%;"></div></div>
+        <div class="name">2상 + 3하</div><div class="tags"><span class="tag">2+3 SPLIT</span></div>
+      </div>
+      <div class="layout-card" data-count="5" data-orient="landscape">
+        <div class="label">L5-B</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:39%;bottom:0;"></div><div class="slot" style="left:40.5%;top:0;width:28.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:28.8%;height:49.3%;"></div><div class="slot" style="left:40.5%;bottom:0;width:28.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:28.8%;height:49.3%;"></div></div>
+        <div class="name">1히어로좌 + 4그리드</div><div class="tags"><span class="tag hero">HERO-LEFT</span></div>
+      </div>
+      <!-- L5-C NEW: 3상+2하 -->
+      <div class="layout-card" data-count="5" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L5-C</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:49.3%;"></div></div>
+        <div class="name">3상 + 2하</div><div class="tags"><span class="tag new">NEW</span><span class="tag">3+2 SPLIT</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 6장 ═══════════════ -->
+<div class="section" data-id="6">
+  <div class="section-head"><h2>6장 레이아웃</h2><p>매거진 스타일 멀티 그리드</p></div>
+
+  <div class="orient-group" data-orient="portrait">
+    <div class="orient-label">세로 Portrait</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="6" data-orient="portrait">
+        <div class="label">P6-A</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:49.3%;"></div></div>
+        <div class="name">3x2 균등</div><div class="tags"><span class="tag">GRID</span></div>
+      </div>
+      <div class="layout-card" data-count="6" data-orient="portrait">
+        <div class="label">P6-B</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:32.8%;"></div><div class="slot" style="left:0;top:33.6%;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;top:33.6%;width:49.3%;height:32.8%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:32.8%;"></div></div>
+        <div class="name">2x3 균등</div><div class="tags"><span class="tag">GRID</span></div>
+      </div>
+      <div class="layout-card" data-count="6" data-orient="portrait">
+        <div class="label">P6-C</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;height:58%;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:28.5%;"></div><div class="slot" style="right:0;top:29.5%;width:40.5%;height:28.5%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:40.5%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:40.5%;"></div></div>
+        <div class="name">1히어로 + 5</div><div class="tags"><span class="tag hero">HERO+GRID</span></div>
+      </div>
+      <!-- P6-D NEW: 1대좌 + 2우 + 3하 -->
+      <div class="layout-card" data-count="6" data-orient="portrait">
+        <div class="new-badge">NEW</div>
+        <div class="label">P6-D</div>
+        <div class="page portrait"><div class="slot" style="left:0;top:0;width:58%;height:58%;"></div><div class="slot" style="right:0;top:0;width:40.5%;height:28.5%;"></div><div class="slot" style="right:0;top:29.5%;width:40.5%;height:28.5%;"></div><div class="slot" style="left:0;bottom:0;width:24.3%;height:40.5%;"></div><div class="slot" style="left:25.2%;bottom:0;width:24.3%;height:40.5%;"></div><div class="slot" style="left:50.4%;bottom:0;width:24.3%;height:40.5%;"></div><div class="slot" style="right:0;bottom:0;width:24.3%;height:40.5%;"></div></div>
+        <div class="name">1히어로 + 2우 + 4하</div><div class="tags"><span class="tag new">NEW</span><span class="tag">7장 확장형</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="orient-group" data-orient="landscape">
+    <div class="orient-label">가로 Landscape</div>
+    <div class="layout-grid">
+      <div class="layout-card" data-count="6" data-orient="landscape">
+        <div class="label">L6-A</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:0;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="left:33.6%;bottom:0;width:32.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:32.8%;height:49.3%;"></div></div>
+        <div class="name">3x2 균등</div><div class="tags"><span class="tag">GRID</span></div>
+      </div>
+      <div class="layout-card" data-count="6" data-orient="landscape">
+        <div class="label">L6-B</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:49.3%;bottom:0;"></div><div class="slot" style="left:50.7%;top:0;width:24%;height:49.3%;"></div><div class="slot" style="right:0;top:0;width:24%;height:49.3%;"></div><div class="slot" style="left:50.7%;bottom:0;width:15.8%;height:49.3%;"></div><div class="slot" style="left:67.3%;bottom:0;width:15.8%;height:49.3%;"></div><div class="slot" style="right:0;bottom:0;width:15.8%;height:49.3%;"></div></div>
+        <div class="name">1히어로 + 5</div><div class="tags"><span class="tag hero">HERO+GRID</span></div>
+      </div>
+      <!-- L6-C NEW: 2x3 가로 -->
+      <div class="layout-card" data-count="6" data-orient="landscape">
+        <div class="new-badge">NEW</div>
+        <div class="label">L6-C</div>
+        <div class="page landscape"><div class="slot" style="left:0;top:0;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;top:0;width:49.3%;height:32.8%;"></div><div class="slot" style="left:0;top:33.6%;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;top:33.6%;width:49.3%;height:32.8%;"></div><div class="slot" style="left:0;bottom:0;width:49.3%;height:32.8%;"></div><div class="slot" style="right:0;bottom:0;width:49.3%;height:32.8%;"></div></div>
+        <div class="name">2x3 균등</div><div class="tags"><span class="tag new">NEW</span><span class="tag">GRID</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'))
+    document.querySelector(`.section[data-id="${id}"]`).classList.add('visible')
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'))
+    event.target.classList.add('active')
+    window.scrollTo(0, 0)
+  }
+  function filterOrient(orient, btn) {
+    document.querySelectorAll('.nav-orient button').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    document.querySelectorAll('.orient-group').forEach(g => {
+      g.style.display = (orient === 'all' || g.dataset.orient === orient) ? '' : 'none'
+    })
+    document.querySelectorAll('#all-grid .layout-card').forEach(c => {
+      c.style.display = (orient === 'all' || c.dataset.orient === orient) ? '' : 'none'
+    })
+  }
+  // 전체보기 자동 생성
+  const allGrid = document.getElementById('all-grid')
+  document.querySelectorAll('.section:not([data-id="all"]) .layout-card').forEach(card => {
+    allGrid.appendChild(card.cloneNode(true))
+  })
+</script>
+</body>
+</html>

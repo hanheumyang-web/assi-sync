@@ -9,6 +9,7 @@ import PdfBuilder from './components/PdfBuilder'
 import ProjectView from './components/ProjectView'
 import LoginScreen from './components/LoginScreen'
 import ProfileSettings from './components/ProfileSettings'
+import PortfolioEditor from './components/portfolio/PortfolioEditor'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -61,11 +62,12 @@ function App() {
   return (
     <div className={`flex ${isMobile ? 'flex-col' : ''} h-screen bg-[#F4F3EE]`}>
       {!isMobile && <Sidebar page={page} setPage={setPage} />}
-      <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-4 pb-20' : 'p-8'}`}>
+      <main className={`flex-1 min-w-0 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-4 pb-20' : 'p-8'}`}>
         {page === 'dashboard' && <Dashboard setPage={setPage} isMobile={isMobile} />}
         {page === 'feed' && <FeedPlanner isMobile={isMobile} />}
         {page === 'pdf' && <PdfBuilder isMobile={isMobile} />}
         {page === 'projects' && <ProjectView isMobile={isMobile} />}
+        {page === 'portfolio' && <PortfolioEditor isMobile={isMobile} />}
         {page === 'profile' && <ProfileSettings />}
       </main>
       {isMobile && <MobileTabBar page={page} setPage={setPage} />}

@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react'
 import { useProjects } from '../hooks/useProjects'
 import { useAssets } from '../hooks/useAssets'
+import { useAuth } from '../contexts/AuthContext'
+import { collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { db, storage } from '../firebase'
+import { guessContentType, compressImage } from '../hooks/useAssets'
 import { PageTransition, GridSkeleton, EmptyState } from './UIKit'
 
 const GRADIENT_COLORS = [
@@ -15,14 +20,21 @@ const GRADIENT_COLORS = [
 ]
 
 export default function ProjectView({ isMobile }) {
+  const { user } = useAuth()
   const { projects, loading, addProject, deleteProject, updateProject } = useProjects()
   const [selectedId, setSelectedId] = useState(null)
   const [filter, setFilter] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
+  const folderInputRef = useRef(null)
+  const [folderImporting, setFolderImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState({ step: '', current: 0, total: 0, projectName: '', totalBytes: 0, uploadedBytes: 0, eta: '' })
+  const importCancelRef = useRef(false)
 
-  const filters = ['전체', '화보', '광고', '웨딩', '프로필', '영상', '기타']
+  const DEFAULT_CATEGORIES = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
+  const customCats = [...new Set(projects.map(p => p.category).filter(c => c && !DEFAULT_CATEGORIES.includes(c)))]
+  const filters = ['전체', ...DEFAULT_CATEGORIES, ...customCats]
   const filtered = projects
     .filter(p => filter === '전체' || p.category === filter)
     .filter(p => {
@@ -34,6 +46,169 @@ export default function ProjectView({ isMobile }) {
   const selected = projects.find(p => p.id === selectedId)
 
   const getColor = (idx) => GRADIENT_COLORS[idx % GRADIENT_COLORS.length]
+
+  const formatBytes = (bytes) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+  }
+
+  const formatEta = (seconds) => {
+    if (!seconds || !isFinite(seconds)) return '계산 중...'
+    if (seconds < 60) return `약 ${Math.ceil(seconds)}초`
+    if (seconds < 3600) return `약 ${Math.ceil(seconds / 60)}분`
+    return `약 ${Math.floor(seconds / 3600)}시간 ${Math.ceil((seconds % 3600) / 60)}분`
+  }
+
+  const cancelImport = () => {
+    importCancelRef.current = true
+  }
+
+  // ── 로컬 폴더 불러오기 ──
+  const handleFolderImport = async (e) => {
+    if (!user) return
+    const files = Array.from(e.target.files)
+    e.target.value = ''
+    if (!files.length) return
+
+    // webkitRelativePath로 하위 폴더별 그룹핑
+    const IMAGE_EXTS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|svg)$/i
+    const VIDEO_EXTS = /\.(mp4|mov|avi|mkv|webm|m4v|wmv|flv)$/i
+    const isMediaFile = (f) => {
+      if (f.type.startsWith('image/') || f.type.startsWith('video/')) return true
+      return IMAGE_EXTS.test(f.name) || VIDEO_EXTS.test(f.name)
+    }
+    const isVideoFile = (f) => f.type.startsWith('video/') || VIDEO_EXTS.test(f.name)
+
+    const folderMap = {}
+    for (const file of files) {
+      if (!isMediaFile(file)) continue
+      const parts = file.webkitRelativePath.split('/')
+      const folderName = parts.length >= 3 ? parts[1] : parts[0]
+      if (!folderMap[folderName]) folderMap[folderName] = []
+      folderMap[folderName].push(file)
+    }
+
+    const folders = Object.entries(folderMap)
+    if (!folders.length) {
+      alert('이미지/영상 파일이 없습니다.')
+      return
+    }
+
+    const allMediaFiles = folders.reduce((arr, [, ff]) => [...arr, ...ff], [])
+    const totalBytes = allMediaFiles.reduce((sum, f) => sum + f.size, 0)
+
+    const confirmMsg = `${folders.length}개 폴더, 총 ${allMediaFiles.length}개 파일 (${formatBytes(totalBytes)})\n\n` +
+      folders.map(([name, f]) => `📁 ${name} (${f.length}장, ${formatBytes(f.reduce((s, ff) => s + ff.size, 0))})`).join('\n') +
+      '\n\n진행하시겠습니까?'
+    if (!window.confirm(confirmMsg)) return
+
+    setFolderImporting(true)
+    importCancelRef.current = false
+    let totalUploaded = 0
+    let uploadedBytes = 0
+    const totalFiles = allMediaFiles.length
+    const startTime = Date.now()
+
+    try {
+      for (let fi = 0; fi < folders.length; fi++) {
+        if (importCancelRef.current) break
+
+        const [folderName, folderFiles] = folders[fi]
+        setImportProgress({ step: 'project', current: totalUploaded, total: totalFiles, projectName: folderName, totalBytes, uploadedBytes, eta: formatEta(0) })
+
+        // 프로젝트 생성
+        const projectId = await addProject({
+          name: folderName,
+          client: '',
+          category: '기타',
+        })
+
+        // 파일 업로드
+        let imgCount = 0, vidCount = 0
+        let firstImageUrl = null
+
+        for (let i = 0; i < folderFiles.length; i++) {
+          if (importCancelRef.current) break
+
+          const file = folderFiles[i]
+          const isVideo = isVideoFile(file)
+
+          // ETA 계산
+          const elapsed = (Date.now() - startTime) / 1000
+          const speed = uploadedBytes > 0 ? uploadedBytes / elapsed : 0
+          const remaining = totalBytes - uploadedBytes
+          const eta = speed > 0 ? formatEta(remaining / speed) : '계산 중...'
+
+          setImportProgress({
+            step: 'upload',
+            current: totalUploaded,
+            total: totalFiles,
+            projectName: folderName,
+            totalBytes,
+            uploadedBytes,
+            eta,
+          })
+
+          // 이미지 자동 압축
+          const compressed = await compressImage(file)
+          const contentType = compressed.type || guessContentType(compressed.name)
+          const storagePath = `users/${user.uid}/projects/${projectId}/${Date.now()}_${file.name}`
+          const storageRef = ref(storage, storagePath)
+          await uploadBytes(storageRef, compressed, { contentType, contentDisposition: 'inline' })
+          const url = await getDownloadURL(storageRef)
+
+          await addDoc(collection(db, 'assets'), {
+            uid: user.uid,
+            projectId,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: contentType,
+            isVideo,
+            url,
+            storagePath,
+            createdAt: new Date().toISOString(),
+          })
+
+          if (isVideo) {
+            vidCount++
+            if (!firstImageUrl) firstImageUrl = url // 영상이라도 썸네일로
+          } else {
+            imgCount++
+            firstImageUrl = firstImageUrl || url // 이미지 우선
+          }
+
+          totalUploaded++
+          uploadedBytes += file.size
+        }
+
+        // 프로젝트 카운트 + 썸네일 업데이트
+        if (imgCount > 0 || vidCount > 0) {
+          const projectRef = doc(db, 'projects', projectId)
+          await updateDoc(projectRef, {
+            imageCount: imgCount,
+            videoCount: vidCount,
+            ...(firstImageUrl ? { thumbnailUrl: firstImageUrl } : {}),
+            updatedAt: new Date().toISOString(),
+          })
+        }
+      }
+
+      if (importCancelRef.current) {
+        alert(`업로드 취소됨. ${totalUploaded}개 파일까지 업로드 완료.`)
+      } else {
+        alert(`완료! ${folders.length}개 프로젝트, ${totalFiles}개 파일 업로드됨`)
+      }
+    } catch (err) {
+      console.error('폴더 임포트 실패:', err)
+      alert('업로드 중 오류 발생: ' + err.message)
+    } finally {
+      setFolderImporting(false)
+      importCancelRef.current = false
+      setImportProgress({ step: '', current: 0, total: 0, projectName: '', totalBytes: 0, uploadedBytes: 0, eta: '' })
+    }
+  }
 
   if (selected) {
     return (
@@ -75,6 +250,20 @@ export default function ProjectView({ isMobile }) {
               className={`pl-9 pr-4 py-2.5 bg-white rounded-full text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 shadow-sm ${isMobile ? 'w-full' : 'w-52'}`}
             />
           </div>
+          <input
+            ref={folderInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFolderImport}
+            {...{ webkitdirectory: '', directory: '' }}
+          />
+          <button
+            onClick={() => folderInputRef.current?.click()}
+            disabled={folderImporting}
+            className="px-5 py-2.5 bg-white text-gray-700 rounded-full text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex-shrink-0 border border-gray-200 disabled:opacity-50"
+          >
+            📁 폴더 불러오기
+          </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="px-5 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all flex-shrink-0"
@@ -110,16 +299,16 @@ export default function ProjectView({ isMobile }) {
           actionLabel="+ 첫 프로젝트 만들기"
         />
       ) : (
-        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-5`}>
+        <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-4`}>
           {filtered.map((p, i) => (
-            <button
+            <div
               key={p.id}
+              className="bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all text-left group relative cursor-pointer"
               onClick={() => setSelectedId(p.id)}
-              className="bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all text-left group"
             >
-              <div className={`h-40 relative overflow-hidden ${p.thumbnailUrl ? '' : `bg-gradient-to-br ${getColor(i)}`}`}>
+              <div className={`${isMobile ? 'h-32' : 'h-40'} relative overflow-hidden ${p.thumbnailUrl ? '' : `bg-gradient-to-br ${getColor(i)}`}`}>
                 {p.thumbnailUrl && (
-                  <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 )}
                 {p.embargoStatus === 'active' && (
                   <div className="absolute top-3 left-3 bg-amber-400 text-white text-[9px] font-bold px-3 py-1 rounded-full">
@@ -127,18 +316,33 @@ export default function ProjectView({ isMobile }) {
                   </div>
                 )}
                 <div className="absolute bottom-3 right-3 bg-white/80 text-[10px] font-bold px-2 py-1 rounded-full">
-                  {p.imageCount || 0}장
+                  {(p.imageCount || 0) + (p.videoCount || 0)}장
+                </div>
+                {/* 호버 수정 버튼 */}
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all flex gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingProject(p) }}
+                    className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-[#828DF8] transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (window.confirm('이 프로젝트를 삭제하시겠습니까?')) deleteProject(p.id) }}
+                    className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-red-500 transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
                 </div>
               </div>
-              <div className="p-5">
-                <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold">{p.client || 'CLIENT'}</p>
-                <p className="text-sm font-bold text-gray-900 tracking-tight mt-0.5 group-hover:text-[#828DF8] transition-colors">{p.name}</p>
+              <div className={isMobile ? 'p-3' : 'p-5'}>
+                <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold truncate">{p.client || 'CLIENT'}</p>
+                <p className="text-sm font-bold text-gray-900 tracking-tight mt-0.5 group-hover:text-[#828DF8] transition-colors truncate">{p.name}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-[10px] bg-[#F4F3EE] text-gray-500 px-2 py-0.5 rounded-full font-semibold">{p.category}</span>
-                  <span className="text-[10px] text-gray-400">{p.createdAt?.slice(0, 10)}</span>
+                  {!isMobile && <span className="text-[10px] text-gray-400">{p.createdAt?.slice(0, 10)}</span>}
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}
@@ -158,6 +362,46 @@ export default function ProjectView({ isMobile }) {
           onClose={() => setEditingProject(null)}
           onSave={async (data) => { await updateProject(editingProject.id, data); setEditingProject(null) }}
         />
+      )}
+
+      {/* 폴더 임포트 진행 오버레이 */}
+      {folderImporting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[#828DF8]/10 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#828DF8] border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">IMPORTING</p>
+            <h3 className="text-lg font-black tracking-tighter text-gray-900 mb-2">폴더 불러오는 중</h3>
+            <p className="text-sm font-bold text-gray-700 mb-1">{importProgress.projectName}</p>
+            <p className="text-xs text-gray-400 mb-1">
+              {importProgress.step === 'upload'
+                ? `파일 업로드 ${importProgress.current} / ${importProgress.total}`
+                : `프로젝트 생성 중...`}
+            </p>
+            {/* 용량 + ETA */}
+            <div className="flex items-center justify-center gap-3 text-[10px] text-gray-400 mb-4">
+              <span>{formatBytes(importProgress.uploadedBytes)} / {formatBytes(importProgress.totalBytes)}</span>
+              <span>·</span>
+              <span>{importProgress.eta || '계산 중...'}</span>
+            </div>
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#828DF8] rounded-full transition-all duration-300"
+                style={{ width: `${importProgress.total ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2 mb-4">
+              {importProgress.total ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%
+            </p>
+            <button
+              onClick={cancelImport}
+              className="px-6 py-2.5 bg-[#F4F3EE] text-gray-600 rounded-full text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-all"
+            >
+              업로드 취소
+            </button>
+          </div>
+        </div>
       )}
     </div>
     </PageTransition>
@@ -208,7 +452,9 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
         </div>
         <div className="flex gap-2">
           {project.embargoStatus === 'active' && (
-            <span className="text-[10px] bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-bold">엠바고: {project.embargoDate}</span>
+            <span className="text-[10px] bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-bold">
+              엠바고: {project.embargoDate?.includes('T') ? project.embargoDate.replace('T', ' ') : project.embargoDate}
+            </span>
           )}
           <span className="text-[10px] bg-[#828DF8]/10 text-[#828DF8] px-4 py-2 rounded-full font-bold">{project.category}</span>
           <button onClick={onEdit} className="text-[10px] bg-[#F4F3EE] text-gray-500 px-4 py-2 rounded-full font-bold hover:bg-gray-200">수정</button>
@@ -420,11 +666,13 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
 function ProjectModal({ project, onClose, onSave }) {
   const [name, setName] = useState(project?.name || '')
   const [client, setClient] = useState(project?.client || '')
-  const [category, setCategory] = useState(project?.category || '화보')
-  const [embargoDate, setEmbargoDate] = useState(project?.embargoDate || '')
+  const [category, setCategory] = useState(project?.category || 'FASHION')
+  const [embargoDate, setEmbargoDate] = useState(project?.embargoDate?.slice(0, 10) || '')
+  const [embargoTime, setEmbargoTime] = useState(project?.embargoDate?.slice(11, 16) || '00:00')
   const [saving, setSaving] = useState(false)
+  const [customCat, setCustomCat] = useState('')
 
-  const categories = ['화보', '광고', '웨딩', '프로필', '영상', '기타']
+  const categories = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
 
   const handleSubmit = async () => {
     if (!name.trim()) return
@@ -433,7 +681,7 @@ function ProjectModal({ project, onClose, onSave }) {
       name: name.trim(),
       client: client.trim(),
       category,
-      embargoDate: embargoDate || null,
+      embargoDate: embargoDate ? `${embargoDate}T${embargoTime || '00:00'}` : null,
       embargoStatus: embargoDate ? 'active' : 'none',
     })
     setSaving(false)
@@ -477,16 +725,48 @@ function ProjectModal({ project, onClose, onSave }) {
                   {c}
                 </button>
               ))}
+              {category && !categories.includes(category) && (
+                <button className="px-4 py-2 rounded-full text-xs font-bold bg-[#828DF8] text-white shadow-md">
+                  {category}
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <input
+                className="flex-1 px-3 py-2 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                placeholder="직접 입력"
+                value={customCat}
+                onChange={(e) => setCustomCat(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter' && customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
+              />
+              <button
+                onClick={() => { if (customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
+                className="px-3 py-2 bg-[#828DF8] text-white rounded-[12px] text-xs font-bold hover:bg-[#6b77e6] transition-colors"
+              >+</button>
             </div>
           </div>
           <div>
             <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">EMBARGO DATE (선택)</label>
-            <input
-              type="date"
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-              value={embargoDate}
-              onChange={(e) => setEmbargoDate(e.target.value)}
-            />
+            <div className="flex gap-2 mt-1">
+              <input
+                type="date"
+                className="flex-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                value={embargoDate}
+                onChange={(e) => setEmbargoDate(e.target.value)}
+              />
+              <input
+                type="time"
+                className="w-[120px] px-3 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                value={embargoTime}
+                onChange={(e) => setEmbargoTime(e.target.value)}
+                disabled={!embargoDate}
+              />
+            </div>
+            {embargoDate && (
+              <p className="text-[10px] text-gray-400 mt-1.5 ml-1">
+                {embargoDate} {embargoTime} 해금 예정
+              </p>
+            )}
           </div>
         </div>
 

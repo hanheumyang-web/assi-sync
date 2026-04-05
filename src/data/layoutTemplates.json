@@ -1,0 +1,431 @@
+{
+  "version": 3,
+  "templates": [
+
+    { "id": "P-hero-1", "name": "풀블리드", "style": "hero", "orientation": "portrait", "imageCount": 1, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [{ "x": 0, "y": 0, "w": 1.0, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 1 }], "decorations": [] },
+
+    { "id": "P-editorial-1", "name": "좌텍스트 우이미지", "style": "editorial", "orientation": "portrait", "imageCount": 1, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.15, "w": 0.32, "h": 0.5, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.05, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.10, "w": 0.3, "h": 0.008, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.15, "w": 1, "h": 0.25, "fontSize": 18, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.50, "w": 1, "h": 0.06, "fontSize": 8, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [{ "x": 0.35, "y": 0, "w": 0.65, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tr" }],
+      "decorations": [{ "type": "shape", "x": 0.34, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "P-overlay-1", "name": "하단 오버레이", "style": "hero", "orientation": "portrait", "imageCount": 1, "ratioProfile": "all-landscape", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.78, "w": 0.6, "h": 0.22, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.6, "h": 0.1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0, "y": 0.25, "w": 1, "h": 0.35, "fontSize": 20, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.70, "w": 1, "h": 0.1, "fontSize": 8, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [{ "x": 0, "y": 0, "w": 1.0, "h": 0.75, "fit": "contain", "idealRatio": 1.6, "priority": 1, "anchor": "tl" }], "decorations": [] },
+
+    { "id": "P-center-1P", "name": "센터 세로", "style": "column", "orientation": "portrait", "imageCount": 1, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [{ "x": 0.10, "y": 0, "w": 0.80, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1 }], "decorations": [] },
+
+
+    { "id": "P-editorial-2", "name": "좌텍스트 우2장", "style": "editorial", "orientation": "portrait", "imageCount": 2, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.15, "w": 0.32, "h": 0.5, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.05, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.10, "w": 0.3, "h": 0.008, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.15, "w": 1, "h": 0.25, "fontSize": 16, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.50, "w": 1, "h": 0.06, "fontSize": 8, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [
+        { "x": 0.35, "y": 0, "w": 0.65, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tr" },
+        { "x": 0.35, "y": 0.51, "w": 0.65, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "br" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0.34, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "P-asymmetric-2", "name": "대소 비대칭", "style": "bento", "orientation": "portrait", "imageCount": 2, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.64, "h": 1.0, "fit": "contain", "idealRatio": 0.9, "priority": 1, "anchor": "tl" },
+        { "x": 0.66, "y": 0.20, "w": 0.34, "h": 0.60, "fit": "contain", "idealRatio": 0.8, "priority": 2, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "P-stack-2L", "name": "상하 스택", "style": "grid", "orientation": "portrait", "imageCount": 2, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 1.0, "h": 0.49, "fit": "contain", "idealRatio": 1.8, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.51, "w": 1.0, "h": 0.49, "fit": "contain", "idealRatio": 1.8, "priority": 2, "anchor": "bl" }
+      ], "decorations": [] },
+
+    { "id": "P-side-2P", "name": "좌우 배치", "style": "column", "orientation": "portrait", "imageCount": 2, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.49, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0, "w": 0.49, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "P-stagger-2P", "name": "오프셋 세로", "style": "bento", "orientation": "portrait", "imageCount": 2, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.48, "h": 0.88, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.52, "y": 0.12, "w": 0.48, "h": 0.88, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-topbar-2", "name": "상단바 + 2장", "style": "grid", "orientation": "portrait", "imageCount": 2, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.05, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.3, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.35, "y": 0, "w": 0.65, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "right" }
+      ]},
+      "imageSlots": [
+        { "x": 0, "y": 0.07, "w": 0.49, "h": 0.93, "fit": "contain", "idealRatio": 0.8, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0.07, "w": 0.49, "h": 0.93, "fit": "contain", "idealRatio": 0.8, "priority": 2, "anchor": "tr" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.055, "w": 1, "h": 0.002, "colorKey": "accent", "opacity": 0.15 }] },
+
+
+    { "id": "P-editorial-3", "name": "좌텍스트 우3장", "style": "editorial", "orientation": "portrait", "imageCount": 3, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.15, "w": 0.30, "h": 0.45, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.05, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.10, "w": 0.3, "h": 0.008, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.15, "w": 1, "h": 0.25, "fontSize": 15, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.50, "w": 1, "h": 0.06, "fontSize": 8, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [
+        { "x": 0.33, "y": 0, "w": 0.67, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tr" },
+        { "x": 0.33, "y": 0.51, "w": 0.33, "h": 0.49, "fit": "contain", "idealRatio": 1.0, "priority": 2, "anchor": "bl" },
+        { "x": 0.67, "y": 0.51, "w": 0.33, "h": 0.49, "fit": "contain", "idealRatio": 1.0, "priority": 3, "anchor": "br" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0.32, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "P-hero-bottom-3", "name": "히어로 + 하단", "style": "bento", "orientation": "portrait", "imageCount": 3, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 1.0, "h": 0.62, "fit": "contain", "idealRatio": 1.4, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.64, "w": 0.49, "h": 0.36, "fit": "contain", "idealRatio": 1.3, "priority": 2, "anchor": "bl" },
+        { "x": 0.51, "y": 0.64, "w": 0.49, "h": 0.36, "fit": "contain", "idealRatio": 1.3, "priority": 3, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-L-shape-3", "name": "L자 비대칭", "style": "magazine", "orientation": "portrait", "imageCount": 3, "ratioProfile": "mixed", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.55, "h": 1.0, "fit": "contain", "idealRatio": 0.75, "priority": 1, "anchor": "tl" },
+        { "x": 0.57, "y": 0, "w": 0.43, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 2, "anchor": "tr" },
+        { "x": 0.57, "y": 0.51, "w": 0.43, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 3, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-triple-col-3P", "name": "트리플 컬럼", "style": "column", "orientation": "portrait", "imageCount": 3, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.34, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "tc" },
+        { "x": 0.68, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 3, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "P-topbar-3L", "name": "상단바 + 3장", "style": "grid", "orientation": "portrait", "imageCount": 3, "ratioProfile": "all-landscape", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.05, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.3, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.35, "y": 0, "w": 0.65, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "right" }
+      ]},
+      "imageSlots": [
+        { "x": 0, "y": 0.07, "w": 1.0, "h": 0.30, "fit": "contain", "idealRatio": 1.8, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.39, "w": 1.0, "h": 0.30, "fit": "contain", "idealRatio": 1.8, "priority": 2, "anchor": "cl" },
+        { "x": 0, "y": 0.71, "w": 1.0, "h": 0.29, "fit": "contain", "idealRatio": 1.8, "priority": 3, "anchor": "bl" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.055, "w": 1, "h": 0.002, "colorKey": "accent", "opacity": 0.15 }] },
+
+    { "id": "P-diagonal-3", "name": "대각선 배치", "style": "magazine", "orientation": "portrait", "imageCount": 3, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.65, "h": 0.50, "fit": "contain", "idealRatio": 1.4, "priority": 1, "anchor": "tl" },
+        { "x": 0.15, "y": 0.52, "w": 0.50, "h": 0.48, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "bl" },
+        { "x": 0.67, "y": 0.18, "w": 0.33, "h": 0.52, "fit": "contain", "idealRatio": 0.8, "priority": 3, "anchor": "tr" }
+      ], "decorations": [] },
+
+
+    { "id": "P-grid-4", "name": "2x2 그리드", "style": "grid", "orientation": "portrait", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 3, "anchor": "bl" },
+        { "x": 0.51, "y": 0.51, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-bento-4", "name": "히어로 벤토", "style": "bento", "orientation": "portrait", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.62, "h": 0.64, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tl" },
+        { "x": 0.64, "y": 0, "w": 0.36, "h": 0.31, "fit": "contain", "idealRatio": 1.3, "priority": 2, "anchor": "tr" },
+        { "x": 0.64, "y": 0.33, "w": 0.36, "h": 0.31, "fit": "contain", "idealRatio": 1.3, "priority": 3, "anchor": "tr" },
+        { "x": 0, "y": 0.66, "w": 1.0, "h": 0.34, "fit": "contain", "idealRatio": 2.0, "priority": 4, "anchor": "bl" }
+      ], "decorations": [] },
+
+    { "id": "P-zigzag-4", "name": "지그재그", "style": "magazine", "orientation": "portrait", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.64, "h": 0.49, "fit": "contain", "idealRatio": 1.4, "priority": 1, "anchor": "tl" },
+        { "x": 0.66, "y": 0, "w": 0.34, "h": 0.49, "fit": "contain", "idealRatio": 0.8, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.34, "h": 0.49, "fit": "contain", "idealRatio": 0.8, "priority": 3, "anchor": "bl" },
+        { "x": 0.36, "y": 0.51, "w": 0.64, "h": 0.49, "fit": "contain", "idealRatio": 1.4, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-hero-strip-4L", "name": "히어로 + 스트립", "style": "bento", "orientation": "portrait", "imageCount": 4, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 1.0, "h": 0.60, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "bl" },
+        { "x": 0.34, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.2, "priority": 3, "anchor": "bc" },
+        { "x": 0.68, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.2, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-topbar-4", "name": "상단바 + 4장", "style": "grid", "orientation": "portrait", "imageCount": 4, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.05, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.3, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.35, "y": 0, "w": 0.65, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "right" }
+      ]},
+      "imageSlots": [
+        { "x": 0, "y": 0.07, "w": 0.49, "h": 0.46, "fit": "contain", "idealRatio": 1.2, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0.07, "w": 0.49, "h": 0.46, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.55, "w": 0.49, "h": 0.45, "fit": "contain", "idealRatio": 1.2, "priority": 3, "anchor": "bl" },
+        { "x": 0.51, "y": 0.55, "w": 0.49, "h": 0.45, "fit": "contain", "idealRatio": 1.2, "priority": 4, "anchor": "br" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.055, "w": 1, "h": 0.002, "colorKey": "accent", "opacity": 0.15 }] },
+
+
+    { "id": "P-bento-5", "name": "벤토 5장", "style": "bento", "orientation": "portrait", "imageCount": 5, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.60, "h": 0.60, "fit": "contain", "idealRatio": 1.1, "priority": 1, "anchor": "tl" },
+        { "x": 0.62, "y": 0, "w": 0.38, "h": 0.29, "fit": "contain", "idealRatio": 1.4, "priority": 2, "anchor": "tr" },
+        { "x": 0.62, "y": 0.31, "w": 0.38, "h": 0.29, "fit": "contain", "idealRatio": 1.4, "priority": 3, "anchor": "tr" },
+        { "x": 0, "y": 0.62, "w": 0.49, "h": 0.38, "fit": "contain", "idealRatio": 1.3, "priority": 4, "anchor": "bl" },
+        { "x": 0.51, "y": 0.62, "w": 0.49, "h": 0.38, "fit": "contain", "idealRatio": 1.3, "priority": 5, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-hero-4grid-5", "name": "히어로 + 4그리드", "style": "grid", "orientation": "portrait", "imageCount": 5, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 1.0, "h": 0.52, "fit": "contain", "idealRatio": 1.6, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.54, "w": 0.49, "h": 0.23, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "bl" },
+        { "x": 0.51, "y": 0.54, "w": 0.49, "h": 0.23, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "br" },
+        { "x": 0, "y": 0.79, "w": 0.49, "h": 0.21, "fit": "contain", "idealRatio": 1.5, "priority": 4, "anchor": "bl" },
+        { "x": 0.51, "y": 0.79, "w": 0.49, "h": 0.21, "fit": "contain", "idealRatio": 1.5, "priority": 5, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-topbar-5", "name": "상단바 + 2+3", "style": "grid", "orientation": "portrait", "imageCount": 5, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.05, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.3, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.35, "y": 0, "w": 0.65, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "right" }
+      ]},
+      "imageSlots": [
+        { "x": 0, "y": 0.07, "w": 0.49, "h": 0.46, "fit": "contain", "idealRatio": 1.2, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0.07, "w": 0.49, "h": 0.46, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.55, "w": 0.32, "h": 0.45, "fit": "contain", "idealRatio": 1.0, "priority": 3, "anchor": "bl" },
+        { "x": 0.34, "y": 0.55, "w": 0.32, "h": 0.45, "fit": "contain", "idealRatio": 1.0, "priority": 4, "anchor": "bc" },
+        { "x": 0.68, "y": 0.55, "w": 0.32, "h": 0.45, "fit": "contain", "idealRatio": 1.0, "priority": 5, "anchor": "br" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.055, "w": 1, "h": 0.002, "colorKey": "accent", "opacity": 0.15 }] },
+
+
+    { "id": "P-dense-6", "name": "밀집 그리드", "style": "grid", "orientation": "portrait", "imageCount": 6, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.34, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 3, "anchor": "cl" },
+        { "x": 0.51, "y": 0.34, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 4, "anchor": "cr" },
+        { "x": 0, "y": 0.68, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 5, "anchor": "bl" },
+        { "x": 0.51, "y": 0.68, "w": 0.49, "h": 0.32, "fit": "contain", "idealRatio": 1.2, "priority": 6, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "P-bento-6", "name": "벤토 6장", "style": "bento", "orientation": "portrait", "imageCount": 6, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.64, "h": 0.49, "fit": "contain", "idealRatio": 1.4, "priority": 1, "anchor": "tl" },
+        { "x": 0.66, "y": 0, "w": 0.34, "h": 0.24, "fit": "contain", "idealRatio": 1.4, "priority": 2, "anchor": "tr" },
+        { "x": 0.66, "y": 0.26, "w": 0.34, "h": 0.24, "fit": "contain", "idealRatio": 1.4, "priority": 3, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.34, "h": 0.49, "fit": "contain", "idealRatio": 0.8, "priority": 4, "anchor": "bl" },
+        { "x": 0.36, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 0.8, "priority": 5, "anchor": "bc" },
+        { "x": 0.70, "y": 0.51, "w": 0.30, "h": 0.49, "fit": "contain", "idealRatio": 0.8, "priority": 6, "anchor": "br" }
+      ], "decorations": [] },
+
+
+
+    { "id": "L-hero-1", "name": "풀블리드", "style": "hero", "orientation": "landscape", "imageCount": 1, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [{ "x": 0, "y": 0, "w": 1.0, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 1 }], "decorations": [] },
+
+    { "id": "L-editorial-1", "name": "좌텍스트 우이미지", "style": "editorial", "orientation": "landscape", "imageCount": 1, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.10, "w": 0.25, "h": 0.6, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.06, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.12, "w": 0.3, "h": 0.01, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.18, "w": 1, "h": 0.30, "fontSize": 24, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.55, "w": 1, "h": 0.07, "fontSize": 9, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [{ "x": 0.28, "y": 0, "w": 0.72, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tr" }],
+      "decorations": [{ "type": "shape", "x": 0.27, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "L-overlay-1L", "name": "하단 오버레이", "style": "hero", "orientation": "landscape", "imageCount": 1, "ratioProfile": "all-landscape", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.72, "w": 0.45, "h": 0.28, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.5, "h": 0.12, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0, "y": 0.28, "w": 1, "h": 0.40, "fontSize": 26, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.75, "w": 1, "h": 0.10, "fontSize": 9, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [{ "x": 0, "y": 0, "w": 1.0, "h": 0.70, "fit": "contain", "idealRatio": 1.8, "priority": 1, "anchor": "tl" }], "decorations": [] },
+
+    { "id": "L-center-1P", "name": "세로사진 센터", "style": "column", "orientation": "landscape", "imageCount": 1, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [{ "x": 0.25, "y": 0, "w": 0.50, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1 }], "decorations": [] },
+
+
+    { "id": "L-editorial-2", "name": "좌텍스트 우2장", "style": "editorial", "orientation": "landscape", "imageCount": 2, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.10, "w": 0.22, "h": 0.6, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.06, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.12, "w": 0.3, "h": 0.01, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.18, "w": 1, "h": 0.30, "fontSize": 20, "fontWeight": "bold", "colorKey": "text", "align": "left" },
+        { "role": "client", "x": 0, "y": 0.55, "w": 1, "h": 0.07, "fontSize": 8, "colorKey": "sub", "align": "left" }
+      ]},
+      "imageSlots": [
+        { "x": 0.24, "y": 0, "w": 0.37, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tl" },
+        { "x": 0.63, "y": 0, "w": 0.37, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 2, "anchor": "tr" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0.23, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "L-side-2L", "name": "좌우 가로", "style": "grid", "orientation": "landscape", "imageCount": 2, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.49, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0, "w": 0.49, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-asymmetric-2", "name": "대소 비대칭", "style": "bento", "orientation": "landscape", "imageCount": 2, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.62, "h": 1.0, "fit": "contain", "idealRatio": 1.2, "priority": 1, "anchor": "tl" },
+        { "x": 0.64, "y": 0.12, "w": 0.36, "h": 0.76, "fit": "contain", "idealRatio": 0.8, "priority": 2, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-side-2P", "name": "세로 좌우", "style": "column", "orientation": "landscape", "imageCount": 2, "ratioProfile": "all-portrait", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0.10, "y": 0, "w": 0.38, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.52, "y": 0, "w": 0.38, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-topbar-2", "name": "상단바 + 2장", "style": "grid", "orientation": "landscape", "imageCount": 2, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.08, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.25, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.30, "y": 0, "w": 0.70, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "right" }
+      ]},
+      "imageSlots": [
+        { "x": 0, "y": 0.10, "w": 0.49, "h": 0.90, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0.10, "w": 0.49, "h": 0.90, "fit": "contain", "idealRatio": 1.0, "priority": 2, "anchor": "tr" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.085, "w": 1, "h": 0.003, "colorKey": "accent", "opacity": 0.15 }] },
+
+
+    { "id": "L-3row-3L", "name": "가로 3연속", "style": "grid", "orientation": "landscape", "imageCount": 3, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.34, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tc" },
+        { "x": 0.68, "y": 0, "w": 0.32, "h": 1.0, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-triple-col-3P", "name": "세로 트리플", "style": "column", "orientation": "landscape", "imageCount": 3, "ratioProfile": "all-portrait", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0, "w": 1, "h": 0.08, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.2, "h": 1, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "title", "x": 0.25, "y": 0, "w": 0.50, "h": 1, "fontSize": 11, "fontWeight": "bold", "colorKey": "text", "align": "left" }
+      ]},
+      "imageSlots": [
+        { "x": 0.05, "y": 0.10, "w": 0.28, "h": 0.90, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.36, "y": 0.10, "w": 0.28, "h": 0.90, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "tc" },
+        { "x": 0.67, "y": 0.10, "w": 0.28, "h": 0.90, "fit": "contain", "idealRatio": 0.67, "priority": 3, "anchor": "tr" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0, "y": 0.085, "w": 1, "h": 0.003, "colorKey": "accent", "opacity": 0.15 }] },
+
+    { "id": "L-hero-bottom-3", "name": "히어로 + 하단", "style": "bento", "orientation": "landscape", "imageCount": 3, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 1.0, "h": 0.58, "fit": "contain", "idealRatio": 2.0, "priority": 1, "anchor": "tl" },
+        { "x": 0, "y": 0.60, "w": 0.49, "h": 0.40, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "bl" },
+        { "x": 0.51, "y": 0.60, "w": 0.49, "h": 0.40, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "L-editorial-3", "name": "좌텍스트 우3장", "style": "editorial", "orientation": "landscape", "imageCount": 3, "ratioProfile": "any", "hasTextZone": true,
+      "textZone": { "x": 0, "y": 0.10, "w": 0.20, "h": 0.55, "slots": [
+        { "role": "category", "x": 0, "y": 0, "w": 0.8, "h": 0.06, "fontSize": 7, "colorKey": "sub", "align": "left" },
+        { "role": "accent", "x": 0, "y": 0.12, "w": 0.3, "h": 0.01, "colorKey": "accent" },
+        { "role": "title", "x": 0, "y": 0.18, "w": 1, "h": 0.30, "fontSize": 18, "fontWeight": "bold", "colorKey": "text", "align": "left" }
+      ]},
+      "imageSlots": [
+        { "x": 0.22, "y": 0, "w": 0.25, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 1, "anchor": "tl" },
+        { "x": 0.49, "y": 0, "w": 0.25, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 2, "anchor": "tc" },
+        { "x": 0.76, "y": 0, "w": 0.24, "h": 1.0, "fit": "contain", "idealRatio": 0.67, "priority": 3, "anchor": "tr" }
+      ],
+      "decorations": [{ "type": "shape", "x": 0.21, "y": 0, "w": 0.002, "h": 1, "colorKey": "accent", "opacity": 0.1 }] },
+
+    { "id": "L-L-shape-3", "name": "L자 비대칭", "style": "magazine", "orientation": "landscape", "imageCount": 3, "ratioProfile": "mixed", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.58, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tl" },
+        { "x": 0.60, "y": 0, "w": 0.40, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tr" },
+        { "x": 0.60, "y": 0.51, "w": 0.40, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "br" }
+      ], "decorations": [] },
+
+
+    { "id": "L-grid-4", "name": "2x2 그리드", "style": "grid", "orientation": "landscape", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.51, "y": 0, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "bl" },
+        { "x": 0.51, "y": 0.51, "w": 0.49, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "L-bento-4", "name": "히어로 벤토", "style": "bento", "orientation": "landscape", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.55, "h": 1.0, "fit": "contain", "idealRatio": 1.0, "priority": 1, "anchor": "tl" },
+        { "x": 0.57, "y": 0, "w": 0.43, "h": 0.32, "fit": "contain", "idealRatio": 1.8, "priority": 2, "anchor": "tr" },
+        { "x": 0.57, "y": 0.34, "w": 0.43, "h": 0.32, "fit": "contain", "idealRatio": 1.8, "priority": 3, "anchor": "tr" },
+        { "x": 0.57, "y": 0.68, "w": 0.43, "h": 0.32, "fit": "contain", "idealRatio": 1.8, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "L-4row-4L", "name": "가로 4연속", "style": "grid", "orientation": "landscape", "imageCount": 4, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0.08, "w": 0.24, "h": 0.84, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.25, "y": 0.08, "w": 0.24, "h": 0.84, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tl" },
+        { "x": 0.50, "y": 0.08, "w": 0.24, "h": 0.84, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "tr" },
+        { "x": 0.75, "y": 0.08, "w": 0.25, "h": 0.84, "fit": "contain", "idealRatio": 1.5, "priority": 4, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-zigzag-4", "name": "지그재그", "style": "magazine", "orientation": "landscape", "imageCount": 4, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.62, "h": 0.49, "fit": "contain", "idealRatio": 1.8, "priority": 1, "anchor": "tl" },
+        { "x": 0.64, "y": 0, "w": 0.36, "h": 0.49, "fit": "contain", "idealRatio": 0.9, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.36, "h": 0.49, "fit": "contain", "idealRatio": 0.9, "priority": 3, "anchor": "bl" },
+        { "x": 0.38, "y": 0.51, "w": 0.62, "h": 0.49, "fit": "contain", "idealRatio": 1.8, "priority": 4, "anchor": "br" }
+      ], "decorations": [] },
+
+
+    { "id": "L-bento-5", "name": "벤토 5장", "style": "bento", "orientation": "landscape", "imageCount": 5, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.55, "h": 0.60, "fit": "contain", "idealRatio": 1.4, "priority": 1, "anchor": "tl" },
+        { "x": 0.57, "y": 0, "w": 0.43, "h": 0.60, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.3, "priority": 3, "anchor": "bl" },
+        { "x": 0.34, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.3, "priority": 4, "anchor": "bc" },
+        { "x": 0.68, "y": 0.62, "w": 0.32, "h": 0.38, "fit": "contain", "idealRatio": 1.3, "priority": 5, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "L-5row-5L", "name": "가로 5연속", "style": "grid", "orientation": "landscape", "imageCount": 5, "ratioProfile": "all-landscape", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0.05, "w": 0.19, "h": 0.90, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.20, "y": 0.05, "w": 0.19, "h": 0.90, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tl" },
+        { "x": 0.40, "y": 0.05, "w": 0.19, "h": 0.90, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "tc" },
+        { "x": 0.60, "y": 0.05, "w": 0.19, "h": 0.90, "fit": "contain", "idealRatio": 1.5, "priority": 4, "anchor": "tr" },
+        { "x": 0.80, "y": 0.05, "w": 0.20, "h": 0.90, "fit": "contain", "idealRatio": 1.5, "priority": 5, "anchor": "tr" }
+      ], "decorations": [] },
+
+    { "id": "L-hero-4grid-5", "name": "히어로 + 4그리드", "style": "bento", "orientation": "landscape", "imageCount": 5, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.50, "h": 1.0, "fit": "contain", "idealRatio": 0.9, "priority": 1, "anchor": "tl" },
+        { "x": 0.52, "y": 0, "w": 0.24, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 2, "anchor": "tr" },
+        { "x": 0.78, "y": 0, "w": 0.22, "h": 0.49, "fit": "contain", "idealRatio": 1.0, "priority": 3, "anchor": "tr" },
+        { "x": 0.52, "y": 0.51, "w": 0.24, "h": 0.49, "fit": "contain", "idealRatio": 1.2, "priority": 4, "anchor": "br" },
+        { "x": 0.78, "y": 0.51, "w": 0.22, "h": 0.49, "fit": "contain", "idealRatio": 1.0, "priority": 5, "anchor": "br" }
+      ], "decorations": [] },
+
+
+    { "id": "L-dense-6", "name": "밀집 그리드", "style": "grid", "orientation": "landscape", "imageCount": 6, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.34, "y": 0, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 2, "anchor": "tc" },
+        { "x": 0.68, "y": 0, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 3, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 4, "anchor": "bl" },
+        { "x": 0.34, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 5, "anchor": "bc" },
+        { "x": 0.68, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 6, "anchor": "br" }
+      ], "decorations": [] },
+
+    { "id": "L-bento-6", "name": "벤토 6장", "style": "bento", "orientation": "landscape", "imageCount": 6, "ratioProfile": "any", "hasTextZone": false,
+      "imageSlots": [
+        { "x": 0, "y": 0, "w": 0.45, "h": 0.49, "fit": "contain", "idealRatio": 1.5, "priority": 1, "anchor": "tl" },
+        { "x": 0.47, "y": 0, "w": 0.26, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 2, "anchor": "tr" },
+        { "x": 0.75, "y": 0, "w": 0.25, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 3, "anchor": "tr" },
+        { "x": 0, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 4, "anchor": "bl" },
+        { "x": 0.34, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 5, "anchor": "bc" },
+        { "x": 0.68, "y": 0.51, "w": 0.32, "h": 0.49, "fit": "contain", "idealRatio": 1.3, "priority": 6, "anchor": "br" }
+      ], "decorations": [] }
+  ]
+}

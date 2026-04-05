@@ -154,10 +154,15 @@ export default function Dashboard({ setPage, isMobile }) {
               projects.filter(p => p.embargoStatus === 'active')
                 .sort((a, b) => (a.embargoDate || '').localeCompare(b.embargoDate || ''))
                 .map((p) => {
-                  const daysLeft = p.embargoDate ? Math.ceil((new Date(p.embargoDate) - today) / 86400000) : null
+                  const embargoAt = p.embargoDate?.includes('T') ? new Date(p.embargoDate) : new Date(p.embargoDate + 'T00:00')
+                  const daysLeft = p.embargoDate ? Math.ceil((embargoAt - today) / 86400000) : null
+                  const timeStr = p.embargoDate?.includes('T') ? p.embargoDate.slice(11, 16) : null
                   return (
                     <div key={p.id} className="flex items-center gap-3 bg-[#F4F3EE] rounded-[12px] px-4 py-3">
-                      <span className="text-xs font-black text-gray-900 w-16">{p.embargoDate?.slice(5, 10).replace('-', '.')}</span>
+                      <div className="flex-shrink-0">
+                        <span className="text-xs font-black text-gray-900">{p.embargoDate?.slice(5, 10).replace('-', '.')}</span>
+                        {timeStr && <span className="text-[9px] text-gray-400 ml-1">{timeStr}</span>}
+                      </div>
                       <span className="text-xs text-gray-600 flex-1">{p.name}</span>
                       {daysLeft !== null && (
                         <span className={`text-[10px] px-3 py-1 rounded-full font-bold
@@ -246,11 +251,12 @@ export default function Dashboard({ setPage, isMobile }) {
 function AddProjectModal({ onClose, onAdd }) {
   const [name, setName] = useState('')
   const [client, setClient] = useState('')
-  const [category, setCategory] = useState('화보')
+  const [category, setCategory] = useState('FASHION')
   const [embargoDate, setEmbargoDate] = useState('')
   const [saving, setSaving] = useState(false)
+  const [customCat, setCustomCat] = useState('')
 
-  const categories = ['화보', '광고', '웨딩', '프로필', '영상', '기타']
+  const categories = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
 
   const handleSubmit = async () => {
     if (!name.trim()) return
@@ -303,6 +309,24 @@ function AddProjectModal({ onClose, onAdd }) {
                   {c}
                 </button>
               ))}
+              {category && !categories.includes(category) && (
+                <button className="px-4 py-2 rounded-full text-xs font-bold bg-[#828DF8] text-white shadow-md">
+                  {category}
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <input
+                className="flex-1 px-3 py-2 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                placeholder="직접 입력"
+                value={customCat}
+                onChange={(e) => setCustomCat(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter' && customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
+              />
+              <button
+                onClick={() => { if (customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
+                className="px-3 py-2 bg-[#828DF8] text-white rounded-[12px] text-xs font-bold hover:bg-[#6b77e6] transition-colors"
+              >+</button>
             </div>
           </div>
           <div>

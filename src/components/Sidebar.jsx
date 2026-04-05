@@ -1,12 +1,13 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useProjects } from '../hooks/useProjects'
-import { IconDashboard, IconProjects, IconFeed, IconPdf, IconSettings, IconCalendar } from './Icons'
+import { IconDashboard, IconProjects, IconFeed, IconPdf, IconSettings, IconCalendar, IconGlobe } from './Icons'
 
 const NAV = [
   { id: 'dashboard', label: '대시보드', en: 'DASHBOARD', Icon: IconDashboard },
   { id: 'projects', label: '프로젝트', en: 'PROJECTS', Icon: IconProjects },
+  { id: 'portfolio', label: '웹 포트폴리오', en: 'WEB PORTFOLIO', Icon: IconGlobe },
   { id: 'feed', label: '인스타그램 피드', en: 'INSTAGRAM FEED', Icon: IconFeed },
-  { id: 'pdf', label: '포트폴리오 빌더', en: 'PORTFOLIO BUILDER', Icon: IconPdf },
+  { id: 'pdf', label: 'PDF 빌더', en: 'PDF BUILDER', Icon: IconPdf },
 ]
 
 export default function Sidebar({ page, setPage }) {
