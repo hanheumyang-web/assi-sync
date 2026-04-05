@@ -25,13 +25,11 @@
     "asar": true,
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.png",
       "signAndEditExecutable": false
     },
     "forceCodeSigning": false,
     "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.png"
+      "target": "dmg"
     },
     "nsis": {
       "oneClick": true,
