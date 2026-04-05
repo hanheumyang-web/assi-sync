@@ -312,17 +312,32 @@ export default function ProjectView({ isMobile }) {
               className={`pl-9 pr-4 py-2.5 bg-white rounded-full text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 shadow-sm ${isMobile ? 'w-full' : 'w-52'}`}
             />
           </div>
-          <button
-            onClick={() => bulkMode ? exitBulkMode() : setBulkMode(true)}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border ${
-              bulkMode
-                ? 'bg-[#828DF8] text-white border-[#828DF8] shadow-md'
-                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 shadow-sm'
-            }`}
-          >
-            {bulkMode ? '선택 취소' : '선택'}
-          </button>
-          {bulkMode && bulkSelected.size > 0 && <button onClick={bulkDelete} disabled={bulkSaving} className="px-4 py-2.5 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600 transition-all disabled:opacity-50 flex-shrink-0">{bulkSaving ? '삭제 중...' : `${bulkSelected.size}개 삭제`}</button>}
+          {!bulkMode ? (
+            <button
+              onClick={() => setBulkMode(true)}
+              className="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border bg-white text-gray-500 border-gray-200 hover:bg-gray-50 shadow-sm"
+            >
+              선택
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={exitBulkMode}
+                className="px-4 py-2.5 rounded-full text-xs font-bold transition-all border bg-[#828DF8] text-white border-[#828DF8] shadow-md"
+              >
+                선택 취소
+              </button>
+              {bulkSelected.size > 0 && (
+                <button
+                  onClick={bulkDelete}
+                  disabled={bulkSaving}
+                  className="px-4 py-2.5 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600 transition-all disabled:opacity-50"
+                >
+                  {bulkSaving ? '삭제 중...' : `${bulkSelected.size}개 삭제`}
+                </button>
+              )}
+            </div>
+          )}
           <input
             ref={folderInputRef}
             type="file"
