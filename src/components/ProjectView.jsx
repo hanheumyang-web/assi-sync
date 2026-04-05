@@ -302,8 +302,8 @@ export default function ProjectView({ isMobile }) {
           <p className="text-[11px] tracking-[0.2em] uppercase text-gray-400 font-semibold">PROJECTS</p>
           <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black tracking-tighter text-gray-900`}>프로젝트</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input
               value={searchQuery}
