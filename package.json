@@ -1,0 +1,51 @@
+{
+  "name": "assi-sync",
+  "version": "1.0.0",
+  "description": "ASSI 포트폴리오 자동 동기화",
+  "main": "main.js",
+  "author": "ASSI",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.assi.sync",
+    "productName": "ASSI Sync",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "lib/**/*",
+      "assets/**/*",
+      "serviceAccountKey.json"
+    ],
+    "extraResources": [],
+    "asar": true,
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png",
+      "signAndEditExecutable": false
+    },
+    "forceCodeSigning": false,
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": true
+    }
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "chokidar": "^3.6.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
