@@ -322,6 +322,15 @@ export default function ProjectView({ isMobile }) {
           >
             {bulkMode ? '선택 취소' : '선택'}
           </button>
+          {bulkMode && bulkSelected.size > 0 && (
+            <button
+              onClick={bulkDelete}
+              disabled={bulkSaving}
+              className="px-4 py-2.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg shadow-red-500/25 hover:bg-red-600 transition-all disabled:opacity-50 flex-shrink-0"
+            >
+              {bulkSaving ? '삭제 중...' : `${bulkSelected.size}개 삭제`}
+            </button>
+          )}
           <input
             ref={folderInputRef}
             type="file"
