@@ -448,13 +448,12 @@ export default function ProjectView({ isMobile }) {
 
       {/* 일괄 편집 액션바 */}
       {bulkMode && bulkSelected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-[24px] shadow-2xl border border-gray-100 px-5 py-4 z-40 max-w-[90vw]" style={{ minWidth: 320 }}>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-[24px] shadow-2xl border border-gray-100 px-5 py-4 z-40" style={{ width: 'calc(100vw - 48px)', maxWidth: 700 }}>
           <div className="flex items-center gap-3 mb-3">
             <div className="text-sm font-black tracking-tighter text-gray-900 whitespace-nowrap">
               {bulkSelected.size}개 선택
             </div>
             <div className="w-px h-6 bg-gray-200" />
-            <span className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold whitespace-nowrap">CATEGORY</span>
             <div className="flex flex-wrap gap-1.5 flex-1">
               {[...DEFAULT_CATEGORIES, ...customCats].map((c) => (
                 <button
@@ -466,14 +465,14 @@ export default function ProjectView({ isMobile }) {
                   {c}
                 </button>
               ))}
+              <input
+                className="w-20 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-[10px] text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                placeholder="직접 입력"
+                value={bulkCustomCat}
+                onChange={(e) => setBulkCustomCat(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter' && bulkCustomCat.trim()) { setBulkCategory(bulkCustomCat.trim()); setBulkCustomCat('') } }}
+              />
             </div>
-            <input
-              className="w-20 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-[10px] text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-              placeholder="직접 입력"
-              value={bulkCustomCat}
-              onChange={(e) => setBulkCustomCat(e.target.value.toUpperCase())}
-              onKeyDown={(e) => { if (e.key === 'Enter' && bulkCustomCat.trim()) { setBulkCategory(bulkCustomCat.trim()); setBulkCustomCat('') } }}
-            />
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -481,14 +480,14 @@ export default function ProjectView({ isMobile }) {
               disabled={!bulkCategory || bulkSaving}
               className="flex-1 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all disabled:opacity-50"
             >
-              {bulkSaving ? '적용 중...' : '일괄 적용'}
+              {bulkSaving ? '적용 중...' : '카테고리 일괄 적용'}
             </button>
             <button
               onClick={bulkDelete}
               disabled={bulkSaving}
               className="flex-1 py-2.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg shadow-red-500/25 hover:bg-red-600 transition-all disabled:opacity-50"
             >
-              삭제
+              일괄 삭제
             </button>
           </div>
         </div>
