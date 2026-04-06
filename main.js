@@ -326,17 +326,9 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
       mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
     },
     onNewFolder: (data) => {
-      return new Promise((resolve) => {
-        const id = Date.now().toString()
-        pendingFolderApprovals.set(id, resolve)
-        mainWindow?.webContents.send('new-folder', { id, ...data })
-        setTimeout(() => {
-          if (pendingFolderApprovals.has(id)) {
-            pendingFolderApprovals.delete(id)
-            resolve(true)
-          }
-        }, 30000)
-      })
+      // 자동 승인 — 폴더 넣으면 바로 동기화 시작
+      mainWindow?.webContents.send('new-folder-auto', { name: data.name, fileCount: data.fileCount })
+      return true
     },
   })
 

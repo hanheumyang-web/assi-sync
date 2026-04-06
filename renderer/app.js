@@ -83,10 +83,18 @@ function updateFolderDisplay(folder) {
 document.getElementById('btn-start').addEventListener('click', async () => {
   if (!currentUser || !selectedFolder) return
   showScreen('sync-screen')
+  updateSyncUserLabel()
   fileStatuses.clear()
   renderFileList()
   await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })
 })
+
+function updateSyncUserLabel() {
+  const el = document.getElementById('sync-user-label')
+  if (el && currentUser) {
+    el.textContent = currentUser.name || currentUser.email || currentUser.uid
+  }
+}
 
 // ── Stop Sync ──
 document.getElementById('btn-stop').addEventListener('click', async () => {
@@ -151,47 +159,22 @@ window.api.onSyncError((data) => {
   console.error('Sync error:', data)
 })
 
-// ── New Folder Approval ──
+// ── New Folder Auto-Sync Notification ──
 window.api.onNewFolder((data) => {
+  // 자동 승인 — 간단한 알림만 표시
   const container = document.getElementById('folder-toasts')
   const toast = document.createElement('div')
   toast.className = 'folder-toast'
-  toast.id = 'toast-' + data.id
+  toast.style.cssText = 'padding:12px 20px;width:340px'
 
-  const fileText = data.fileCount > 0 ? `${data.fileCount}개 파일` : '파일'
-
+  const fileText = data.fileCount > 0 ? `${data.fileCount}개 파일` : ''
   toast.innerHTML = `
-    <div class="toast-title">📁 새 폴더 감지: ${data.name}</div>
-    <div class="toast-desc">${data.path} · ${fileText}</div>
-    <div class="toast-actions">
-      <button class="toast-btn deny" onclick="handleFolderApproval('${data.id}', false)">건너뛰기</button>
-      <button class="toast-btn approve" onclick="handleFolderApproval('${data.id}', true)">업로드</button>
-      <button class="toast-btn approve" onclick="approveAllPendingToasts()" style="background:#4ADE80;box-shadow:0 2px 8px rgba(74,222,128,0.3)">전체 업로드</button>
-    </div>
+    <div class="toast-title">📁 ${data.name} ${fileText ? '· ' + fileText : ''}</div>
+    <div class="toast-desc" style="color:#4ADE80;font-weight:600">자동 동기화 시작</div>
   `
   container.appendChild(toast)
-
-  // 30초 후 자동 제거
-  setTimeout(() => toast.remove(), 30000)
+  setTimeout(() => toast.remove(), 3000)
 })
-
-function handleFolderApproval(id, approved) {
-  window.api.approveFolder(id, approved)
-  const toast = document.getElementById('toast-' + id)
-  if (toast) toast.remove()
-  if (!approved) setTimeout(refreshPendingFolders, 500)
-}
-window.handleFolderApproval = handleFolderApproval
-
-function approveAllPendingToasts() {
-  const toasts = document.querySelectorAll('.folder-toast')
-  toasts.forEach(toast => {
-    const id = toast.id.replace('toast-', '')
-    window.api.approveFolder(id, true)
-    toast.remove()
-  })
-}
-window.approveAllPendingToasts = approveAllPendingToasts
 
 // ── Pending Folders ──
 async function refreshPendingFolders() {
@@ -410,6 +393,7 @@ function updateSummary() {
     if (selectedFolder) {
       // UID + 폴더 모두 있으면 바로 동기화 시작
       showScreen('sync-screen')
+      updateSyncUserLabel()
       fileStatuses.clear()
       renderFileList()
       await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })

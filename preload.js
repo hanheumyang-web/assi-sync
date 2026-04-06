@@ -31,7 +31,10 @@ contextBridge.exposeInMainWorld('api', {
   onSyncProgress: (cb) => ipcRenderer.on('sync-progress', (_, data) => cb(data)),
   onFileStatus: (cb) => ipcRenderer.on('file-status', (_, data) => cb(data)),
   onSyncError: (cb) => ipcRenderer.on('sync-error', (_, data) => cb(data)),
-  onNewFolder: (cb) => ipcRenderer.on('new-folder', (_, data) => cb(data)),
+  onNewFolder: (cb) => {
+    ipcRenderer.on('new-folder', (_, data) => cb(data))
+    ipcRenderer.on('new-folder-auto', (_, data) => cb(data))
+  },
   onPendingFoldersUpdated: (cb) => ipcRenderer.on('pending-folders-updated', (_, data) => cb(data)),
   onSyncedFoldersUpdated: (cb) => ipcRenderer.on('synced-folders-updated', (_, data) => cb(data)),
 

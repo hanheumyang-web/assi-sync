@@ -272,6 +272,10 @@
 
   <!-- Sync Screen -->
   <div id="sync-screen" class="screen">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(0,0,0,0.04)">
+      <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#999" id="sync-user-label"></span>
+      <button class="btn-stop" id="btn-logout" style="font-size:10px;color:#EF4444;border-color:#FCA5A5;padding:4px 10px;border-radius:6px">로그아웃</button>
+    </div>
     <div class="sync-header">
       <div>
         <div class="sync-status" id="sync-status">
@@ -281,7 +285,6 @@
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn-stop" id="btn-change-folder" title="폴더 변경">📂</button>
-        <button class="btn-stop" id="btn-logout" title="로그아웃">🔓</button>
         <button class="btn-stop" id="btn-stop">중지</button>
       </div>
     </div>
