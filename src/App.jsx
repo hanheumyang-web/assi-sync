@@ -7,7 +7,7 @@ import Dashboard from './components/Dashboard'
 import FeedPlanner from './components/FeedPlanner'
 import PdfBuilder from './components/PdfBuilder'
 import ProjectView from './components/ProjectView'
-import LoginScreen from './components/LoginScreen'
+import DownloadPage from './components/DownloadPage'
 import ProfileSettings from './components/ProfileSettings'
 import PortfolioEditor from './components/portfolio/PortfolioEditor'
 
@@ -43,9 +43,9 @@ function App() {
     )
   }
 
-  // 미로그인 → 로그인 화면
+  // 미로그인 → 랜딩페이지 (다운로드 + 로그인)
   if (!user) {
-    return <LoginScreen />
+    return <DownloadPage showLogin />
   }
 
   // 로그인됐지만 유저 문서 없음 → 온보딩 (신규 유저)
