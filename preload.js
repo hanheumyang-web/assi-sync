@@ -41,4 +41,10 @@ contextBridge.exposeInMainWorld('api', {
   // Window controls
   minimize: () => ipcRenderer.invoke('minimize-window'),
   close: () => ipcRenderer.invoke('close-window'),
+
+  // Auto updater
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_, data) => cb(data)),
 })

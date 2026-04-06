@@ -18,11 +18,15 @@
       "preload.js",
       "renderer/**/*",
       "lib/**/*",
-      "assets/**/*",
-      "serviceAccountKey.json"
+      "assets/**/*"
     ],
     "extraResources": [],
     "asar": true,
+    "publish": {
+      "provider": "github",
+      "owner": "hanheumyang-web",
+      "repo": "assi-sync"
+    },
     "win": {
       "target": "nsis",
       "signAndEditExecutable": false
@@ -38,8 +42,8 @@
     }
   },
   "dependencies": {
-    "firebase-admin": "^12.0.0",
     "chokidar": "^3.6.0",
+    "electron-updater": "^6.3.0",
     "sharp": "^0.34.5"
   },
   "devDependencies": {

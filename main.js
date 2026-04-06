@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs = require('fs')
 const http = require('http')
@@ -57,6 +58,26 @@ function createTray() {
 app.whenReady().then(() => {
   createWindow()
   createTray()
+
+  // ──── Auto Updater ────
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('update-status', { status: 'available', version: info.version })
+  })
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow?.webContents.send('update-status', { status: 'downloading', percent: Math.round(progress.percent) })
+  })
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version })
+  })
+  autoUpdater.on('error', (err) => {
+    console.error('[AutoUpdater]', err.message)
+  })
+
+  // 앱 시작 5초 후 업데이트 체크
+  setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 5000)
 })
 
 app.on('window-all-closed', () => {
@@ -67,8 +88,12 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('minimize-window', () => mainWindow?.minimize())
 ipcMain.handle('close-window', () => mainWindow?.hide())
+ipcMain.handle('check-update', () => autoUpdater.checkForUpdatesAndNotify())
+ipcMain.handle('install-update', () => autoUpdater.quitAndInstall())
+ipcMain.handle('get-app-version', () => app.getVersion())
 
 // ──── Google OAuth via localhost ────
+// Now captures ID token + refresh token for secure API calls
 ipcMain.handle('google-login', async () => {
   return new Promise((resolve) => {
     const port = 18234 + Math.floor(Math.random() * 1000)
@@ -104,18 +129,31 @@ ipcMain.handle('google-login', async () => {
           projectId: "assi-app-6ea04",
         });
         const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider).then(result => {
+        firebase.auth().signInWithPopup(provider).then(async (result) => {
           const u = result.user;
+          const idToken = await u.getIdToken();
           document.getElementById('status').textContent = '로그인 성공! 창이 닫힙니다...';
           document.getElementById('spinner').style.display = 'none';
-          fetch('/callback?uid=' + encodeURIComponent(u.uid)
-            + '&name=' + encodeURIComponent(u.displayName || '')
-            + '&email=' + encodeURIComponent(u.email || '')
-            + '&photo=' + encodeURIComponent(u.photoURL || ''));
+          fetch('/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: u.uid,
+              name: u.displayName || '',
+              email: u.email || '',
+              photo: u.photoURL || '',
+              idToken: idToken,
+              refreshToken: u.refreshToken || '',
+            }),
+          });
         }).catch(err => {
           document.getElementById('status').textContent = '로그인 실패: ' + err.message;
           document.getElementById('spinner').style.display = 'none';
-          setTimeout(() => fetch('/callback?error=' + encodeURIComponent(err.message)), 2000);
+          setTimeout(() => fetch('/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: err.message }),
+          }), 2000);
         });
       </script>
     </body></html>`
@@ -127,7 +165,39 @@ ipcMain.handle('google-login', async () => {
       if (url.pathname === '/auth') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
         res.end(authHTML)
-      } else if (url.pathname === '/callback') {
+      } else if (url.pathname === '/callback' && req.method === 'POST') {
+        let body = ''
+        req.on('data', chunk => { body += chunk })
+        req.on('end', () => {
+          res.writeHead(200, { 'Content-Type': 'text/plain' })
+          res.end('OK')
+
+          let data
+          try { data = JSON.parse(body) } catch { data = { error: 'Parse error' } }
+
+          setTimeout(() => {
+            authWindow?.close()
+            authWindow = null
+            server.close()
+
+            if (data.uid) {
+              const userData = {
+                uid: data.uid,
+                name: data.name || '',
+                email: data.email || '',
+                photo: data.photo || '',
+                idToken: data.idToken || '',
+                refreshToken: data.refreshToken || '',
+              }
+              saveConfig(userData)
+              resolve(userData)
+            } else {
+              resolve({ error: data.error || 'Login failed' })
+            }
+          }, 500)
+        })
+      } else if (url.pathname === '/callback' && req.method === 'GET') {
+        // Fallback for GET (backward compat)
         res.writeHead(200, { 'Content-Type': 'text/plain' })
         res.end('OK')
 
@@ -196,9 +266,9 @@ ipcMain.handle('select-folder', async () => {
 })
 
 // ──── Sync Engine (runs in main process) ────
+// Now uses ApiClient instead of Firebase Admin SDK
 let syncEngine = null
 
-// 새 폴더 확인 대기 큐
 const pendingFolderApprovals = new Map()
 
 ipcMain.handle('approve-folder', (_, { id, approved }) => {
@@ -206,7 +276,6 @@ ipcMain.handle('approve-folder', (_, { id, approved }) => {
   if (resolve) {
     resolve(approved)
     pendingFolderApprovals.delete(id)
-    // 건너뛰기 시 대기 목록 업데이트
     if (!approved && syncEngine) {
       setTimeout(() => {
         mainWindow?.webContents.send('pending-folders-updated', syncEngine.getPendingFolders())
@@ -223,17 +292,33 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
 
   saveConfig({ uid, watchDir })
 
-  const { SyncEngine } = require('./lib/sync-engine.js')
-  // 패키지된 앱: __dirname 안에 있음, 개발: agent 폴더
-  let serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json')
-  if (!fs.existsSync(serviceAccountPath)) {
-    serviceAccountPath = path.join(__dirname, '..', 'agent', 'serviceAccountKey.json')
+  // Load tokens from config
+  const config = loadConfig()
+  const idToken = config.idToken
+  const refreshToken = config.refreshToken
+
+  if (!idToken) {
+    mainWindow?.webContents.send('sync-error', { message: '인증 토큰이 없습니다. 다시 로그인해주세요.' })
+    return false
   }
+
+  // Create API client (no credentials stored locally!)
+  const { ApiClient } = require('./lib/api-client.js')
+  const api = new ApiClient({
+    idToken,
+    refreshToken,
+    onTokenRefreshed: (tokens) => {
+      // Persist refreshed tokens
+      saveConfig({ idToken: tokens.idToken, refreshToken: tokens.refreshToken })
+    },
+  })
+
+  const { SyncEngine } = require('./lib/sync-engine.js')
   syncEngine = new SyncEngine({
     uid,
     watchDir,
     statePath: STATE_PATH,
-    serviceAccountPath,
+    api,
     onProgress: (data) => mainWindow?.webContents.send('sync-progress', data),
     onFileStatus: (data) => mainWindow?.webContents.send('file-status', data),
     onError: (data) => mainWindow?.webContents.send('sync-error', data),
@@ -245,7 +330,6 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
         const id = Date.now().toString()
         pendingFolderApprovals.set(id, resolve)
         mainWindow?.webContents.send('new-folder', { id, ...data })
-        // 30초 후 자동 승인 (타임아웃)
         setTimeout(() => {
           if (pendingFolderApprovals.has(id)) {
             pendingFolderApprovals.delete(id)
