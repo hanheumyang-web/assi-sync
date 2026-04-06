@@ -381,7 +381,7 @@ export default function ProjectView({ isMobile }) {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all
+            className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all
               ${filter === f ? 'bg-[#828DF8] text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-100 shadow-sm'}`}
           >
             {f}
@@ -453,10 +453,10 @@ export default function ProjectView({ isMobile }) {
               </div>
               <div className={isMobile ? 'p-3' : 'p-5'}>
                 <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold truncate">{p.client || 'CLIENT'}</p>
-                <p className="text-sm font-bold text-gray-900 tracking-tight mt-0.5 group-hover:text-[#828DF8] transition-colors truncate">{p.name}</p>
+                <p className="text-base font-bold text-gray-900 tracking-tight mt-0.5 group-hover:text-[#828DF8] transition-colors truncate">{p.name}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] bg-[#F4F3EE] text-gray-500 px-2 py-0.5 rounded-full font-semibold">{p.category}</span>
-                  {!isMobile && <span className="text-[10px] text-gray-400">{p.createdAt?.slice(0, 10)}</span>}
+                  <span className="text-[11px] bg-[#F4F3EE] text-gray-500 px-2.5 py-0.5 rounded-full font-semibold">{p.category}</span>
+                  {!isMobile && <span className="text-[11px] text-gray-400">{p.createdAt?.slice(0, 10)}</span>}
                 </div>
               </div>
             </div>
@@ -924,7 +924,7 @@ function ProjectModal({ project, onClose, onSave }) {
             </div>
             {embargoDate && (
               <p className="text-[10px] text-gray-400 mt-1.5 ml-1">
-                {embargoDate} {embargoTime} 해금 예정
+                {embargoDate} {embargoTime} 업로드 예정
               </p>
             )}
           </div>

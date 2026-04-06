@@ -146,6 +146,7 @@ export default function FeedPlanner({ isMobile }) {
   const [igFeed, setIgFeed] = useState([])
   const [syncing, setSyncing] = useState(false)
   const [uploadingId, setUploadingId] = useState(null)
+  const [uploadQueue, setUploadQueue] = useState([]) // { id, name, status: 'uploading'|'done'|'error', error? }
 
   const displayName = userDoc?.displayName || user?.displayName || '사용자'
 
@@ -204,15 +205,29 @@ export default function FeedPlanner({ isMobile }) {
     } catch (e) { console.error('문구 저장 실패:', e) }
   }
 
+  // ── OAuth 콜백 후 localStorage에서 토큰 다시 읽기 ──
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('ig_connected') === '1') {
+      const t = localStorage.getItem('assi_ig_token') || ''
+      const u = localStorage.getItem('assi_ig_user_id') || ''
+      const n = localStorage.getItem('assi_ig_username') || ''
+      if (t && u) { setIgToken(t); setIgUserId(u); setIgUsername(n) }
+      // Clean up URL param
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   // ── Instagram 연결 확인 ──
   useEffect(() => {
     if (!igToken || !igUserId) { setIgConnected(false); return }
-    fetch(`${IG_API_BASE}/${igUserId}?fields=id,username&access_token=${igToken}`)
+    fetch(`${IG_API_BASE}/me?fields=user_id,username&access_token=${igToken}`)
       .then(r => r.json())
       .then(data => {
         if (data.username) {
           setIgConnected(true)
           setIgUsername(data.username)
+          if (data.user_id) { setIgUserId(data.user_id); localStorage.setItem('assi_ig_user_id', data.user_id) }
           localStorage.setItem('assi_ig_username', data.username)
         } else setIgConnected(false)
       })
@@ -326,6 +341,7 @@ export default function FeedPlanner({ isMobile }) {
     }
 
     setUploadingId(project.id)
+    setUploadQueue(q => [...q.filter(i => i.id !== project.id), { id: project.id, name: project.name, status: 'uploading' }])
     const tempPaths = [] // ig-temp 정리용 (try 밖에서 선언)
     try {
       // 업로드 전 Firebase Storage content type 자동 수정 (기존 파일 복구)
@@ -377,7 +393,7 @@ export default function FeedPlanner({ isMobile }) {
         await publishCarousel(igUserId, igToken, mediaItems, caption)
       }
 
-      alert(`"${project.name}" 업로드 완료!`)
+      setUploadQueue(q => q.map(i => i.id === project.id ? { ...i, status: 'done' } : i))
       // 영상 에셋에 igUploaded 플래그 설정 (Storage 원본 정리용)
       for (const a of orderedAssets) {
         if (a.isVideo || a.fileType?.startsWith('video/')) {
@@ -388,7 +404,7 @@ export default function FeedPlanner({ isMobile }) {
       syncInstagramFeed()
     } catch (err) {
       console.error('Instagram 업로드 실패:', err)
-      alert('업로드 실패: ' + err.message)
+      setUploadQueue(q => q.map(i => i.id === project.id ? { ...i, status: 'error', error: err.message } : i))
     } finally {
       setUploadingId(null)
       // 임시 압축 파일 정리
@@ -446,23 +462,23 @@ export default function FeedPlanner({ isMobile }) {
                 {igConnected && <div className="w-2 h-2 rounded-full bg-green-400" />}
                 {!igConnected && (
                   <button onClick={() => setShowIgSettings(true)}
-                    className="px-3 py-1 bg-[#828DF8] text-white text-[10px] font-bold rounded-[8px] hover:bg-[#6366F1] transition-all">
+                    className="px-3 py-1 bg-[#828DF8] text-white text-xs font-bold rounded-[8px] hover:bg-[#6366F1] transition-all">
                     연결하기
                   </button>
                 )}
               </div>
-              <div className="flex gap-8">
+              <div className="flex gap-6">
                 <div className="text-center">
-                  <p className="text-xl font-black tracking-tight text-gray-900">{publishedCount}</p>
-                  <p className="text-[10px] text-gray-400 font-semibold">게시물</p>
+                  <p className="text-lg font-black tracking-tight text-gray-900">{publishedCount}</p>
+                  <p className="text-xs text-gray-400 font-semibold">게시물</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-black tracking-tight text-[#828DF8]">{readyCount}</p>
-                  <p className="text-[10px] text-gray-400 font-semibold">준비</p>
+                  <p className="text-lg font-black tracking-tight text-[#828DF8]">{readyCount}</p>
+                  <p className="text-xs text-gray-400 font-semibold">준비</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-black tracking-tight text-amber-500">{embargoCount}</p>
-                  <p className="text-[10px] text-gray-400 font-semibold">엠바고</p>
+                  <p className="text-lg font-black tracking-tight text-amber-500">{embargoCount}</p>
+                  <p className="text-xs text-gray-400 font-semibold">엠바고</p>
                 </div>
               </div>
             </div>
@@ -473,12 +489,12 @@ export default function FeedPlanner({ isMobile }) {
         <div className="bg-white rounded-[16px] shadow-sm mb-4 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <p className="text-[11px] tracking-[0.15em] uppercase text-gray-900 font-bold">예정</p>
-              {plannedCount > 0 && <span className="text-[10px] text-[#828DF8] font-bold">{plannedCount}</span>}
+              <p className="text-sm tracking-[0.15em] uppercase text-gray-900 font-bold">예정</p>
+              {plannedCount > 0 && <span className="text-xs text-[#828DF8] font-bold">{plannedCount}</span>}
             </div>
             {hiddenProjects.length > 0 && (
               <button onClick={() => setActiveTab(activeTab === 'hidden' ? 'planned' : 'hidden')}
-                className="text-[10px] text-gray-400 hover:text-gray-600 font-semibold">
+                className="text-xs text-gray-400 hover:text-gray-600 font-semibold">
                 {activeTab === 'hidden' ? '돌아가기' : `숨김 ${hiddenProjects.length}`}
               </button>
             )}
@@ -511,12 +527,12 @@ export default function FeedPlanner({ isMobile }) {
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
                           <button onClick={() => includeProject(project.id)}
-                            className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-[10px] font-bold px-3 py-1.5 rounded-full transition-all">
+                            className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full transition-all">
                             복원
                           </button>
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2 pointer-events-none">
-                          <p className="text-white/70 text-[10px] font-bold truncate">{project.name}</p>
+                          <p className="text-white/70 text-xs font-bold truncate">{project.name}</p>
                         </div>
                       </div>
                     )
@@ -564,44 +580,44 @@ export default function FeedPlanner({ isMobile }) {
                         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 transition-all
                           ${dragIdx !== null ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}>
                           <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(project.id) }}
-                            className="bg-white text-gray-800 text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-[#828DF8] hover:text-white transition-all">
+                            className="bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-[#828DF8] hover:text-white transition-all">
                             편집
                           </button>
                           {igConnected && !isEmbargo && (
                             <button onClick={(e) => { e.stopPropagation(); uploadToInstagram(project) }}
                               disabled={isUploading}
-                              className="bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white text-[10px] font-bold px-3 py-1.5 rounded-full disabled:opacity-50">
+                              className="bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white text-xs font-bold px-3 py-1.5 rounded-full disabled:opacity-50">
                               {isUploading ? '업로드 중...' : '업로드'}
                             </button>
                           )}
                           <button onClick={(e) => { e.stopPropagation(); excludeProject(project.id) }}
-                            className="text-white/60 text-[9px] hover:text-white transition-all">숨기기</button>
+                            className="text-white/60 text-xs hover:text-white transition-all">숨기기</button>
                         </div>
                       </div>
 
                       {/* 뱃지 */}
                       {isEmbargo && (
-                        <div className="absolute top-1.5 left-1.5 bg-amber-400 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
+                        <div className="absolute top-1.5 left-1.5 bg-amber-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
                           EMBARGO
                         </div>
                       )}
                       {assets.length > 1 && (
-                        <div className="absolute top-1.5 right-1.5 bg-white/90 rounded-[4px] px-1 py-0.5 flex items-center gap-0.5 pointer-events-none">
+                        <div className="absolute top-1.5 right-1.5 bg-white/90 rounded-[4px] px-1.5 py-0.5 flex items-center gap-0.5 pointer-events-none">
                           <svg className="w-2.5 h-2.5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <rect x="3" y="3" width="14" height="14" rx="2" /><rect x="7" y="7" width="14" height="14" rx="2" />
                           </svg>
-                          <span className="text-[8px] font-bold text-gray-600">{assets.length}</span>
+                          <span className="text-[9px] font-bold text-gray-600">{assets.length}</span>
                         </div>
                       )}
 
                       {/* 하단 정보 */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pointer-events-none">
-                        <p className="text-white text-[10px] font-bold truncate">{project.name}</p>
+                        <p className="text-white text-xs font-bold truncate">{project.name}</p>
                       </div>
 
                       {/* 순서 번호 */}
-                      <div className="absolute bottom-1.5 right-1.5 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
-                        <span className="text-[9px] font-bold text-white">{idx + 1}</span>
+                      <div className="absolute bottom-1.5 right-1.5 bg-black/50 rounded-full w-6 h-6 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-bold text-white">{idx + 1}</span>
                       </div>
                     </div>
                   )
@@ -616,12 +632,12 @@ export default function FeedPlanner({ isMobile }) {
         <div className="bg-white rounded-[16px] shadow-sm mb-4 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <p className="text-[11px] tracking-[0.15em] uppercase text-gray-900 font-bold">완료</p>
-              {publishedCount > 0 && <span className="text-[10px] text-emerald-500 font-bold">{publishedCount}</span>}
+              <p className="text-sm tracking-[0.15em] uppercase text-gray-900 font-bold">완료</p>
+              {publishedCount > 0 && <span className="text-xs text-emerald-500 font-bold">{publishedCount}</span>}
             </div>
             {igConnected && (
               <button onClick={syncInstagramFeed} disabled={syncing}
-                className="text-[10px] text-[#828DF8] font-semibold hover:underline disabled:opacity-50">
+                className="text-xs text-[#828DF8] font-semibold hover:underline disabled:opacity-50">
                 {syncing ? '동기화 중...' : '새로고침'}
               </button>
             )}
@@ -690,11 +706,11 @@ export default function FeedPlanner({ isMobile }) {
 
       {/* ══════ 오른쪽: ASSI 도구 사이드바 ══════ */}
       {!isMobile && (
-        <div className="w-[260px] flex-shrink-0 ml-5 space-y-4">
+        <div className="w-[280px] flex-shrink-0 ml-5 space-y-4">
 
           {/* Instagram 연결 */}
           <div className="bg-white rounded-[24px] p-5 shadow-sm">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">INSTAGRAM</p>
+            <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">INSTAGRAM</p>
             {igConnected ? (
               <div>
                 <div className="space-y-2">
@@ -706,16 +722,16 @@ export default function FeedPlanner({ isMobile }) {
                       ;(async () => { for (const p of ready) await uploadToInstagram(p) })()
                     }}
                     disabled={uploadingId !== null}
-                    className="w-full px-3 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white rounded-full text-[11px] font-bold hover:shadow-lg transition-all disabled:opacity-50">
+                    className="w-full px-3 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white rounded-full text-sm font-bold hover:shadow-lg transition-all disabled:opacity-50">
                     {uploadingId ? '업로드 중...' : `전체 업로드 (${readyCount})`}
                   </button>
                   <div className="flex gap-2">
                     <button onClick={() => setShowIgSettings(true)}
-                      className="flex-1 px-3 py-2 bg-[#F4F3EE] text-gray-500 rounded-full text-[10px] font-bold hover:bg-gray-200 transition-all">
+                      className="flex-1 px-3 py-2 bg-[#F4F3EE] text-gray-500 rounded-full text-xs font-bold hover:bg-gray-200 transition-all">
                       설정
                     </button>
                     <button onClick={disconnectIg}
-                      className="flex-1 px-3 py-2 bg-[#F4F3EE] text-gray-400 rounded-full text-[10px] font-bold hover:bg-red-50 hover:text-red-500 transition-all">
+                      className="flex-1 px-3 py-2 bg-[#F4F3EE] text-gray-400 rounded-full text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-all">
                       연결 해제
                     </button>
                   </div>
@@ -731,15 +747,15 @@ export default function FeedPlanner({ isMobile }) {
 
           {/* 피드 현황 */}
           <div className="bg-white rounded-[24px] p-5 shadow-sm">
-            <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">FEED STATUS</p>
+            <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">FEED STATUS</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#F4F3EE] rounded-[12px] p-3 text-center">
                 <p className="text-lg font-black text-[#828DF8]">{readyCount}</p>
-                <p className="text-[9px] text-gray-400 font-semibold">업로드 가능</p>
+                <p className="text-xs text-gray-400 font-semibold">업로드 가능</p>
               </div>
               <div className="bg-[#F4F3EE] rounded-[12px] p-3 text-center">
                 <p className="text-lg font-black text-amber-500">{embargoCount}</p>
-                <p className="text-[9px] text-gray-400 font-semibold">엠바고</p>
+                <p className="text-xs text-gray-400 font-semibold">엠바고</p>
               </div>
             </div>
           </div>
@@ -747,14 +763,14 @@ export default function FeedPlanner({ isMobile }) {
           {/* 엠바고 일정 */}
           {embargoCount > 0 && (
             <div className="bg-white rounded-[24px] p-5 shadow-sm">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">EMBARGO</p>
+              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">EMBARGO</p>
               <div className="space-y-2">
                 {visiblePlanned.filter(p => p.embargoStatus === 'active' && p.embargoDate).map(p => (
                   <div key={p.id} className="flex items-center gap-2 bg-amber-50 rounded-[10px] p-2.5">
                     <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-gray-900 truncate">{p.name}</p>
-                      <p className="text-[9px] text-amber-600">{p.embargoDate} 해제</p>
+                      <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
+                      <p className="text-xs text-amber-600">{p.embargoDate} 업로드</p>
                     </div>
                   </div>
                 ))}
@@ -790,6 +806,41 @@ export default function FeedPlanner({ isMobile }) {
           onSave={(token, userId) => { saveIgSettings(token, userId); setShowIgSettings(false) }}
           onClose={() => setShowIgSettings(false)}
         />
+      )}
+
+      {/* ── 플로팅 업로드 토스트 ── */}
+      {uploadQueue.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 w-[320px] space-y-2">
+          {uploadQueue.map(item => (
+            <div key={item.id}
+              className={`rounded-[16px] p-3 shadow-lg backdrop-blur-sm flex items-center gap-3 transition-all
+                ${item.status === 'done' ? 'bg-green-500/90 text-white' : item.status === 'error' ? 'bg-red-500/90 text-white' : 'bg-gray-900/90 text-white'}`}>
+              {item.status === 'uploading' && (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
+              )}
+              {item.status === 'done' && (
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {item.status === 'error' && (
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">{item.name}</p>
+                <p className="text-xs opacity-80">
+                  {item.status === 'uploading' ? '업로드 중...' : item.status === 'done' ? '완료!' : item.error || '실패'}
+                </p>
+              </div>
+              {item.status !== 'uploading' && (
+                <button onClick={() => setUploadQueue(q => q.filter(i => i.id !== item.id))}
+                  className="text-white/60 hover:text-white text-sm flex-shrink-0">✕</button>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -897,20 +948,20 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-[32px] p-8 max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <p className="text-[11px] tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">POST EDITOR</p>
+      <div className="bg-white rounded-[32px] p-6 md:p-8 max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <p className="text-sm tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">POST EDITOR</p>
         <h2 className="text-2xl font-black tracking-tighter text-gray-900 mb-1">게시물 편집</h2>
         <p className="text-xs text-gray-400 mb-5">{project?.name} · {images.length}개 콘텐츠</p>
 
         <div className="flex gap-6">
           {/* ── 왼쪽: 콘텐츠 순서 ── */}
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">CONTENT ORDER</p>
+            <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">CONTENT ORDER</p>
 
             {/* 메인 프리뷰 (크롭 조정 가능) */}
             <div ref={cropRef}
               className={`mb-3 rounded-[16px] overflow-hidden bg-black relative
-                ${aspectRatio === 'square' ? 'aspect-square' : 'aspect-[4/5]'} max-h-[360px]
+                ${aspectRatio === 'square' ? 'aspect-square' : 'aspect-[4/5]'} max-h-[400px]
                 ${aspectRatio === 'square' && !isVideo(images[selectedIdx]) ? 'cursor-grab active:cursor-grabbing' : ''}`}
               onMouseDown={!isVideo(images[selectedIdx]) ? handleCropMouseDown : undefined}>
               {images[selectedIdx] && (
@@ -943,7 +994,7 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
                   ›
                 </button>
               )}
-              <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2.5 py-1 rounded-full pointer-events-none">
+              <div className="absolute top-3 right-3 bg-black/60 text-white text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none">
                 {selectedIdx + 1} / {images.length}
               </div>
               {selectedIdx === 0 && (
@@ -993,13 +1044,13 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
                 ))}
               </div>
             </div>
-            <p className="text-[9px] text-gray-400 text-center">드래그 또는 화살표로 순서 변경 · 첫 번째가 피드 대표</p>
+            <p className="text-xs text-gray-400 text-center">드래그 또는 화살표로 순서 변경 · 첫 번째가 피드 대표</p>
           </div>
 
           {/* ── 오른쪽: 비율 + 캡션 ── */}
           <div className="w-[280px] flex-shrink-0">
             {/* 비율 선택 */}
-            <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">ASPECT RATIO</p>
+            <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">ASPECT RATIO</p>
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setAspectRatio('square')}
@@ -1014,18 +1065,18 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
                 원본 비율
               </button>
             </div>
-            <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">CAPTION</p>
+            <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">CAPTION</p>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder={"게시물 캡션을 작성하세요...\n\n#해시태그 #포트폴리오"}
               className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 resize-none h-[200px] whitespace-pre-wrap"
             />
-            <p className="text-[10px] text-gray-400 text-right mt-1 mb-3">{caption.length}자</p>
+            <p className="text-xs text-gray-400 text-right mt-1 mb-3">{caption.length}자</p>
 
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold">SAVED PHRASES</label>
-              <button onClick={() => setShowPhraseInput(!showPhraseInput)} className="text-[10px] text-[#828DF8] font-bold hover:underline">
+              <label className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold">SAVED PHRASES</label>
+              <button onClick={() => setShowPhraseInput(!showPhraseInput)} className="text-xs text-[#828DF8] font-bold hover:underline">
                 + 문구 등록
               </button>
             </div>
@@ -1039,21 +1090,21 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
                   autoFocus
                 />
                 <div className="flex justify-end gap-2 mt-1.5">
-                  <button onClick={() => { setShowPhraseInput(false); setNewPhrase('') }} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-[8px] text-[10px] font-bold">취소</button>
-                  <button onClick={addPhrase} className="px-3 py-1 bg-[#828DF8] text-white rounded-[8px] text-[10px] font-bold">등록</button>
+                  <button onClick={() => { setShowPhraseInput(false); setNewPhrase('') }} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-[8px] text-xs font-bold">취소</button>
+                  <button onClick={addPhrase} className="px-3 py-1 bg-[#828DF8] text-white rounded-[8px] text-xs font-bold">등록</button>
                 </div>
               </div>
             )}
             {savedPhrases.length === 0 ? (
-              <p className="text-[10px] text-gray-300 text-center py-3">등록된 문구가 없습니다</p>
+              <p className="text-xs text-gray-300 text-center py-3">등록된 문구가 없습니다</p>
             ) : (
               <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
                 {savedPhrases.map((phrase, idx) => (
                   <div key={idx} className="flex items-start gap-2 bg-[#F4F3EE] rounded-[10px] px-3 py-2">
-                    <button onClick={() => insertPhrase(phrase)} className="flex-1 text-left text-[10px] text-gray-700 hover:text-[#828DF8] whitespace-pre-wrap line-clamp-2">
+                    <button onClick={() => insertPhrase(phrase)} className="flex-1 text-left text-xs text-gray-700 hover:text-[#828DF8] whitespace-pre-wrap line-clamp-2">
                       {phrase}
                     </button>
-                    <button onClick={() => removePhrase(idx)} className="text-[10px] text-gray-300 hover:text-red-400 flex-shrink-0">×</button>
+                    <button onClick={() => removePhrase(idx)} className="text-xs text-gray-300 hover:text-red-400 flex-shrink-0">×</button>
                   </div>
                 ))}
               </div>
@@ -1079,9 +1130,9 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
 }
 
 // ── Instagram 설정 모달 ──
-const IG_APP_ID = '1728699775169445'
+const IG_APP_ID = '1346006907350596'
 const IG_REDIRECT_URI = window.location.origin + '/auth/instagram/callback'
-const IG_OAUTH_URL = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${IG_APP_ID}&redirect_uri=${encodeURIComponent(IG_REDIRECT_URI)}&config_id=915326037979269&response_type=code`
+const IG_OAUTH_URL = `https://www.instagram.com/oauth/authorize?client_id=${IG_APP_ID}&redirect_uri=${encodeURIComponent(IG_REDIRECT_URI)}&response_type=code&scope=instagram_business_basic,instagram_business_content_publish`
 
 function startInstagramOAuth() {
   window.location.href = IG_OAUTH_URL
@@ -1111,7 +1162,7 @@ function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-        <p className="text-[11px] tracking-[0.2em] uppercase font-bold mb-1" style={{ color: '#E1306C' }}>INSTAGRAM</p>
+        <p className="text-sm tracking-[0.2em] uppercase font-bold mb-1" style={{ color: '#E1306C' }}>INSTAGRAM</p>
         <h2 className="text-2xl font-black tracking-tighter text-gray-900 mb-1">Instagram 연결</h2>
         <p className="text-xs text-gray-400 mb-6">Instagram Professional 계정으로 로그인하세요</p>
 
@@ -1126,11 +1177,11 @@ function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
           Facebook으로 Instagram 연결
         </button>
 
-        <p className="text-[10px] text-gray-400 text-center mt-3 mb-4">Instagram Professional 계정이 Facebook 페이지에 연결되어 있어야 합니다</p>
+        <p className="text-xs text-gray-400 text-center mt-3 mb-4">Instagram Professional 계정이 Facebook 페이지에 연결되어 있어야 합니다</p>
 
         {/* 수동 입력 토글 */}
         <button onClick={() => setShowManual(!showManual)}
-          className="w-full text-[11px] text-gray-400 hover:text-gray-600 font-semibold py-2">
+          className="w-full text-sm text-gray-400 hover:text-gray-600 font-semibold py-2">
           {showManual ? '접기' : '토큰 직접 입력'}
         </button>
 
@@ -1138,7 +1189,7 @@ function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
           <>
             <div className="space-y-4 mt-2">
               <div>
-                <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">INSTAGRAM USER ID</label>
+                <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">INSTAGRAM USER ID</label>
                 <input
                   className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono"
                   placeholder="예: 26672199749041605"
@@ -1147,7 +1198,7 @@ function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
                 />
               </div>
               <div>
-                <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">ACCESS TOKEN</label>
+                <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">ACCESS TOKEN</label>
                 <textarea
                   className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono resize-none h-24"
                   placeholder="EAAG..."

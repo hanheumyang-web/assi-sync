@@ -6,6 +6,21 @@ import PortfolioCategoryFilter from './PortfolioCategoryFilter'
 import PortfolioGrid from './PortfolioGrid'
 import PortfolioContactModal from './PortfolioContactModal'
 
+const FONT_MAP = {
+  'pretendard': "'Pretendard Variable', 'Pretendard', sans-serif",
+  'noto-sans': "'Noto Sans KR', sans-serif",
+  'noto-serif': "'Noto Serif KR', serif",
+  'suit': "'SUIT Variable', 'SUIT', sans-serif",
+  'gmarket': "'GmarketSansMedium', sans-serif",
+  'inter': "'Inter', sans-serif",
+  'poppins': "'Poppins', sans-serif",
+  'montserrat': "'Montserrat', sans-serif",
+  'dm-sans': "'DM Sans', sans-serif",
+  'space-grotesk': "'Space Grotesk', sans-serif",
+  'playfair': "'Playfair Display', serif",
+  'cormorant': "'Cormorant Garamond', serif",
+}
+
 export default function PortfolioPublicPage() {
   const { slug } = useParams()
   const { portfolio, profile, projects, projectAssets, loading, error } = usePortfolioPublic(slug)
@@ -93,6 +108,7 @@ export default function PortfolioPublicPage() {
   const fontSize = portfolio?.fontSize ?? 100
   const pagePadding = portfolio?.pagePadding ?? 48
   const borderRadius = portfolio?.borderRadius ?? 12
+  const fontFamily = portfolio?.fontFamily || 'pretendard'
 
   const openLightbox = (project) => {
     const assets = projectAssets[project.id] || []
@@ -103,7 +119,7 @@ export default function PortfolioPublicPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: bg, fontFamily: "'Pretendard', -apple-system, sans-serif" }}>
+    <div className="min-h-screen" style={{ backgroundColor: bg, fontFamily: FONT_MAP[fontFamily] || FONT_MAP.pretendard }}>
       {/* Header */}
       <PortfolioHeader
         portfolio={portfolio}

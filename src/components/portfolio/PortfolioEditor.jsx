@@ -26,14 +26,29 @@ const COLOR_PRESETS = [
 
 const CATEGORY_LIST = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
 
+const FONT_LIST = [
+  { id: 'pretendard', label: 'Pretendard', family: "'Pretendard Variable', 'Pretendard', sans-serif", type: 'KR' },
+  { id: 'noto-sans', label: 'Noto Sans KR', family: "'Noto Sans KR', sans-serif", type: 'KR' },
+  { id: 'noto-serif', label: 'Noto Serif KR', family: "'Noto Serif KR', serif", type: 'KR' },
+  { id: 'suit', label: 'SUIT', family: "'SUIT Variable', 'SUIT', sans-serif", type: 'KR' },
+  { id: 'gmarket', label: 'Gmarket Sans', family: "'GmarketSansMedium', sans-serif", type: 'KR' },
+  { id: 'inter', label: 'Inter', family: "'Inter', sans-serif", type: 'EN' },
+  { id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif", type: 'EN' },
+  { id: 'montserrat', label: 'Montserrat', family: "'Montserrat', sans-serif", type: 'EN' },
+  { id: 'dm-sans', label: 'DM Sans', family: "'DM Sans', sans-serif", type: 'EN' },
+  { id: 'space-grotesk', label: 'Space Grotesk', family: "'Space Grotesk', sans-serif", type: 'EN' },
+  { id: 'playfair', label: 'Playfair Display', family: "'Playfair Display', serif", type: 'EN' },
+  { id: 'cormorant', label: 'Cormorant Garamond', family: "'Cormorant Garamond', serif", type: 'EN' },
+]
+
 /* ─── 레인지 슬라이더 ─── */
 function RangeSlider({ label, value, min, max, step, unit, onChange }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] text-gray-500 w-16 flex-shrink-0">{label}</span>
+      <span className="text-sm text-gray-500 w-20 flex-shrink-0">{label}</span>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))}
         className="flex-1 h-1 accent-[#828DF8] cursor-pointer" />
-      <span className="text-[11px] text-gray-700 font-mono w-12 text-right flex-shrink-0">{value}{unit}</span>
+      <span className="text-sm text-gray-700 font-mono w-14 text-right flex-shrink-0">{value}{unit}</span>
     </div>
   )
 }
@@ -65,6 +80,7 @@ export default function PortfolioEditor({ isMobile }) {
   const [fontSize, setFontSize] = useState(100)
   const [pagePadding, setPagePadding] = useState(48)
   const [borderRadius, setBorderRadius] = useState(12)
+  const [fontFamily, setFontFamily] = useState('pretendard')
   // 섹션 열기/닫기 (기본: 슬러그+프로젝트 열림)
   const [openSections, setOpenSections] = useState({ slug: true, projects: true })
 
@@ -98,6 +114,7 @@ export default function PortfolioEditor({ isMobile }) {
     setFontSize(portfolio.fontSize ?? 100)
     setPagePadding(portfolio.pagePadding ?? 48)
     setBorderRadius(portfolio.borderRadius ?? 12)
+    setFontFamily(portfolio.fontFamily || 'pretendard')
     initialLoad.current = true
   }, [portfolio, userDoc, user])
 
@@ -131,8 +148,8 @@ export default function PortfolioEditor({ isMobile }) {
     columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
     businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
     projectOrder, featuredProjects, projectLayout, enabledCategories,
-    photoGap, fontSize, pagePadding, borderRadius,
-  }), [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius])
+    photoGap, fontSize, pagePadding, borderRadius, fontFamily,
+  }), [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily])
 
   // 임시저장 (3초 디바운스)
   useEffect(() => {
@@ -149,7 +166,7 @@ export default function PortfolioEditor({ isMobile }) {
       }
     }, 3000)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, getPayload, savePortfolio])
+  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily, getPayload, savePortfolio])
 
   const handleSave = async () => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
@@ -288,7 +305,7 @@ export default function PortfolioEditor({ isMobile }) {
   const previewPortfolio = {
     ...portfolio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
     columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
-    featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius,
+    featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily,
   }
 
   if (loading) {
@@ -327,7 +344,7 @@ export default function PortfolioEditor({ isMobile }) {
         {previewProjects.length > 0 && (
           <div className="flex justify-end px-3 pb-2">
             <button onClick={autoAlign}
-              className="px-4 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all cursor-pointer shadow-sm hover:shadow"
+              className="px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-sm hover:shadow"
               style={{ backgroundColor: accentColor, color: '#fff' }}>
               정렬
             </button>
@@ -343,8 +360,9 @@ export default function PortfolioEditor({ isMobile }) {
 
   /* ══════════════════════════════════════════════ */
   function renderPreview() {
+    const selectedFont = FONT_LIST.find(f => f.id === fontFamily) || FONT_LIST[0]
     return (
-      <>
+      <div style={{ fontFamily: selectedFont.family }}>
         <PortfolioHeader
           portfolio={previewPortfolio} profile={userDoc}
           onContact={() => {}} theme={theme}
@@ -371,7 +389,7 @@ export default function PortfolioEditor({ isMobile }) {
             <p className="text-sm font-light" style={{ color: textColor + '40' }}>좌측에서 프로젝트를 선택하세요</p>
           </div>
         )}
-      </>
+      </div>
     )
   }
 
@@ -385,7 +403,7 @@ export default function PortfolioEditor({ isMobile }) {
       <button onClick={() => toggleSection(id)}
         className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold">{label}</p>
+          <p className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">{label}</p>
           {badge}
         </div>
         <svg className={`w-4 h-4 text-gray-300 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -405,7 +423,7 @@ export default function PortfolioEditor({ isMobile }) {
           {autoSaved && (
             <span className="flex items-center gap-1 ml-auto">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-              <span className="text-[10px] text-emerald-500 font-semibold">저장됨</span>
+              <span className="text-xs text-emerald-500 font-semibold">저장됨</span>
             </span>
           )}
         </div>
@@ -440,7 +458,7 @@ export default function PortfolioEditor({ isMobile }) {
                       <div className="w-1/2 h-full" style={{ backgroundColor: p.bg }} />
                       <div className="w-1/2 h-full" style={{ backgroundColor: p.accent }} />
                     </div>
-                    <span className="text-[9px] text-gray-500">{p.label}</span>
+                    <span className="text-xs text-gray-500">{p.label}</span>
                   </button>
                 ))}
               </div>
@@ -453,9 +471,9 @@ export default function PortfolioEditor({ isMobile }) {
                   <div key={c.label} className="flex items-center gap-2">
                     <input type="color" value={c.value} onChange={e => c.set(e.target.value)}
                       className="w-7 h-7 rounded-[6px] cursor-pointer border-0 p-0 flex-shrink-0" />
-                    <span className="text-[11px] text-gray-500 w-14 flex-shrink-0">{c.label}</span>
+                    <span className="text-sm text-gray-500 w-14 flex-shrink-0">{c.label}</span>
                     <input value={c.value} onChange={e => c.set(e.target.value)}
-                      className="flex-1 min-w-0 bg-[#F4F3EE] rounded-[8px] px-2 py-1.5 text-[11px] text-gray-700 font-mono outline-none" />
+                      className="flex-1 min-w-0 bg-[#F4F3EE] rounded-[8px] px-2 py-1.5 text-sm text-gray-700 font-mono outline-none" />
                   </div>
                 ))}
               </div>
@@ -466,7 +484,7 @@ export default function PortfolioEditor({ isMobile }) {
         {/* ── 레이아웃 ── */}
         <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
           <SectionHeader id="layout" label="레이아웃"
-            badge={<span className="text-[9px] text-gray-400 font-mono">{columns}열 · {ASPECT_OPTIONS.find(o=>o.value===rowAspectRatio)?.label||'3:2'}</span>}
+            badge={<span className="text-xs text-gray-400 font-mono">{columns}열 · {ASPECT_OPTIONS.find(o=>o.value===rowAspectRatio)?.label||'3:2'}</span>}
           />
           {openSections.layout && (
             <>
@@ -487,7 +505,7 @@ export default function PortfolioEditor({ isMobile }) {
                 <div className="flex flex-wrap gap-1.5">
                   {ASPECT_OPTIONS.map(opt => (
                     <button key={opt.value} onClick={() => setRowAspectRatio(opt.value)}
-                      className={`px-3 py-1.5 rounded-[10px] text-[11px] font-bold transition-all
+                      className={`px-3 py-1.5 rounded-[10px] text-sm font-bold transition-all
                         ${rowAspectRatio === opt.value ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}>
                       {opt.label}
                     </button>
@@ -501,7 +519,7 @@ export default function PortfolioEditor({ isMobile }) {
         {/* ── 헤더 정보 ── */}
         <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
           <SectionHeader id="header" label="헤더 정보"
-            badge={businessName ? <span className="text-[9px] text-gray-400 truncate max-w-[100px]">{businessName}</span> : null}
+            badge={businessName ? <span className="text-xs text-gray-400 truncate max-w-[100px]">{businessName}</span> : null}
           />
           {openSections.header && (
             <>
@@ -530,10 +548,23 @@ export default function PortfolioEditor({ isMobile }) {
         {/* ── 상세 조정 (별도 섹션) ── */}
         <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
           <SectionHeader id="advanced" label="상세 조정"
-            badge={<span className="text-[9px] text-gray-400 font-mono">{photoGap}px · {fontSize}% · {pagePadding}px · R{borderRadius}</span>}
+            badge={<span className="text-xs text-gray-400 font-mono">{photoGap}px · {fontSize}% · {pagePadding}px · R{borderRadius}</span>}
           />
           {openSections.advanced && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* 폰트 선택 */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">폰트</label>
+                <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
+                  {FONT_LIST.map(f => (
+                    <button key={f.id} onClick={() => setFontFamily(f.id)}
+                      className={`px-3 py-2 rounded-[10px] text-left transition-all ${fontFamily === f.id ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-600 hover:bg-gray-200'}`}>
+                      <span className="text-sm font-bold block truncate" style={{ fontFamily: f.family }}>{f.label}</span>
+                      <span className={`text-[10px] ${fontFamily === f.id ? 'text-white/60' : 'text-gray-400'}`}>{f.type}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <RangeSlider label="사진 간격" value={photoGap} min={0} max={24} step={1} unit="px" onChange={setPhotoGap} />
               <RangeSlider label="폰트 크기" value={fontSize} min={50} max={200} step={5} unit="%" onChange={setFontSize} />
               <RangeSlider label="주변 여백" value={pagePadding} min={0} max={120} step={4} unit="px" onChange={setPagePadding} />
@@ -548,7 +579,7 @@ export default function PortfolioEditor({ isMobile }) {
             <SectionHeader id="projects" label={`프로젝트 선택 (${projectOrder.length}개)`} />
             {projectOrder.length > 0 && (
               <button onClick={(e) => { e.stopPropagation(); autoAlign() }}
-                className="text-[10px] text-[#828DF8] font-bold tracking-wide hover:underline flex-shrink-0 ml-2">
+                className="text-xs text-[#828DF8] font-bold tracking-wide hover:underline flex-shrink-0 ml-2">
                 정렬
               </button>
             )}
@@ -568,7 +599,7 @@ export default function PortfolioEditor({ isMobile }) {
                     )}
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
-                      <p className="text-[10px] text-gray-400">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
+                      <p className="text-xs text-gray-400">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
                     </div>
                     {included && (
                       <button onClick={(e) => {
@@ -603,7 +634,7 @@ export default function PortfolioEditor({ isMobile }) {
         {/* ── 필터 카테고리 ── */}
         <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
           <SectionHeader id="categories" label="필터 카테고리"
-            badge={enabledCategories.length > 0 ? <span className="text-[9px] text-gray-400">{enabledCategories.length}개</span> : null}
+            badge={enabledCategories.length > 0 ? <span className="text-xs text-gray-400">{enabledCategories.length}개</span> : null}
           />
           {openSections.categories && (() => {
             const projectCats = [...new Set(projects.map(p => p.category).filter(c => c && !CATEGORY_LIST.includes(c)))]
@@ -616,7 +647,7 @@ export default function PortfolioEditor({ isMobile }) {
                     const on = enabledCategories.includes(cat)
                     return (
                       <button key={cat} onClick={() => toggleCategory(cat)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
+                        className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all
                           ${on ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-400 hover:bg-gray-200'}`}>
                         {cat}
                       </button>
@@ -625,7 +656,7 @@ export default function PortfolioEditor({ isMobile }) {
                 </div>
                 <div className="flex gap-1.5">
                   <input
-                    className="flex-1 px-3 py-1.5 bg-[#F4F3EE] rounded-full text-[11px] text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                    className="flex-1 px-3 py-1.5 bg-[#F4F3EE] rounded-full text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
                     placeholder="커스텀 카테고리 추가"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.target.value.trim()) {

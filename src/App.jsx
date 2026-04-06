@@ -26,6 +26,7 @@ function App() {
   const [page, setPage] = useState('dashboard')
   const [onboardingStep, setOnboardingStep] = useState(1)
   const [onboardingDone, setOnboardingDone] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const isMobile = useIsMobile()
 
   // 로딩 중
@@ -61,7 +62,7 @@ function App() {
   // 메인 앱
   return (
     <div className={`flex ${isMobile ? 'flex-col' : ''} h-screen bg-[#F4F3EE]`}>
-      {!isMobile && <Sidebar page={page} setPage={setPage} />}
+      {!isMobile && <Sidebar page={page} setPage={setPage} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />}
       <main className={`flex-1 min-w-0 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-4 pb-20' : 'p-8'}`}>
         {page === 'dashboard' && <Dashboard setPage={setPage} isMobile={isMobile} />}
         {page === 'feed' && <FeedPlanner isMobile={isMobile} />}

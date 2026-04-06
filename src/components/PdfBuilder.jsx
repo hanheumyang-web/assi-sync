@@ -122,6 +122,21 @@ function smartLayout(imgs, pw, ph, margin = 15, gap = 3, startY = 48) {
 }
 
 // ── 템플릿 ──
+const PDF_FONT_LIST = [
+  { id: 'pretendard', label: 'Pretendard', family: "'Pretendard Variable', 'Pretendard', sans-serif", type: 'KR' },
+  { id: 'noto-sans', label: 'Noto Sans KR', family: "'Noto Sans KR', sans-serif", type: 'KR' },
+  { id: 'noto-serif', label: 'Noto Serif KR', family: "'Noto Serif KR', serif", type: 'KR' },
+  { id: 'suit', label: 'SUIT', family: "'SUIT Variable', 'SUIT', sans-serif", type: 'KR' },
+  { id: 'gmarket', label: 'Gmarket Sans', family: "'GmarketSansMedium', sans-serif", type: 'KR' },
+  { id: 'inter', label: 'Inter', family: "'Inter', sans-serif", type: 'EN' },
+  { id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif", type: 'EN' },
+  { id: 'montserrat', label: 'Montserrat', family: "'Montserrat', sans-serif", type: 'EN' },
+  { id: 'dm-sans', label: 'DM Sans', family: "'DM Sans', sans-serif", type: 'EN' },
+  { id: 'space-grotesk', label: 'Space Grotesk', family: "'Space Grotesk', sans-serif", type: 'EN' },
+  { id: 'playfair', label: 'Playfair Display', family: "'Playfair Display', serif", type: 'EN' },
+  { id: 'cormorant', label: 'Cormorant Garamond', family: "'Cormorant Garamond', serif", type: 'EN' },
+]
+
 const TEMPLATES = [
   { id: 'minimal', name: '미니멀 화이트', en: 'MINIMAL WHITE', preview: 'from-white to-gray-50', bg: '#FFFFFF', text: '#1A1A1A', accent: '#333333', sub: '#999999' },
   { id: 'cineDark', name: '다크 시네마틱', en: 'DARK CINEMATIC', preview: 'from-gray-900 to-black', bg: '#0A0A0A', text: '#F5F5F5', accent: '#E8E8E8', sub: '#666666' },
@@ -255,6 +270,7 @@ export default function PdfBuilder({ isMobile }) {
   const [title, setTitle] = useState('')
   const [subtitle, setSubtitle] = useState('')
   const [contact, setContact] = useState('')
+  const [pdfFontFamily, setPdfFontFamily] = useState('pretendard')
 
   const [pages, setPages] = useState([])
   const [currentPageIdx, setCurrentPageIdx] = useState(0)
@@ -978,7 +994,7 @@ export default function PdfBuilder({ isMobile }) {
       <div className="space-y-6">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[11px] tracking-[0.2em] uppercase text-gray-400 font-semibold">PORTFOLIO BUILDER</p>
+            <p className="text-sm tracking-[0.2em] uppercase text-gray-400 font-semibold">PORTFOLIO BUILDER</p>
             <h1 className="text-3xl font-black tracking-tighter text-gray-900">포트폴리오 빌더</h1>
           </div>
         </div>
@@ -987,7 +1003,7 @@ export default function PdfBuilder({ isMobile }) {
           <div className="col-span-2 space-y-4">
             {/* 템플릿 */}
             <div className="bg-white rounded-[24px] p-6 shadow-sm">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">SELECT TEMPLATE</p>
+              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">SELECT TEMPLATE</p>
               <h2 className="text-lg font-black tracking-tighter text-gray-900 mb-4">템플릿 선택</h2>
               <div className="grid grid-cols-5 gap-3">
                 {TEMPLATES.map(t => (
@@ -1001,7 +1017,7 @@ export default function PdfBuilder({ isMobile }) {
                       </div>
                     </div>
                     <div className="px-1 py-1.5">
-                      <p className="text-[9px] tracking-[0.1em] uppercase text-gray-400 font-semibold">{t.en}</p>
+                      <p className="text-xs tracking-[0.1em] uppercase text-gray-400 font-semibold">{t.en}</p>
                       <p className="text-xs font-bold text-gray-900 tracking-tight">{t.name}</p>
                     </div>
                   </button>
@@ -1009,15 +1025,15 @@ export default function PdfBuilder({ isMobile }) {
               </div>
               {selectedTemplate === 'myColor' && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-3">CUSTOMIZE COLORS</p>
+                  <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-3">CUSTOMIZE COLORS</p>
                   <div className="flex gap-4">
                     {[{ k: 'bg', l: '배경' }, { k: 'text', l: '텍스트' }, { k: 'accent', l: '포인트' }].map(({ k, l }) => (
                       <div key={k} className="flex-1">
-                        <label className="text-[10px] text-gray-400 font-semibold block mb-1">{l}</label>
+                        <label className="text-xs text-gray-400 font-semibold block mb-1">{l}</label>
                         <div className="flex items-center gap-2">
                           <input type="color" value={customColors[k]} onChange={e => setCustomColors(p => ({ ...p, [k]: e.target.value }))}
                             className="w-8 h-8 rounded-[8px] cursor-pointer border border-gray-200 p-0" />
-                          <span className="text-[10px] text-gray-400 font-mono">{customColors[k]}</span>
+                          <span className="text-xs text-gray-400 font-mono">{customColors[k]}</span>
                         </div>
                       </div>
                     ))}
@@ -1028,7 +1044,7 @@ export default function PdfBuilder({ isMobile }) {
 
             {/* 페이지당 장수 */}
             <div className="bg-white rounded-[24px] p-6 shadow-sm">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">IMAGES PER PAGE</p>
+              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">IMAGES PER PAGE</p>
               <h2 className="text-lg font-black tracking-tighter text-gray-900 mb-1">페이지당 이미지 수</h2>
               <p className="text-xs text-gray-400 mb-5">범위 내 자동 배치 · 에디터에서 자유 수정</p>
               <div className="relative h-10 flex items-center">
@@ -1044,7 +1060,7 @@ export default function PdfBuilder({ isMobile }) {
                   style={{ zIndex: 2 }} />
               </div>
               <div className="flex justify-between px-1 mt-1">
-                {[1,2,3,4,5,6].map(n => <span key={n} className={`text-[10px] font-bold ${n >= ippMin && n <= ippMax ? 'text-[#828DF8]' : 'text-gray-300'}`}>{n}장</span>)}
+                {[1,2,3,4,5,6].map(n => <span key={n} className={`text-xs font-bold ${n >= ippMin && n <= ippMax ? 'text-[#828DF8]' : 'text-gray-300'}`}>{n}장</span>)}
               </div>
               <div className="mt-3 text-center bg-[#F4F3EE] rounded-[14px] py-3">
                 <span className="text-2xl font-black text-[#828DF8]">{ippMin}</span>
@@ -1058,7 +1074,7 @@ export default function PdfBuilder({ isMobile }) {
             <div className="bg-white rounded-[24px] p-6 shadow-sm">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">ORIENTATION</p>
+                  <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-3">ORIENTATION</p>
                   <div className="flex gap-3">
                     {['portrait', 'landscape'].map(o => (
                       <button key={o} onClick={() => setOrientation(o)}
@@ -1070,7 +1086,7 @@ export default function PdfBuilder({ isMobile }) {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold">BRANDING</p>
+                  <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold">BRANDING</p>
                   {[[title, setTitle, '포트폴리오 제목'], [subtitle, setSubtitle, '직군 또는 소개'], [contact, setContact, '이메일 또는 연락처']].map(([v, s, p], i) => (
                     <input key={i} className="w-full px-4 py-2.5 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
                       value={v} onChange={e => s(e.target.value)} placeholder={p} />
@@ -1080,19 +1096,34 @@ export default function PdfBuilder({ isMobile }) {
             </div>
           </div>
 
+            {/* 폰트 선택 */}
+            <div className="bg-white rounded-[24px] p-6 shadow-sm">
+              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">FONT</p>
+              <h2 className="text-lg font-black tracking-tighter text-gray-900 mb-4">폰트 선택</h2>
+              <div className="grid grid-cols-3 gap-2">
+                {PDF_FONT_LIST.map(f => (
+                  <button key={f.id} onClick={() => setPdfFontFamily(f.id)}
+                    className={`px-3 py-2.5 rounded-[12px] text-left transition-all ${pdfFontFamily === f.id ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-600 hover:bg-gray-200'}`}>
+                    <span className="text-sm font-bold block truncate" style={{ fontFamily: f.family }}>{f.label}</span>
+                    <span className={`text-[10px] ${pdfFontFamily === f.id ? 'text-white/60' : 'text-gray-400'}`}>{f.type}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
           {/* 우측: 저장 목록 + 프로젝트 선택 */}
           <div className="space-y-4">
             {/* 저장된 작업 목록 */}
             {drafts.length > 0 && (
               <div className="bg-white rounded-[24px] p-5 shadow-sm">
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">MY PORTFOLIOS</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">MY PORTFOLIOS</p>
                 <h2 className="text-sm font-black tracking-tighter text-gray-900 mb-3">저장된 작업</h2>
                 <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
                   {drafts.map(d => (
                     <div key={d.id} className="flex items-center gap-2 p-2.5 bg-[#F4F3EE] rounded-[12px] group hover:bg-[#828DF8]/5 transition-all">
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadDraft(d.id)}>
                         <p className="text-xs font-bold text-gray-900 truncate">{d.name}</p>
-                        <p className="text-[9px] text-gray-400">{d.pageCount}p · {(() => {
+                        <p className="text-xs text-gray-400">{d.pageCount}p · {(() => {
                           const diff = Date.now() - d.updatedAt
                           if (diff < 60000) return '방금 전'
                           if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`
@@ -1102,7 +1133,7 @@ export default function PdfBuilder({ isMobile }) {
                         })()}</p>
                       </div>
                       <button onClick={() => loadDraft(d.id)}
-                        className="px-2 py-1 bg-[#828DF8]/10 text-[#828DF8] rounded-[8px] text-[9px] font-bold hover:bg-[#828DF8]/20 flex-shrink-0">열기</button>
+                        className="px-2 py-1 bg-[#828DF8]/10 text-[#828DF8] rounded-[8px] text-xs font-bold hover:bg-[#828DF8]/20 flex-shrink-0">열기</button>
                       <button onClick={() => { if (confirm(`"${d.name}" 삭제?`)) deleteDraft(d.id) }}
                         className="w-5 h-5 rounded-[6px] text-gray-300 hover:text-red-400 hover:bg-red-50 flex items-center justify-center text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                     </div>
@@ -1113,9 +1144,9 @@ export default function PdfBuilder({ isMobile }) {
 
             {/* 로컬 폴더 불러오기 */}
             <div className="bg-gradient-to-br from-[#828DF8]/5 to-[#828DF8]/10 rounded-[24px] p-5 shadow-sm border border-[#828DF8]/20">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-[#828DF8] font-semibold mb-1">IMPORT LOCAL</p>
+              <p className="text-xs tracking-[0.2em] uppercase text-[#828DF8] font-semibold mb-1">IMPORT LOCAL</p>
               <h2 className="text-sm font-black tracking-tighter text-gray-900 mb-2">로컬 폴더 불러오기</h2>
-              <p className="text-[9px] text-gray-400 mb-3">폴더 선택 → 하위 폴더별 프로젝트 자동 정리</p>
+              <p className="text-xs text-gray-400 mb-3">폴더 선택 → 하위 폴더별 프로젝트 자동 정리</p>
               <input ref={fileInputRef} type="file" webkitdirectory="" directory="" multiple
                 onChange={handleFolderImport} className="hidden" />
               <button onClick={() => fileInputRef.current?.click()} disabled={folderLoading}
@@ -1128,15 +1159,15 @@ export default function PdfBuilder({ isMobile }) {
               </button>
               {localProjects.length > 0 && (
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[9px] text-[#828DF8] font-bold">{localProjects.length}개 로컬 프로젝트 · {localProjects.reduce((s, p) => s + p.assets.length, 0)}장</span>
+                  <span className="text-xs text-[#828DF8] font-bold">{localProjects.length}개 로컬 프로젝트 · {localProjects.reduce((s, p) => s + p.assets.length, 0)}장</span>
                   <button onClick={() => { setLocalProjects([]); setSelectedProjectIds(prev => prev.filter(id => !id.startsWith('local_'))) }}
-                    className="text-[9px] text-gray-400 hover:text-red-400">초기화</button>
+                    className="text-xs text-gray-400 hover:text-red-400">초기화</button>
                 </div>
               )}
             </div>
 
             <div className="bg-white rounded-[24px] p-6 shadow-sm">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">SELECT PROJECTS</p>
+              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">SELECT PROJECTS</p>
               <h2 className="text-lg font-black tracking-tighter text-gray-900 mb-4">포함할 프로젝트</h2>
               {allProjects.length === 0
                 ? <p className="text-xs text-gray-400 text-center py-4">프로젝트를 먼저 생성하거나 폴더를 불러오세요</p>
@@ -1149,7 +1180,7 @@ export default function PdfBuilder({ isMobile }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-gray-900 truncate">{p.name}{p.isLocal ? '' : ''}</p>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-xs text-gray-400">
                             {p.isLocal ? (
                               <><span className="text-[#828DF8] font-semibold">로컬</span> · {p.imageCount || p.assets?.length || 0}장</>
                             ) : (
@@ -1164,8 +1195,8 @@ export default function PdfBuilder({ isMobile }) {
             {/* 선택된 프로젝트 순서 (드래그로 변경) */}
             {selectedProjectIds.length > 1 && (
               <div className="bg-white rounded-[24px] p-5 shadow-sm">
-                <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">PROJECT ORDER</p>
-                <p className="text-[10px] text-gray-400 mb-3">드래그하여 순서 변경</p>
+                <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold mb-1">PROJECT ORDER</p>
+                <p className="text-xs text-gray-400 mb-3">드래그하여 순서 변경</p>
                 <div className="space-y-1.5">
                   {selectedProjectIds.map((pid, idx) => {
                     const pr = allProjects.find(p => p.id === pid)
@@ -1176,10 +1207,10 @@ export default function PdfBuilder({ isMobile }) {
                         onDragOver={e => onProjectDragOver(e, pid)}
                         onDrop={e => onProjectDrop(e, pid)}
                         className="flex items-center gap-2 p-2.5 bg-[#F4F3EE] rounded-[10px] cursor-grab active:cursor-grabbing hover:bg-gray-200 transition-all select-none">
-                        <span className="text-[10px] font-bold text-[#828DF8] w-4 text-center">{idx + 1}</span>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0">⠿</span>
+                        <span className="text-xs font-bold text-[#828DF8] w-4 text-center">{idx + 1}</span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">⠿</span>
                         <span className="text-xs font-bold text-gray-900 truncate flex-1">{pr.name}</span>
-                        <span className="text-[10px] text-gray-400">{pr.imageCount || pr.assets?.length || 0}장</span>
+                        <span className="text-xs text-gray-400">{pr.imageCount || pr.assets?.length || 0}장</span>
                       </div>
                     )
                   })}
@@ -1215,22 +1246,22 @@ export default function PdfBuilder({ isMobile }) {
             <button onClick={() => setShowDraftDropdown(p => !p)}
               className="flex items-center gap-1.5 px-2 py-1 rounded-[10px] hover:bg-[#F4F3EE] transition-all">
               <span className="text-xs font-bold text-gray-900 max-w-[140px] truncate">{draftName || title || '제목 없음'}</span>
-              <span className="text-[9px] text-gray-400">{pages.length}p</span>
+              <span className="text-xs text-gray-400">{pages.length}p</span>
               <svg className={`w-3 h-3 text-gray-400 transition-transform ${showDraftDropdown ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5l3 3 3-3" /></svg>
             </button>
-            <span className="text-[9px] text-green-500 font-medium ml-1">● 자동저장</span>
+            <span className="text-xs text-green-500 font-medium ml-1">● 자동저장</span>
             {showDraftDropdown && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowDraftDropdown(false)} />
                 <div className="absolute top-full left-0 mt-1 w-[260px] bg-white rounded-[16px] shadow-2xl border border-gray-100 p-3 z-50">
-                  <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">내 포트폴리오</p>
+                  <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">내 포트폴리오</p>
                   {/* 현재 작업 이름 수정 */}
                   <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-100">
                     <input value={draftName} onChange={e => setDraftName(e.target.value)}
                       onBlur={() => { if (activeDraftId) saveDraft(activeDraftId, draftName) }}
-                      className="flex-1 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-[11px] font-bold text-gray-900 outline-none focus:ring-1 focus:ring-[#828DF8]/30"
+                      className="flex-1 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-sm font-bold text-gray-900 outline-none focus:ring-1 focus:ring-[#828DF8]/30"
                       placeholder="포트폴리오 이름" />
-                    <span className="text-[8px] text-[#828DF8] font-bold flex-shrink-0">편집 중</span>
+                    <span className="text-[11px] text-[#828DF8] font-bold flex-shrink-0">편집 중</span>
                   </div>
                   {/* 다른 저장된 작업 */}
                   <div className="space-y-1 max-h-[200px] overflow-y-auto">
@@ -1238,8 +1269,8 @@ export default function PdfBuilder({ isMobile }) {
                       <button key={d.id} onClick={() => { if (activeDraftId) saveDraft(activeDraftId, draftName); loadDraft(d.id); setShowDraftDropdown(false) }}
                         className="w-full flex items-center gap-2 p-2 rounded-[10px] hover:bg-[#F4F3EE] transition-all text-left group">
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-bold text-gray-900 truncate">{d.name}</p>
-                          <p className="text-[9px] text-gray-400">{d.pageCount}p · {(() => {
+                          <p className="text-sm font-bold text-gray-900 truncate">{d.name}</p>
+                          <p className="text-xs text-gray-400">{d.pageCount}p · {(() => {
                             const diff = Date.now() - d.updatedAt
                             if (diff < 60000) return '방금 전'
                             if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`
@@ -1257,7 +1288,7 @@ export default function PdfBuilder({ isMobile }) {
                   <button onClick={() => { if (activeDraftId) saveDraft(activeDraftId, draftName); setShowDraftDropdown(false); setStep('setup') }}
                     className="w-full mt-2 pt-2 border-t border-gray-100 flex items-center gap-2 p-2 rounded-[10px] hover:bg-[#828DF8]/5 transition-all text-left">
                     <span className="w-5 h-5 rounded-[6px] bg-[#828DF8]/10 flex items-center justify-center text-[#828DF8] text-xs font-bold">+</span>
-                    <span className="text-[11px] font-bold text-[#828DF8]">새 포트폴리오 만들기</span>
+                    <span className="text-sm font-bold text-[#828DF8]">새 포트폴리오 만들기</span>
                   </button>
                 </div>
               </>
@@ -1279,7 +1310,7 @@ export default function PdfBuilder({ isMobile }) {
           <div className="w-px h-5 bg-gray-200 mx-0.5" />
           <div className="flex items-center gap-0.5">
             <button onClick={() => setZoom(z => Math.max(30, z - 15))} className="w-6 h-6 rounded-[8px] bg-[#F4F3EE] text-gray-600 text-xs font-bold hover:bg-gray-200 flex items-center justify-center">−</button>
-            <button onClick={() => setZoom(100)} className="px-1.5 py-1 rounded-[8px] text-[10px] font-bold text-gray-600 hover:bg-[#F4F3EE] min-w-[36px] text-center">{zoom}%</button>
+            <button onClick={() => setZoom(100)} className="px-1.5 py-1 rounded-[8px] text-xs font-bold text-gray-600 hover:bg-[#F4F3EE] min-w-[36px] text-center">{zoom}%</button>
             <button onClick={() => setZoom(z => Math.min(200, z + 15))} className="w-6 h-6 rounded-[8px] bg-[#F4F3EE] text-gray-600 text-xs font-bold hover:bg-gray-200 flex items-center justify-center">+</button>
           </div>
           <div className="w-px h-5 bg-gray-200 mx-0.5" />
@@ -1293,7 +1324,7 @@ export default function PdfBuilder({ isMobile }) {
       <div className="flex flex-1 gap-3 min-h-0 min-w-0">
         {/* 왼쪽: 페이지 네비게이터 */}
         <div className="w-[140px] flex-shrink-0 bg-white rounded-[16px] p-3 shadow-sm overflow-y-auto">
-          <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PAGES</p>
+          <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PAGES</p>
           <div className="space-y-2">
             {pages.map((page, idx) => {
               const canDrag = !page.isCover && !page.isDivider
@@ -1328,7 +1359,7 @@ export default function PdfBuilder({ isMobile }) {
                       </div>
                     ))}
                   </div>
-                  <p className="text-[9px] text-gray-400 text-center py-1">{page.isCover ? '표지' : page.isDivider ? `${page.projectName} ↓` : page.projectName || `${idx + 1}`}</p>
+                  <p className="text-xs text-gray-400 text-center py-1">{page.isCover ? '표지' : page.isDivider ? `${page.projectName} ↓` : page.projectName || `${idx + 1}`}</p>
                 </div>
               )
             })}
@@ -1340,7 +1371,7 @@ export default function PdfBuilder({ isMobile }) {
           <div className="relative shadow-2xl rounded-[4px] overflow-hidden"
             data-canvas
             ref={canvasRef}
-            style={{ width: canvasW, height: canvasH, background: currentPage?.bg || '#fff', flexShrink: 0 }}
+            style={{ width: canvasW, height: canvasH, background: currentPage?.bg || '#fff', flexShrink: 0, fontFamily: (PDF_FONT_LIST.find(f => f.id === pdfFontFamily) || PDF_FONT_LIST[0]).family }}
             onMouseDown={handlers.handleCanvasMouseDown}
             onDragOver={handlers.handleCanvasDragOver}
             onDragLeave={handlers.handleCanvasDragLeave}
@@ -1391,7 +1422,7 @@ export default function PdfBuilder({ isMobile }) {
               { id: 'order', icon: '⇅', label: '순서' },
             ].map(tab => (
               <button key={tab.id} onClick={() => setRightTab(tab.id)}
-                className={`flex-1 py-1.5 rounded-[8px] text-[10px] font-bold transition-all ${rightTab === tab.id ? 'bg-[#828DF8] text-white shadow-sm' : 'text-gray-400 hover:bg-[#F4F3EE]'}`}>
+                className={`flex-1 py-1.5 rounded-[8px] text-xs font-bold transition-all ${rightTab === tab.id ? 'bg-[#828DF8] text-white shadow-sm' : 'text-gray-400 hover:bg-[#F4F3EE]'}`}>
                 {tab.icon} {tab.label}
               </button>
             ))}
@@ -1400,8 +1431,8 @@ export default function PdfBuilder({ isMobile }) {
           {/* 이미지 탭 */}
           {rightTab === 'images' && (
             <div className="bg-white rounded-[16px] p-3 shadow-sm flex-1 overflow-y-auto min-h-0">
-              <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PROJECT IMAGES</p>
-              <p className="text-[9px] text-gray-300 mb-2">캔버스로 드래그하여 추가/교체</p>
+              <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PROJECT IMAGES</p>
+              <p className="text-xs text-gray-300 mb-2">캔버스로 드래그하여 추가/교체</p>
               <ImageSidebar
                 projectAssets={projectAssets}
                 projects={projects}
@@ -1415,21 +1446,21 @@ export default function PdfBuilder({ isMobile }) {
           {/* 레이아웃 탭 */}
           {rightTab === 'layouts' && (
             <div className="bg-white rounded-[16px] p-3 shadow-sm flex-1 overflow-y-auto min-h-0">
-              <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">LAYOUTS</p>
+              <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">LAYOUTS</p>
               <div className="flex gap-0.5 mb-2">
                 {[1,2,3,4,5,6].map(n => {
                   const isActiveTab = activeTab === n
                   const isCurrentCount = currentPageImgCount === n
                   return (
                     <button key={n} onClick={() => setLayoutTab(n)}
-                      className={`flex-1 py-1 rounded-[6px] text-[9px] font-bold transition-all ${isActiveTab ? 'bg-[#828DF8] text-white' : isCurrentCount ? 'bg-[#828DF8]/15 text-[#828DF8]' : 'bg-[#F4F3EE] text-gray-400 hover:bg-gray-200'}`}>
+                      className={`flex-1 py-1 rounded-[6px] text-xs font-bold transition-all ${isActiveTab ? 'bg-[#828DF8] text-white' : isCurrentCount ? 'bg-[#828DF8]/15 text-[#828DF8]' : 'bg-[#F4F3EE] text-gray-400 hover:bg-gray-200'}`}>
                       {n}장
                     </button>
                   )
                 })}
               </div>
               {currentPage?.isCover || currentPage?.isDivider ? (
-                <p className="text-[10px] text-gray-300 text-center py-4">표지/구분 페이지</p>
+                <p className="text-xs text-gray-300 text-center py-4">표지/구분 페이지</p>
               ) : (
                 <div className="grid grid-cols-2 gap-1.5">
                   {availableLayouts.map(tpl => {
@@ -1479,7 +1510,7 @@ export default function PdfBuilder({ isMobile }) {
           {/* 순서 탭 */}
           {rightTab === 'order' && (
             <div className="bg-white rounded-[16px] p-3 shadow-sm flex-1 overflow-y-auto min-h-0">
-              <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PROJECT ORDER</p>
+              <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">PROJECT ORDER</p>
               {selectedProjectIds.length > 1 ? (
                 <>
                   <div className="space-y-1">
@@ -1493,20 +1524,20 @@ export default function PdfBuilder({ isMobile }) {
                           onDragOver={e => onProjectDragOver(e, pid)}
                           onDrop={e => onProjectDrop(e, pid)}
                           className={`flex items-center gap-1.5 px-2 py-1.5 rounded-[8px] cursor-grab active:cursor-grabbing transition-all select-none ${isCurrent ? 'bg-[#828DF8]/10 ring-1 ring-[#828DF8]/30' : 'bg-[#F4F3EE] hover:bg-gray-200'}`}>
-                          <span className="text-[9px] font-bold text-[#828DF8] w-3 text-center">{idx + 1}</span>
-                          <span className="text-[9px] text-gray-300">⠿</span>
-                          <span className="text-[10px] font-bold text-gray-900 truncate flex-1">{pr.name}</span>
+                          <span className="text-xs font-bold text-[#828DF8] w-3 text-center">{idx + 1}</span>
+                          <span className="text-xs text-gray-300">⠿</span>
+                          <span className="text-xs font-bold text-gray-900 truncate flex-1">{pr.name}</span>
                         </div>
                       )
                     })}
                   </div>
                   <button onClick={reorderAndRegenerate}
-                    className="w-full mt-2 py-1.5 bg-[#828DF8]/10 text-[#828DF8] rounded-[8px] text-[9px] font-bold hover:bg-[#828DF8]/20 transition-all">
+                    className="w-full mt-2 py-1.5 bg-[#828DF8]/10 text-[#828DF8] rounded-[8px] text-xs font-bold hover:bg-[#828DF8]/20 transition-all">
                     순서 적용하기
                   </button>
                 </>
               ) : (
-                <p className="text-[10px] text-gray-300 text-center py-4">프로젝트가 2개 이상일 때 순서 변경 가능</p>
+                <p className="text-xs text-gray-300 text-center py-4">프로젝트가 2개 이상일 때 순서 변경 가능</p>
               )}
             </div>
           )}
@@ -1514,15 +1545,15 @@ export default function PdfBuilder({ isMobile }) {
           {/* 하단: 속성 패널 (요소 선택시) */}
           {selectedEl && (
             <div className="bg-white rounded-[16px] p-3 shadow-sm overflow-y-auto max-h-[45%]">
-              <p className="text-[9px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">
+              <p className="text-xs tracking-[0.15em] uppercase text-gray-400 font-semibold mb-2">
                 {selectedEl.type === 'text' ? 'TEXT' : selectedEl.type === 'image' ? 'IMAGE' : 'SHAPE'}
               </p>
               <div className="grid grid-cols-2 gap-1.5">
                 {[['X', 'x', selectedEl.x], ['Y', 'y', selectedEl.y], ['W', 'w', selectedEl.w], ['H', 'h', selectedEl.h]].map(([l, k, v]) => (
                   <div key={k}>
-                    <label className="text-[8px] text-gray-400 font-semibold">{l}</label>
+                    <label className="text-[11px] text-gray-400 font-semibold">{l}</label>
                     <input type="number" value={Math.round(v)} onChange={e => updateEl(selectedEl.id, { [k]: +e.target.value })}
-                      className="w-full px-1.5 py-1 bg-[#F4F3EE] rounded-[6px] text-[10px] text-gray-900 outline-none" />
+                      className="w-full px-1.5 py-1 bg-[#F4F3EE] rounded-[6px] text-xs text-gray-900 outline-none" />
                   </div>
                 ))}
               </div>
@@ -1531,16 +1562,16 @@ export default function PdfBuilder({ isMobile }) {
                 <div className="mt-2 space-y-2">
                   <div className="flex gap-1">
                     <input type="number" value={selectedEl.fontSize} onChange={e => updateEl(selectedEl.id, { fontSize: Math.max(4, +e.target.value) })}
-                      className="w-14 px-1.5 py-1 bg-[#F4F3EE] rounded-[6px] text-[10px] text-gray-900 outline-none" />
+                      className="w-14 px-1.5 py-1 bg-[#F4F3EE] rounded-[6px] text-xs text-gray-900 outline-none" />
                     {['normal', 'bold'].map(w => (
                       <button key={w} onClick={() => updateEl(selectedEl.id, { fontWeight: w })}
-                        className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold ${selectedEl.fontWeight === w ? 'bg-[#828DF8] text-white' : 'bg-[#F4F3EE] text-gray-500'}`}>{w === 'bold' ? 'B' : 'R'}</button>
+                        className={`flex-1 py-1 rounded-[6px] text-xs font-bold ${selectedEl.fontWeight === w ? 'bg-[#828DF8] text-white' : 'bg-[#F4F3EE] text-gray-500'}`}>{w === 'bold' ? 'B' : 'R'}</button>
                     ))}
                   </div>
                   <div className="flex gap-1">
                     {['left', 'center', 'right'].map(a => (
                       <button key={a} onClick={() => updateEl(selectedEl.id, { align: a })}
-                        className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold ${selectedEl.align === a ? 'bg-[#828DF8] text-white' : 'bg-[#F4F3EE] text-gray-500'}`}>
+                        className={`flex-1 py-1 rounded-[6px] text-xs font-bold ${selectedEl.align === a ? 'bg-[#828DF8] text-white' : 'bg-[#F4F3EE] text-gray-500'}`}>
                         {a === 'left' ? '←' : a === 'center' ? '↔' : '→'}
                       </button>
                     ))}
@@ -1562,14 +1593,14 @@ export default function PdfBuilder({ isMobile }) {
               {selectedEl.type === 'image' && pages.length > 1 && (
                 <div className="flex gap-1 mt-2">
                   <button onClick={() => moveImageToPage(-1)} disabled={currentPageIdx <= 0}
-                    className="flex-1 py-1.5 bg-[#F4F3EE] rounded-[6px] text-[10px] font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-30">← 이전</button>
+                    className="flex-1 py-1.5 bg-[#F4F3EE] rounded-[6px] text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-30">← 이전</button>
                   <button onClick={() => moveImageToPage(1)} disabled={currentPageIdx >= pages.length - 1}
-                    className="flex-1 py-1.5 bg-[#F4F3EE] rounded-[6px] text-[10px] font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-30">다음 →</button>
+                    className="flex-1 py-1.5 bg-[#F4F3EE] rounded-[6px] text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-30">다음 →</button>
                 </div>
               )}
 
               <button onClick={() => deleteEl(selectedEl.id)}
-                className="w-full py-1.5 bg-red-50 text-red-500 rounded-[8px] text-[10px] font-bold hover:bg-red-100 mt-2">삭제</button>
+                className="w-full py-1.5 bg-red-50 text-red-500 rounded-[8px] text-xs font-bold hover:bg-red-100 mt-2">삭제</button>
             </div>
           )}
         </div>

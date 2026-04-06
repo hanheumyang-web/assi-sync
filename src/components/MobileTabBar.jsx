@@ -20,8 +20,8 @@ export default function MobileTabBar({ page, setPage }) {
             className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-[12px] transition-all min-w-0
               ${active ? 'text-[#828DF8]' : 'text-gray-400'}`}
           >
-            <tab.Icon className="w-5 h-5" />
-            <span className={`text-[9px] font-bold ${active ? 'text-[#828DF8]' : 'text-gray-400'}`}>{tab.label}</span>
+            <tab.Icon className="w-6 h-6" />
+            <span className={`text-[11px] font-bold ${active ? 'text-[#828DF8]' : 'text-gray-400'}`}>{tab.label}</span>
           </button>
         )
       })}
