@@ -177,7 +177,7 @@ export default function PortfolioPublicPage() {
 
           {/* Image area */}
           <div className="flex-1 flex items-center justify-center relative px-16 md:px-24">
-            {lightbox.assets[lightbox.idx]?.embedUrl ? (
+            {lightbox.assets[lightbox.idx]?.embedUrl && lightbox.assets[lightbox.idx]?.bunnyStatus === 'ready' ? (
               /* Bunny Stream / YouTube 임베드 */
               <div className="w-full max-w-4xl" style={{ aspectRatio: '16/9' }}>
                 <iframe

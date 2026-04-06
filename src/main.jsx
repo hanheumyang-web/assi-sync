@@ -5,6 +5,8 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 import PortfolioPublicPage from './components/portfolio/PortfolioPublicPage'
+import DownloadPage from './components/DownloadPage'
+import InstagramCallback from './components/InstagramCallback'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -12,6 +14,8 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <Routes>
           <Route path="/p/:slug" element={<PortfolioPublicPage />} />
+          <Route path="/download" element={<DownloadPage />} />
+          <Route path="/auth/instagram/callback" element={<InstagramCallback />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </AuthProvider>

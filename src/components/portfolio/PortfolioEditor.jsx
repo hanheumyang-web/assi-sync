@@ -41,7 +41,7 @@ function RangeSlider({ label, value, min, max, step, unit, onChange }) {
 export default function PortfolioEditor({ isMobile }) {
   const { user, userDoc } = useAuth()
   const { projects } = useProjects()
-  const { portfolio, loading, savePortfolio, checkSlugAvailable, publishPortfolio, unpublishPortfolio } = usePortfolio()
+  const { portfolio, loading, savePortfolio, checkSlugAvailable } = usePortfolio()
 
   const [slug, setSlug] = useState('')
   const [slugStatus, setSlugStatus] = useState(null)
@@ -53,6 +53,7 @@ export default function PortfolioEditor({ isMobile }) {
   const [businessName, setBusinessName] = useState('')
   const [tagline, setTagline] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [showInstagram, setShowInstagram] = useState(true)
   const [showWebsite, setShowWebsite] = useState(true)
   const [projectOrder, setProjectOrder] = useState([])
@@ -69,7 +70,6 @@ export default function PortfolioEditor({ isMobile }) {
 
   const [saving, setSaving] = useState(false)
   const [autoSaved, setAutoSaved] = useState(false)
-  const [publishing, setPublishing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [previewCategory, setPreviewCategory] = useState(null)
   const [projectAssets, setProjectAssets] = useState({})
@@ -87,6 +87,7 @@ export default function PortfolioEditor({ isMobile }) {
     setBusinessName(portfolio.businessName || userDoc?.displayName || '')
     setTagline(portfolio.tagline || userDoc?.profession || '')
     setContactEmail(portfolio.contactEmail || userDoc?.email || user?.email || '')
+    setContactPhone(portfolio.contactPhone || userDoc?.phone || '')
     setShowInstagram(portfolio.showInstagram !== false)
     setShowWebsite(portfolio.showWebsite !== false)
     setProjectOrder(portfolio.projectOrder || [])
@@ -128,41 +129,41 @@ export default function PortfolioEditor({ isMobile }) {
   const getPayload = useCallback(() => ({
     slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'),
     columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
-    businessName, tagline, contactEmail, showInstagram, showWebsite,
+    businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
     projectOrder, featuredProjects, projectLayout, enabledCategories,
     photoGap, fontSize, pagePadding, borderRadius,
-  }), [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius])
+  }), [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius])
 
   // 임시저장 (3초 디바운스)
   useEffect(() => {
     if (initialLoad.current) { initialLoad.current = false; return }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(async () => {
-      await savePortfolio(getPayload())
-      setAutoSaved(true)
-      setTimeout(() => setAutoSaved(false), 2000)
+      try {
+        await savePortfolio(getPayload())
+        setAutoSaved(true)
+        setTimeout(() => setAutoSaved(false), 2000)
+      } catch (err) {
+        console.error('[AutoSave Failed]', err)
+        alert('자동 저장 실패: ' + err.message)
+      }
     }, 3000)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, getPayload, savePortfolio])
+  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, getPayload, savePortfolio])
 
   const handleSave = async () => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     setSaving(true)
-    await savePortfolio(getPayload())
+    try {
+      await savePortfolio(getPayload())
+    } catch (err) {
+      console.error('[Save Failed]', err)
+      alert('저장 실패: ' + err.message)
+    }
     setSaving(false)
   }
 
-  const handlePublish = async () => {
-    if (!slug || slugStatus === 'taken') { alert('유효한 슬러그를 입력하세요'); return }
-    setPublishing(true)
-    await handleSave()
-    await publishPortfolio(projectOrder)
-    setPublishing(false)
-  }
 
-  const handleUnpublish = async () => {
-    setPublishing(true); await unpublishPortfolio(); setPublishing(false)
-  }
 
   const toggleProject = (pid) => {
     setProjectOrder(prev => {
@@ -285,7 +286,7 @@ export default function PortfolioEditor({ isMobile }) {
   const previewProjects = projectOrder.map(pid => projects.find(p => p.id === pid)).filter(Boolean)
   const theme = { bg: bgColor, text: textColor, accent: accentColor }
   const previewPortfolio = {
-    ...portfolio, businessName, tagline, contactEmail, showInstagram, showWebsite,
+    ...portfolio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
     columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
     featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius,
   }
@@ -510,6 +511,8 @@ export default function PortfolioEditor({ isMobile }) {
                 placeholder="한줄 소개" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <input value={contactEmail} onChange={e => setContactEmail(e.target.value)}
                 placeholder="연락 이메일" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
+              <input value={contactPhone} onChange={e => setContactPhone(e.target.value)}
+                placeholder="연락처 (010-0000-0000)" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
                   <input type="checkbox" checked={showInstagram} onChange={e => setShowInstagram(e.target.checked)} className="rounded" />
@@ -555,8 +558,8 @@ export default function PortfolioEditor({ isMobile }) {
               {projects.map(p => {
                 const included = projectOrder.includes(p.id)
                 return (
-                  <button key={p.id} onClick={() => toggleProject(p.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left
+                  <div key={p.id} onClick={() => toggleProject(p.id)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left cursor-pointer
                       ${included ? 'bg-[#828DF8]/10 ring-1 ring-[#828DF8]/30' : 'hover:bg-[#F4F3EE]'}`}>
                     {p.thumbnailUrl ? (
                       <img src={p.thumbnailUrl} alt="" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
@@ -590,7 +593,7 @@ export default function PortfolioEditor({ isMobile }) {
                         <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>

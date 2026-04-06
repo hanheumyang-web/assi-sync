@@ -1079,7 +1079,16 @@ function PostEditor({ project, assets, currentOrder, caption: initialCaption, sa
 }
 
 // ── Instagram 설정 모달 ──
+const IG_APP_ID = '1728699775169445'
+const IG_REDIRECT_URI = window.location.origin + '/auth/instagram/callback'
+const IG_OAUTH_URL = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${IG_APP_ID}&redirect_uri=${encodeURIComponent(IG_REDIRECT_URI)}&config_id=915326037979269&response_type=code`
+
+function startInstagramOAuth() {
+  window.location.href = IG_OAUTH_URL
+}
+
 function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
+  const [showManual, setShowManual] = useState(false)
   const [token, setToken] = useState(currentToken || '')
   const [userId, setUserId] = useState(currentUserId || '')
   const [testing, setTesting] = useState(false)
@@ -1102,51 +1111,77 @@ function IgSettingsModal({ currentToken, currentUserId, onSave, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-        <p className="text-[11px] tracking-[0.2em] uppercase font-bold mb-1" style={{ color: '#E1306C' }}>INSTAGRAM API</p>
+        <p className="text-[11px] tracking-[0.2em] uppercase font-bold mb-1" style={{ color: '#E1306C' }}>INSTAGRAM</p>
         <h2 className="text-2xl font-black tracking-tighter text-gray-900 mb-1">Instagram 연결</h2>
-        <p className="text-xs text-gray-400 mb-6">Meta 개발자 대시보드에서 발급받은 토큰을 입력하세요</p>
+        <p className="text-xs text-gray-400 mb-6">Instagram Professional 계정으로 로그인하세요</p>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">INSTAGRAM USER ID</label>
-            <input
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono"
-              placeholder="예: 26672199749041605"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">ACCESS TOKEN</label>
-            <textarea
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono resize-none h-24"
-              placeholder="IGAAT..."
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
-          </div>
-        </div>
+        {/* OAuth 버튼 */}
+        <button onClick={startInstagramOAuth}
+          className="w-full py-4 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white rounded-[16px] font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-3">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="18" cy="6" r="1.5" fill="currentColor"/>
+          </svg>
+          Facebook으로 Instagram 연결
+        </button>
 
-        {testResult && (
-          <div className={`mt-4 p-3 rounded-[12px] ${testResult.ok ? 'bg-green-50' : 'bg-red-50'}`}>
-            {testResult.ok
-              ? <p className="text-xs font-bold text-green-700">@{testResult.username} 연결 성공!</p>
-              : <p className="text-xs font-bold text-red-600">{testResult.error}</p>}
-          </div>
+        <p className="text-[10px] text-gray-400 text-center mt-3 mb-4">Instagram Professional 계정이 Facebook 페이지에 연결되어 있어야 합니다</p>
+
+        {/* 수동 입력 토글 */}
+        <button onClick={() => setShowManual(!showManual)}
+          className="w-full text-[11px] text-gray-400 hover:text-gray-600 font-semibold py-2">
+          {showManual ? '접기' : '토큰 직접 입력'}
+        </button>
+
+        {showManual && (
+          <>
+            <div className="space-y-4 mt-2">
+              <div>
+                <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">INSTAGRAM USER ID</label>
+                <input
+                  className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono"
+                  placeholder="예: 26672199749041605"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">ACCESS TOKEN</label>
+                <textarea
+                  className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#E1306C]/30 font-mono resize-none h-24"
+                  placeholder="EAAG..."
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {testResult && (
+              <div className={`mt-4 p-3 rounded-[12px] ${testResult.ok ? 'bg-green-50' : 'bg-red-50'}`}>
+                {testResult.ok
+                  ? <p className="text-xs font-bold text-green-700">@{testResult.username} 연결 성공!</p>
+                  : <p className="text-xs font-bold text-red-600">{testResult.error}</p>}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={testConnection}
+                disabled={!token.trim() || !userId.trim() || testing}
+                className="py-3 px-5 bg-gray-900 text-white rounded-[16px] font-bold text-sm hover:bg-gray-800 transition-all disabled:opacity-50"
+              >{testing ? '테스트 중...' : '테스트'}</button>
+              <button
+                onClick={() => onSave(token.trim(), userId.trim())}
+                disabled={!token.trim() || !userId.trim()}
+                className="flex-1 py-3 bg-[#828DF8] text-white rounded-[16px] font-bold text-sm hover:bg-[#6366F1] transition-all disabled:opacity-50"
+              >저장</button>
+            </div>
+          </>
         )}
 
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-4 bg-[#F4F3EE] text-gray-500 rounded-[16px] font-bold text-sm hover:bg-gray-200 transition-all">취소</button>
-          <button
-            onClick={testConnection}
-            disabled={!token.trim() || !userId.trim() || testing}
-            className="py-4 px-6 bg-gray-900 text-white rounded-[16px] font-bold text-sm hover:bg-gray-800 transition-all disabled:opacity-50"
-          >{testing ? '테스트 중...' : '연결 테스트'}</button>
-          <button
-            onClick={() => onSave(token.trim(), userId.trim())}
-            disabled={!token.trim() || !userId.trim()}
-            className="flex-1 py-4 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white rounded-[16px] font-bold text-sm hover:shadow-lg transition-all disabled:opacity-50"
-          >저장</button>
+        <div className="mt-4">
+          <button onClick={onClose} className="w-full py-3 bg-[#F4F3EE] text-gray-500 rounded-[16px] font-bold text-sm hover:bg-gray-200 transition-all">닫기</button>
         </div>
       </div>
     </div>

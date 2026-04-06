@@ -282,7 +282,7 @@ exports.bunnyWebhook = functions
         // Bunny CDN에서 썸네일 다운로드 (Referer 필수 — Hotlink Protection)
         const thumbUrl = `https://vz-cd1dda72-832.b-cdn.net/${VideoGuid}/${thumbFileName}`
         const thumbRes = await fetch(thumbUrl, {
-          headers: { 'Referer': 'https://assi-proto.vercel.app' },
+          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
         })
 
         if (thumbRes.ok) {
@@ -475,7 +475,7 @@ exports.fixBunnyThumbnails = functions
         // Bunny CDN에서 썸네일 다운로드 (Referer 필수 — Hotlink Protection)
         const thumbUrl = `https://vz-cd1dda72-832.b-cdn.net/${videoId}/${thumbFileName}`
         const thumbRes = await fetch(thumbUrl, {
-          headers: { 'Referer': 'https://assi-proto.vercel.app' },
+          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
         })
 
         if (!thumbRes.ok) {

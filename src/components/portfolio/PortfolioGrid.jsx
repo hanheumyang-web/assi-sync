@@ -79,28 +79,74 @@ export default function PortfolioGrid({
     rowSpan: 2,
   }), [featuredProjects, columns])
 
-  // 레이아웃 계산 — 카테고리 필터 시 자동 정렬
+  // 레이아웃 계산 — 항상 bin-packing으로 겹침 방지
   const layout = useMemo(() => {
+    const auto = {}
+    const occupied = new Set()
+
+    // 저장된 레이아웃이 있고 필터 안 걸렸으면, 저장된 순서대로 배치 (겹침 방지)
     if (projectLayout && Object.keys(projectLayout).length > 0 && !categoryFilter) {
-      const valid = {}
-      for (const p of filtered) {
-        if (projectLayout[p.id]) {
-          const pl = projectLayout[p.id]
-          valid[p.id] = {
-            row: pl.row, col: pl.col,
-            colSpan: pl.colSpan || pl.span || 1,
-            rowSpan: pl.rowSpan || 2,
+      // 저장된 row 순서대로 정렬해서 배치
+      const sorted = [...filtered].sort((a, b) => {
+        const pa = projectLayout[a.id]
+        const pb = projectLayout[b.id]
+        if (!pa && !pb) return 0
+        if (!pa) return 1
+        if (!pb) return -1
+        return pa.row !== pb.row ? pa.row - pb.row : pa.col - pb.col
+      })
+
+      for (const p of sorted) {
+        const existing = projectLayout[p.id]
+        const colSpan = Math.min(columns, existing?.colSpan || existing?.span || (featuredProjects.includes(p.id) ? Math.min(2, columns) : 1))
+        const rowSpan = existing?.rowSpan || 2
+
+        // 저장된 위치가 유효한지 (겹침 없는지) 확인
+        let placed = false
+        if (existing && existing.row !== undefined && existing.col !== undefined) {
+          const r = existing.row
+          const c = Math.min(existing.col, columns - colSpan)
+          let ok = true
+          for (let dr = 0; dr < rowSpan && ok; dr++)
+            for (let dc = 0; dc < colSpan && ok; dc++)
+              if (occupied.has(`${r + dr}-${c + dc}`)) ok = false
+          if (ok) {
+            auto[p.id] = { row: r, col: c, colSpan, rowSpan }
+            for (let dr = 0; dr < rowSpan; dr++)
+              for (let dc = 0; dc < colSpan; dc++)
+                occupied.add(`${r + dr}-${c + dc}`)
+            placed = true
+          }
+        }
+
+        // 저장된 위치가 겹치면 원래 row 근처에서 빈 자리 찾기 (위로 안 튀게)
+        if (!placed) {
+          const startRow = existing?.row || 0
+          for (let r = startRow; !placed; r++) {
+            for (let c = 0; c <= columns - colSpan; c++) {
+              let ok = true
+              for (let dr = 0; dr < rowSpan && ok; dr++)
+                for (let dc = 0; dc < colSpan && ok; dc++)
+                  if (occupied.has(`${r + dr}-${c + dc}`)) ok = false
+              if (ok) {
+                auto[p.id] = { row: r, col: c, colSpan, rowSpan }
+                for (let dr = 0; dr < rowSpan; dr++)
+                  for (let dc = 0; dc < colSpan; dc++)
+                    occupied.add(`${r + dr}-${c + dc}`)
+                placed = true
+                break
+              }
+            }
           }
         }
       }
-      return valid
+      return auto
     }
+
     // 카테고리 필터 시 또는 레이아웃 없을 때: bin-packing
-    const auto = {}
-    const occupied = new Set()
     for (const p of filtered) {
       const existing = projectLayout?.[p.id]
-      const colSpan = existing?.colSpan || existing?.span || (featuredProjects.includes(p.id) ? Math.min(2, columns) : 1)
+      const colSpan = Math.min(columns, existing?.colSpan || existing?.span || (featuredProjects.includes(p.id) ? Math.min(2, columns) : 1))
       const rowSpan = existing?.rowSpan || 2
       let placed = false
       for (let r = 0; !placed; r++) {
@@ -286,7 +332,7 @@ export default function PortfolioGrid({
     // 썸네일: 작은 thumbUrl 우선 > 프로젝트 썸네일 > 첫 이미지 > Bunny 썸네일
     const rawThumb = firstVideo?.videoThumbnailUrl || null
     const bunnyThumb = rawThumb?.replace('vz-631122.b-cdn.net', 'vz-cd1dda72-832.b-cdn.net') || null
-    const thumb = firstImage?.thumbUrl || project.thumbnailUrl || firstImage?.url || bunnyThumb || null
+    const thumb = firstImage?.url || firstImage?.thumbUrl || project.thumbnailUrl || bunnyThumb || null
     const embedUrl = firstVideo?.embedUrl || null
     const isDragging = dragId === project.id
     const isResizing = resizing?.id === project.id
@@ -307,6 +353,7 @@ export default function PortfolioGrid({
           gridColumn: `${pos.col + 1} / span ${pos.colSpan}`,
           gridRow: `${pos.row + 1} / span ${pos.rowSpan}`,
           borderRadius: `${borderRadius}px`,
+          ...(mode === 'owner' ? { WebkitUserSelect: 'none', userSelect: 'none' } : {}),
         }}
       >
         {/* 배경 레이어: 영상=다크, 일반=라이트 */}
@@ -360,7 +407,7 @@ export default function PortfolioGrid({
 
         {/* Owner: drag handle */}
         {mode === 'owner' && (
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <div className="absolute top-2 left-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
             <div className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center shadow">
               <svg className="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
@@ -373,7 +420,8 @@ export default function PortfolioGrid({
 
         {/* Owner: resize handle */}
         {mode === 'owner' && (
-          <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-nwse-resize"
+          <div className="absolute bottom-1 right-1 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 cursor-nwse-resize"
+            style={{ touchAction: 'none' }}
             onPointerDown={e => handleResizeStart(e, project.id)}>
             <div className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center shadow">
               <svg className="w-3 h-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

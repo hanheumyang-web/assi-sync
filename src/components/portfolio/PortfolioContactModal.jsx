@@ -1,6 +1,6 @@
 export default function PortfolioContactModal({ portfolio, profile, onClose, theme }) {
   const email = portfolio?.contactEmail || profile?.email || ''
-  const phone = profile?.phone || ''
+  const phone = portfolio?.contactPhone || profile?.phone || ''
   const name = portfolio?.businessName || profile?.displayName || ''
 
   const bg = theme?.bg || '#FFFFFF'

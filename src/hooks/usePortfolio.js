@@ -12,6 +12,7 @@ const DEFAULT_PORTFOLIO = {
   businessName: '',
   tagline: '',
   contactEmail: '',
+  contactPhone: '',
   showInstagram: true,
   showWebsite: true,
   projectOrder: [],
@@ -44,37 +45,45 @@ export function usePortfolio() {
 
   const savePortfolio = useCallback(async (updates) => {
     if (!user) return
-    const ref = doc(db, 'portfolios', user.uid)
-    const snap = await getDoc(ref)
-    const data = {
-      ...updates,
-      uid: user.uid,
-      published: true, // 저장 시 항상 공개
-      updatedAt: new Date().toISOString(),
-    }
-    if (!snap.exists()) {
-      data.createdAt = new Date().toISOString()
-      await setDoc(ref, { ...DEFAULT_PORTFOLIO, ...data })
-    } else {
-      await updateDoc(ref, data)
-    }
-
-    // projectOrder의 프로젝트에 portfolioPublic 플래그 동기화
-    const projectOrder = updates.projectOrder || []
-    if (projectOrder.length > 0) {
-      const batch = writeBatch(db)
-      // 기존 portfolioPublic 해제
-      const oldQ = query(collection(db, 'projects'), where('uid', '==', user.uid), where('portfolioPublic', '==', true))
-      const oldSnap = await getDocs(oldQ)
-      oldSnap.docs.forEach(d => batch.update(d.ref, { portfolioPublic: false }))
-      // 새로 설정
-      for (const pid of projectOrder) {
-        batch.update(doc(db, 'projects', pid), { portfolioPublic: true })
+    try {
+      const ref = doc(db, 'portfolios', user.uid)
+      const snap = await getDoc(ref)
+      const data = {
+        ...updates,
+        uid: user.uid,
+        published: true,
+        updatedAt: new Date().toISOString(),
       }
-      await batch.commit()
-    }
+      if (!snap.exists()) {
+        data.createdAt = new Date().toISOString()
+        await setDoc(ref, { ...DEFAULT_PORTFOLIO, ...data })
+      } else {
+        await updateDoc(ref, data)
+      }
 
-    setPortfolio(prev => ({ ...prev, ...data }))
+      // projectOrder의 프로젝트에 portfolioPublic 플래그 동기화
+      const projectOrder = updates.projectOrder || []
+      if (projectOrder.length > 0) {
+        const batch = writeBatch(db)
+        const oldQ = query(collection(db, 'projects'), where('uid', '==', user.uid), where('portfolioPublic', '==', true))
+        const oldSnap = await getDocs(oldQ)
+        oldSnap.docs.forEach(d => batch.update(d.ref, { portfolioPublic: false }))
+        // 존재하는 프로젝트만 업데이트
+        for (const pid of projectOrder) {
+          const pRef = doc(db, 'projects', pid)
+          const pSnap = await getDoc(pRef)
+          if (pSnap.exists()) {
+            batch.update(pRef, { portfolioPublic: true })
+          }
+        }
+        await batch.commit()
+      }
+
+      setPortfolio(prev => ({ ...prev, ...data }))
+    } catch (err) {
+      console.error('[Portfolio Save Error]', err.code, err.message)
+      throw err
+    }
   }, [user])
 
   // 슬러그 고유성 확인
@@ -96,9 +105,13 @@ export function usePortfolio() {
     const oldSnap = await getDocs(oldQ)
     oldSnap.docs.forEach(d => batch.update(d.ref, { portfolioPublic: false }))
 
-    // 새로 포함된 프로젝트에 portfolioPublic 설정
+    // 새로 포함된 프로젝트에 portfolioPublic 설정 (존재하는 것만)
     for (const pid of projectOrder) {
-      batch.update(doc(db, 'projects', pid), { portfolioPublic: true })
+      const pRef = doc(db, 'projects', pid)
+      const pSnap = await getDoc(pRef)
+      if (pSnap.exists()) {
+        batch.update(pRef, { portfolioPublic: true })
+      }
     }
 
     // 포트폴리오 발행
