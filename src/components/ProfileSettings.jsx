@@ -4,7 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase'
 
 export default function ProfileSettings() {
-  const { user, userDoc, updateUserProfile } = useAuth()
+  const { user, userDoc, updateUserProfile, logout } = useAuth()
   const fileRef = useRef(null)
 
   const [name, setName] = useState(userDoc?.displayName || '')
@@ -18,6 +18,7 @@ export default function ProfileSettings() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -194,6 +195,26 @@ export default function ProfileSettings() {
           <p className="text-[10px] text-gray-400 mt-3">{email}{phone ? ` | ${phone}` : ''}</p>
           {instagram && <p className="text-[10px] text-gray-400">@{instagram}</p>}
         </div>
+      </div>
+
+      {/* 추천하기 + 로그아웃 */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText('https://assi-portfolio.vercel.app')
+            setShareCopied(true)
+            setTimeout(() => setShareCopied(false), 2000)
+          }}
+          className="flex-1 py-4 bg-[#828DF8] text-white rounded-[24px] shadow-lg shadow-[#828DF8]/25 text-sm font-bold hover:bg-[#6366F1] transition-all"
+        >
+          {shareCopied ? '링크 복사됨!' : '📤 친구에게 추천하기'}
+        </button>
+        <button
+          onClick={logout}
+          className="px-6 py-4 bg-white text-red-500 rounded-[24px] shadow-sm text-sm font-bold hover:bg-red-50 transition-all"
+        >
+          로그아웃
+        </button>
       </div>
     </div>
   )
