@@ -29,11 +29,13 @@
     },
     "win": {
       "target": "nsis",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "artifactName": "ASSI-Sync-Windows-${version}.${ext}"
     },
     "forceCodeSigning": false,
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "artifactName": "ASSI-Sync-Mac-${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
