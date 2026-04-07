@@ -391,3 +391,66 @@ ipcMain.handle('delete-synced-folder', async (_, projectKey) => {
   mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
   return true
 })
+
+// ── Folder Tree Explorer ──
+const fsPromises = require('fs').promises
+const DEFAULT_CATS = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
+const IMG_RE = /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tif|tiff|avif|cr2|nef|arw|dng|raf|mp4|mov|avi|mkv|webm|m4v|wmv|flv)$/i
+
+ipcMain.handle('scan-folder-tree', async () => {
+  if (!syncEngine) return null
+  const root = syncEngine.watchDir
+  if (!root) return null
+  const synced = new Set(Object.keys(syncEngine.state.syncedFiles).map(k => k.split('/').slice(0, -1).join('/')))
+
+  async function readDir(dir, depth) {
+    if (depth > 2) return []
+    let entries
+    try { entries = await fsPromises.readdir(dir, { withFileTypes: true }) } catch { return [] }
+    const out = []
+    for (const e of entries) {
+      if (e.name.startsWith('.')) continue
+      const full = require('path').join(dir, e.name)
+      if (e.isDirectory()) {
+        const children = await readDir(full, depth + 1)
+        const fileCount = (await fsPromises.readdir(full).catch(() => []))
+          .filter(n => IMG_RE.test(n)).length
+        out.push({ name: e.name, path: full, isDir: true, depth, fileCount, children })
+      }
+    }
+    return out
+  }
+
+  const tree = await readDir(root, 0)
+  // 뱃지 계산: depth 0 = 카테고리(파란), depth 1 = 프로젝트(초록=업로드됨/회색=대기/주황=잘못된위치)
+  function annotate(nodes, parentCat) {
+    for (const n of nodes) {
+      if (n.depth === 0) {
+        const norm = n.name.trim().toUpperCase()
+        n.badge = DEFAULT_CATS.includes(norm) ? 'category' : 'category-custom'
+        // 1단계 폴더에 직접 파일이 있으면 위치 오류
+        if (n.fileCount > 0) n.badge = 'misplaced'
+      } else if (n.depth === 1) {
+        const rel = require('path').relative(root, n.path).split(require('path').sep).join('/')
+        n.badge = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
+      }
+      if (n.children?.length) annotate(n.children, n.name)
+    }
+  }
+  annotate(tree)
+  return { root, tree }
+})
+
+ipcMain.handle('move-folder', async (_, { from, to }) => {
+  try {
+    await fsPromises.rename(from, to)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('open-in-explorer', (_, p) => {
+  shell.showItemInFolder(p)
+  return true
+})

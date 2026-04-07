@@ -303,6 +303,102 @@ window.api.onSyncedFoldersUpdated((folders) => {
   renderSyncedFolders(folders)
 })
 
+// ── Explorer Mode ──
+let dragNode = null
+
+document.getElementById('tab-activity').addEventListener('click', () => switchTab('activity'))
+document.getElementById('tab-explorer').addEventListener('click', () => switchTab('explorer'))
+
+function switchTab(tab) {
+  const isExp = tab === 'explorer'
+  document.getElementById('tab-activity').style.background = isExp ? '#fff' : '#111'
+  document.getElementById('tab-activity').style.color = isExp ? '#666' : '#fff'
+  document.getElementById('tab-explorer').style.background = isExp ? '#111' : '#fff'
+  document.getElementById('tab-explorer').style.color = isExp ? '#fff' : '#666'
+  document.getElementById('explorer-pane').style.display = isExp ? 'block' : 'none'
+  document.getElementById('file-list').style.display = isExp ? 'none' : 'flex'
+  document.getElementById('synced-section').style.display = isExp ? 'none' : ''
+  document.getElementById('pending-section').style.display = isExp ? 'none' : ''
+  if (isExp) refreshExplorer()
+}
+
+async function refreshExplorer() {
+  const pane = document.getElementById('explorer-pane')
+  pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">스캔 중...</div>'
+  const data = await window.api.scanFolderTree()
+  if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">동기화 폴더가 없습니다</div>'; return }
+  pane.innerHTML = renderTree(data.tree, data.root)
+  attachExplorerHandlers(data.root)
+}
+
+function badgeHtml(b) {
+  const map = {
+    'category': '<span style="font-size:9px;color:#3B82F6;font-weight:700">✅ 분류</span>',
+    'category-custom': '<span style="font-size:9px;color:#8B5CF6;font-weight:700">✨ 커스텀</span>',
+    'misplaced': '<span style="font-size:9px;color:#F59E0B;font-weight:700">⚠️ 위치 오류</span>',
+    'uploaded': '<span style="font-size:9px;color:#10B981;font-weight:700">🟢 업로드됨</span>',
+    'pending': '<span style="font-size:9px;color:#9CA3AF;font-weight:700">⏳ 대기</span>',
+    'empty': '<span style="font-size:9px;color:#D1D5DB;font-weight:700">— 비어있음</span>',
+  }
+  return map[b] || ''
+}
+
+function renderTree(nodes, root) {
+  if (!nodes.length) return '<div style="padding:20px;color:#999;font-size:11px">폴더가 없습니다</div>'
+  return `<div style="font-size:12px">${nodes.map(n => renderNode(n, root)).join('')}</div>`
+}
+
+function renderNode(n, root) {
+  const isCat = n.depth === 0
+  const indent = n.depth * 16
+  const icon = isCat ? '📂' : '📁'
+  const childHtml = n.children?.length
+    ? n.children.map(c => renderNode(c, root)).join('')
+    : (isCat ? '<div style="padding:4px 0 4px 32px;color:#D1D5DB;font-size:10px">— 비어 있음 —</div>' : '')
+  return `
+    <div class="tree-node" data-path="${n.path.replace(/"/g, '&quot;')}" data-depth="${n.depth}" draggable="${!isCat}"
+         style="padding:6px 8px;margin-left:${indent}px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:${isCat ? 'default' : 'grab'};border:1px solid transparent">
+      <span>${icon}</span>
+      <span style="font-weight:${isCat ? '700' : '600'};color:${isCat ? '#111' : '#444'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.name}</span>
+      ${badgeHtml(n.badge)}
+      <span style="font-size:9px;color:#bbb">${n.fileCount || 0}</span>
+    </div>
+    ${childHtml}
+  `
+}
+
+function attachExplorerHandlers(root) {
+  document.querySelectorAll('.tree-node').forEach(el => {
+    const depth = parseInt(el.dataset.depth)
+    const fullPath = el.dataset.path
+
+    if (depth > 0) {
+      el.addEventListener('dragstart', (e) => { dragNode = fullPath; el.style.opacity = '0.4' })
+      el.addEventListener('dragend', () => { el.style.opacity = '1'; dragNode = null })
+    }
+
+    if (depth === 0) {
+      el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.border = '1px solid #F4A259'; el.style.background = '#FFF7ED' })
+      el.addEventListener('dragleave', () => { el.style.border = '1px solid transparent'; el.style.background = '' })
+      el.addEventListener('drop', async (e) => {
+        e.preventDefault()
+        el.style.border = '1px solid transparent'; el.style.background = ''
+        if (!dragNode) return
+        const name = dragNode.split(/[/\\]/).pop()
+        const target = fullPath + (fullPath.endsWith('\\') ? '' : '\\') + name
+        const result = await window.api.moveFolder(dragNode, target)
+        if (result.ok) {
+          setTimeout(refreshExplorer, 500)
+        } else {
+          alert('이동 실패: ' + result.error)
+        }
+      })
+    }
+
+    el.addEventListener('dblclick', () => window.api.openInExplorer(fullPath))
+  })
+}
+
 // ── File List Rendering ──
 function renderFileList() {
   const list = document.getElementById('file-list')

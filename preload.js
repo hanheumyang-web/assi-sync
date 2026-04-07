@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('api', {
   onPendingFoldersUpdated: (cb) => ipcRenderer.on('pending-folders-updated', (_, data) => cb(data)),
   onSyncedFoldersUpdated: (cb) => ipcRenderer.on('synced-folders-updated', (_, data) => cb(data)),
 
+  // Folder tree (explorer mode)
+  scanFolderTree: () => ipcRenderer.invoke('scan-folder-tree'),
+  moveFolder: (from, to) => ipcRenderer.invoke('move-folder', { from, to }),
+  openInExplorer: (p) => ipcRenderer.invoke('open-in-explorer', p),
+
   // Auth
   googleLogin: () => ipcRenderer.invoke('google-login'),
 
