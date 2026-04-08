@@ -44,7 +44,7 @@ export default function ImageSidebar({ projectAssets, projects, selectedProjectI
         return (
           <div key={pid}>
             <button onClick={() => toggle(pid)}
-              className="w-full flex items-center justify-between px-2 py-1.5 rounded-[8px] hover:bg-[#F4F3EE] transition-all">
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-[8px] hover:bg-gray-50 transition-all">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className={`text-[9px] transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
                 <span className="text-[10px] font-bold text-gray-900 truncate">{pr.name}</span>
@@ -57,7 +57,7 @@ export default function ImageSidebar({ projectAssets, projects, selectedProjectI
                   <img key={asset.id} src={asset.url} alt=""
                     draggable
                     onDragStart={e => handleDragStart(e, asset)}
-                    className="aspect-square rounded-[6px] object-cover cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-[#828DF8] transition-all"
+                    className="aspect-square rounded-[6px] object-cover cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-[#F4A259] transition-all"
                   />
                 ))}
                 {!assets.length && (

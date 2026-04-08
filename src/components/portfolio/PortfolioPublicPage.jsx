@@ -101,7 +101,7 @@ export default function PortfolioPublicPage() {
 
   const bg = portfolio?.backgroundColor || '#FFFFFF'
   const text = portfolio?.textColor || '#1A1A1A'
-  const accent = portfolio?.accentColor || '#828DF8'
+  const accent = portfolio?.accentColor || '#F4A259'
   const theme = { bg, text, accent }
   const categories = portfolio?.enabledCategories || []
   const photoGap = portfolio?.photoGap ?? 8
@@ -149,8 +149,15 @@ export default function PortfolioPublicPage() {
         projects={projects}
         projectAssets={projectAssets}
         columns={portfolio?.columns || 3}
+        rowAspectRatio={portfolio?.rowAspectRatio || 0.667}
         featuredProjects={portfolio?.featuredProjects || []}
-        projectLayout={portfolio?.projectLayout || {}}
+        projectLayout={(() => {
+          const raw = portfolio?.projectLayout || {}
+          // 마이그레이션: flat이면 _all로 wrap
+          const isLegacy = Object.values(raw).some(v => v && typeof v === 'object' && 'row' in v)
+          const nested = isLegacy ? { _all: raw } : raw
+          return nested[activeCategory || '_all'] || {}
+        })()}
         photoGap={photoGap}
         pagePadding={pagePadding}
         borderRadius={borderRadius}

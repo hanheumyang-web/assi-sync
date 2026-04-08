@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useCallback, useEffect, memo } from 'react'
 
 // 이미지 로드 시 fade-in
-function FadeImage({ src, alt = '', className = '', ...props }) {
+function FadeImage({ src, alt = '', className = '', eager = false, ...props }) {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
   if (error || !src) return null
@@ -15,7 +15,9 @@ function FadeImage({ src, alt = '', className = '', ...props }) {
         className={`${className} transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
-        loading="lazy" decoding="async"
+        loading={eager ? 'eager' : 'lazy'}
+        fetchpriority={eager ? 'high' : 'auto'}
+        decoding="async"
       />
     </>
   )
@@ -35,6 +37,7 @@ export default function PortfolioGrid({
   photoGap,
   pagePadding,
   borderRadius = 12,
+  rowAspectRatio = 0.667,
   mode = 'viewer',
   onLayoutChange,
   categoryFilter,
@@ -51,7 +54,7 @@ export default function PortfolioGrid({
   const resizeRef = useRef(null)
 
   const text = theme?.text || '#1A1A1A'
-  const accent = theme?.accent || '#828DF8'
+  const accent = theme?.accent || '#F4A259'
   const gap = photoGap ?? 8
   const pad = pagePadding ?? 48
 
@@ -66,18 +69,33 @@ export default function PortfolioGrid({
       const w = containerRef.current.clientWidth
       const cw = (w - (columns - 1) * gap) / columns
       setColWidth(cw)
-      setRowHeight(Math.round(cw * 2 / 3))
+      setRowHeight(Math.round(cw * rowAspectRatio))
     }
     calc()
     const ro = new ResizeObserver(calc)
     ro.observe(containerRef.current)
     return () => ro.disconnect()
-  }, [columns, gap])
+  }, [columns, gap, rowAspectRatio])
+
+  // rowAspectRatio 기반으로 적절한 기본 rowSpan 계산
+  // 목표: 타일의 시각적 세로/가로 비율이 항상 0.8~1.5 사이에 있도록
+  // tileRatio = rowAspectRatio * rowSpan (타일 높이/너비)
+  const defaultRowSpan = Math.max(1, Math.round(1 / rowAspectRatio))
+
+  // 저장된 rowSpan도 현재 비율에 맞게 clamp
+  const clampRowSpan = useCallback((saved) => {
+    if (!saved) return defaultRowSpan
+    // 시각적 비율 = rowAspectRatio * rowSpan — 0.4 ~ 3.0 범위로 제한
+    const visualRatio = rowAspectRatio * saved
+    if (visualRatio > 3.0) return Math.max(1, Math.floor(3.0 / rowAspectRatio))
+    if (visualRatio < 0.4) return Math.ceil(0.4 / rowAspectRatio)
+    return saved
+  }, [rowAspectRatio, defaultRowSpan])
 
   const getDefaultSpan = useCallback((id) => ({
     colSpan: featuredProjects.includes(id) ? Math.min(2, columns) : 1,
-    rowSpan: 2,
-  }), [featuredProjects, columns])
+    rowSpan: defaultRowSpan,
+  }), [featuredProjects, columns, defaultRowSpan])
 
   // 레이아웃 계산 — 항상 bin-packing으로 겹침 방지
   const layout = useMemo(() => {
@@ -99,7 +117,7 @@ export default function PortfolioGrid({
       for (const p of sorted) {
         const existing = projectLayout[p.id]
         const colSpan = Math.min(columns, existing?.colSpan || existing?.span || (featuredProjects.includes(p.id) ? Math.min(2, columns) : 1))
-        const rowSpan = existing?.rowSpan || 2
+        const rowSpan = clampRowSpan(existing?.rowSpan)
 
         // 저장된 위치가 유효한지 (겹침 없는지) 확인
         let placed = false
@@ -147,7 +165,7 @@ export default function PortfolioGrid({
     for (const p of filtered) {
       const existing = projectLayout?.[p.id]
       const colSpan = Math.min(columns, existing?.colSpan || existing?.span || (featuredProjects.includes(p.id) ? Math.min(2, columns) : 1))
-      const rowSpan = existing?.rowSpan || 2
+      const rowSpan = clampRowSpan(existing?.rowSpan)
       let placed = false
       for (let r = 0; !placed; r++) {
         for (let c = 0; c <= columns - colSpan; c++) {
@@ -167,7 +185,7 @@ export default function PortfolioGrid({
       }
     }
     return auto
-  }, [projectLayout, filtered, columns, getDefaultSpan, categoryFilter, featuredProjects])
+  }, [projectLayout, filtered, columns, getDefaultSpan, clampRowSpan, categoryFilter, featuredProjects])
 
   // 리사이즈 중 임시 레이아웃
   const activeLayout = useMemo(() => {
@@ -329,10 +347,10 @@ export default function PortfolioGrid({
     const isVideoAsset = (a) => a.isVideo || a.fileType?.startsWith('video/') || a.contentType?.startsWith('video/') || a.videoHost === 'bunny' || a.embedUrl
     const firstImage = assets.find(a => !isVideoAsset(a) && (a.url || a.thumbnailUrl))
     const firstVideo = assets.find(a => isVideoAsset(a))
-    // 썸네일: 작은 thumbUrl 우선 > 프로젝트 썸네일 > 첫 이미지 > Bunny 썸네일
+    // 썸네일: 프로젝트 기본 썸네일(가장 빨리 로드됨) > 작은 thumbUrl > 원본 url > Bunny 썸네일
     const rawThumb = firstVideo?.videoThumbnailUrl || null
     const bunnyThumb = rawThumb?.replace('vz-631122.b-cdn.net', 'vz-cd1dda72-832.b-cdn.net') || null
-    const thumb = firstImage?.url || firstImage?.thumbUrl || project.thumbnailUrl || bunnyThumb || null
+    const thumb = project.thumbnailUrl || firstImage?.thumbUrl || firstImage?.url || bunnyThumb || null
     const embedUrl = firstVideo?.embedUrl || null
     const isDragging = dragId === project.id
     const isResizing = resizing?.id === project.id
@@ -346,7 +364,7 @@ export default function PortfolioGrid({
         onClick={() => !resizing && onProjectClick?.(project)}
         className={`relative group cursor-pointer transition-all overflow-hidden
           ${isDragging ? 'opacity-20 scale-95' : ''}
-          ${isResizing ? 'ring-2 ring-[#828DF8] z-20' : ''}
+          ${isResizing ? 'ring-2 ring-[#F4A259] z-20' : ''}
           ${mode === 'owner' ? 'cursor-grab active:cursor-grabbing' : ''}
         `}
         style={{
@@ -378,6 +396,7 @@ export default function PortfolioGrid({
         {/* 미디어 레이어 (로드 성공 시 배경 위를 덮음) */}
         {thumb && (
           <FadeImage src={thumb} alt="" draggable={false}
+            eager={pos.row === 0}
             className="absolute inset-0 w-full h-full object-cover" />
         )}
 
@@ -506,7 +525,7 @@ export default function PortfolioGrid({
               style={{ gridColumn: col + 1, gridRow: row + 1 }}
               className={`transition-all duration-100 pointer-events-none
                 ${isGuide
-                  ? 'border-2 border-dashed border-[#828DF8] bg-[#828DF8]/10'
+                  ? 'border-2 border-dashed border-[#F4A259]'
                   : 'border border-dashed border-gray-200/60'
                 }
               `}
@@ -517,7 +536,7 @@ export default function PortfolioGrid({
         {/* 드롭 가이드: 점유된 셀 위에도 오버레이 표시 */}
         {dropTarget && (
           <div
-            className="border-2 border-[#828DF8] bg-[#828DF8]/15 pointer-events-none z-10"
+            className="border-2 border-[#F4A259] pointer-events-none z-10"
             style={{
               gridColumn: `${dropTarget.col + 1} / span ${dropTarget.colSpan}`,
               gridRow: `${dropTarget.row + 1} / span ${dropTarget.rowSpan}`,

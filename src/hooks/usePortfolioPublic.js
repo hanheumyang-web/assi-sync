@@ -47,17 +47,23 @@ export function usePortfolioPublic(slug) {
           .filter(pid => projMap[pid])
           .map(pid => projMap[pid])
         setProjects(ordered)
-
-        // 3. 모든 프로젝트 에셋 병렬 로드
-        const assetResults = await Promise.all(
-          ordered.map(proj =>
-            getDocs(query(collection(db, 'assets'), where('projectId', '==', proj.id)))
-              .then(snap => [proj.id, snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))])
-          )
-        )
-        const assetMap = Object.fromEntries(assetResults)
-        setProjectAssets(assetMap)
+        // 프로젝트 목록만 있으면 페이지를 먼저 그린다 (썸네일은 project.thumbnailUrl 사용)
         setLoading(false)
+
+        // 3. 에셋은 백그라운드에서 점진 로드 (라이트박스 열 때 필요)
+        ordered.forEach(proj => {
+          getDocs(query(collection(db, 'assets'), where('projectId', '==', proj.id)))
+            .then(snap => {
+              const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+                const ao = a.order, bo = b.order
+                if (ao != null && bo != null) return ao - bo
+                if (ao != null) return -1
+                if (bo != null) return 1
+                return (a.createdAt || '').localeCompare(b.createdAt || '')
+              })
+              setProjectAssets(prev => ({ ...prev, [proj.id]: list }))
+            })
+        })
       } catch (e) {
         console.error('[Portfolio] Load error:', e)
         setError('error')

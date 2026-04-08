@@ -10,7 +10,7 @@ export default function PortfolioHeader({ portfolio, profile, onContact, theme, 
   const website = portfolio?.showWebsite !== false ? profile?.website : null
 
   const text = theme?.text || '#1A1A1A'
-  const accent = theme?.accent || '#828DF8'
+  const accent = theme?.accent || '#F4A259'
   const textMuted = text + '80'
 
   // 폰트 스케일 (기본 100%)

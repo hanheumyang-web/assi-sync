@@ -5,7 +5,7 @@ export default function PortfolioContactModal({ portfolio, profile, onClose, the
 
   const bg = theme?.bg || '#FFFFFF'
   const text = theme?.text || '#1A1A1A'
-  const accent = theme?.accent || '#828DF8'
+  const accent = theme?.accent || '#F4A259'
 
   const mailto = email
     ? `mailto:${email}?subject=${encodeURIComponent(`[문의] ${name} 포트폴리오 관련`)}`

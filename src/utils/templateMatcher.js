@@ -237,7 +237,7 @@ export function applyTemplate(template, images, pw, ph, colorTpl, options = {}) 
       y: Math.round((startY + deco.y * usableH) * 10) / 10,
       w: Math.round((deco.w * usableW) * 10) / 10,
       h: Math.round((deco.h * usableH) * 10) / 10,
-      color: colorTpl?.[deco.colorKey] || colorTpl?.accent || '#828DF8', opacity: deco.opacity ?? 0.2
+      color: colorTpl?.[deco.colorKey] || colorTpl?.accent || '#F4A259', opacity: deco.opacity ?? 0.2
     })
   }
 

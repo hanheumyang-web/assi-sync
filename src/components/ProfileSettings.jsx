@@ -65,8 +65,18 @@ export default function ProfileSettings() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[11px] tracking-[0.2em] uppercase text-gray-400 font-semibold">PROFILE SETTINGS</p>
-          <h1 className="text-3xl font-black tracking-tighter text-gray-900">프로필 설정</h1>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">PROFILE SETTINGS</p>
+          <h1 className="text-3xl font-black tracking-tighter text-[#181818] dark:text-white">프로필 설정</h1>
+        </div>
+        <div className="flex items-center gap-2 mr-3">
+          <button
+            onClick={() => window.__assiSetTheme?.('light')}
+            className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${(window.__assiTheme || 'dark') === 'light' ? 'bg-[#F4A259] text-white' : 'bg-[#e4e4e4] dark:bg-[#252525] text-[#6a6a6a] dark:text-[#b3b3b3]'}`}
+          >☀ 라이트</button>
+          <button
+            onClick={() => window.__assiSetTheme?.('dark')}
+            className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${(window.__assiTheme || 'dark') === 'dark' ? 'bg-[#F4A259] text-white' : 'bg-[#e4e4e4] dark:bg-[#252525] text-[#6a6a6a] dark:text-[#b3b3b3]'}`}
+          >🌙 다크</button>
         </div>
         <button
           onClick={handleSave}
@@ -74,7 +84,7 @@ export default function ProfileSettings() {
           className={`px-6 py-3 rounded-[14px] font-bold text-sm shadow-lg transition-all
             ${saved
               ? 'bg-emerald-500 text-white shadow-emerald-500/25'
-              : 'bg-[#828DF8] text-white shadow-[#828DF8]/25 hover:bg-[#6366F1]'
+              : 'bg-[#F4A259] text-white hover:bg-[#6366F1]'
             } disabled:opacity-50`}
         >
           {saving ? '저장 중...' : saved ? '저장 완료!' : '저장'}
@@ -82,26 +92,26 @@ export default function ProfileSettings() {
       </div>
 
       {/* 프로필 카드 + 로고 */}
-      <div className="bg-white rounded-[24px] p-6 shadow-sm">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-4">PROFILE & BRANDING</p>
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] p-6 shadow-sm">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold mb-4">PROFILE & BRANDING</p>
         <div className="flex items-start gap-6">
           {/* 로고/아바타 */}
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => fileRef.current?.click()}
-              className="relative w-24 h-24 rounded-[20px] overflow-hidden bg-gradient-to-br from-[#828DF8] to-[#6366F1] flex items-center justify-center group transition-all hover:shadow-lg"
+              className="relative w-24 h-24 rounded-[20px] overflow-hidden bg-gradient-to-br from-[#F4A259] to-[#6366F1] flex items-center justify-center group transition-all hover:shadow-lg"
             >
               {logoUrl ? (
                 <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white text-3xl font-black">{initial}</span>
+                <span className="text-[#181818] dark:text-white text-3xl font-black">{initial}</span>
               )}
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="text-white text-xs font-bold">{uploading ? '...' : '변경'}</span>
+                <span className="text-[#181818] dark:text-white text-xs font-bold">{uploading ? '...' : '변경'}</span>
               </div>
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-            <p className="text-[10px] text-gray-400">{logoUrl ? '클릭하여 변경' : '로고 업로드'}</p>
+            <p className="text-[10px] text-[#8a8a8a]">{logoUrl ? '클릭하여 변경' : '로고 업로드'}</p>
             {logoUrl && (
               <button onClick={() => setLogoUrl(null)} className="text-[10px] text-red-400 hover:text-red-500">
                 삭제
@@ -112,16 +122,16 @@ export default function ProfileSettings() {
           {/* 기본 정보 */}
           <div className="flex-1 grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">NAME</label>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">NAME</label>
               <input
-                className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm font-bold text-[#181818] dark:text-white outline-none"
                 value={name} onChange={(e) => setName(e.target.value)} placeholder="이름"
               />
             </div>
             <div>
-              <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">PROFESSION</label>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">PROFESSION</label>
               <select
-                className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
                 value={profession} onChange={(e) => setProfession(e.target.value)}
               >
                 <option value="">직군 선택</option>
@@ -129,9 +139,9 @@ export default function ProfileSettings() {
               </select>
             </div>
             <div className="col-span-2">
-              <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">BIO</label>
+              <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">BIO</label>
               <textarea
-                className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 resize-none h-20"
+                className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none resize-none h-20"
                 value={bio} onChange={(e) => setBio(e.target.value)} placeholder="간단한 소개 (PDF/웹 포트폴리오에 표시됩니다)"
               />
             </div>
@@ -140,37 +150,37 @@ export default function ProfileSettings() {
       </div>
 
       {/* 연락처 */}
-      <div className="bg-white rounded-[24px] p-6 shadow-sm">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-4">CONTACT INFO</p>
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] p-6 shadow-sm">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold mb-4">CONTACT INFO</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">EMAIL</label>
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">EMAIL</label>
             <input
-              className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
               value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일"
             />
           </div>
           <div>
-            <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">PHONE</label>
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">PHONE</label>
             <input
-              className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
               value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000"
             />
           </div>
           <div>
-            <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">INSTAGRAM</label>
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">INSTAGRAM</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">@</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[#8a8a8a]">@</span>
               <input
-                className="w-full pl-8 pr-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="w-full pl-8 pr-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
                 value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="username"
               />
             </div>
           </div>
           <div>
-            <label className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold mb-1 block">WEBSITE</label>
+            <label className="text-[10px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold mb-1 block">WEBSITE</label>
             <input
-              className="w-full px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-full px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
               value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://"
             />
           </div>
@@ -178,22 +188,22 @@ export default function ProfileSettings() {
       </div>
 
       {/* PDF 미리보기 */}
-      <div className="bg-white rounded-[24px] p-6 shadow-sm">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold mb-4">PDF PORTFOLIO PREVIEW</p>
-        <p className="text-xs text-gray-400 mb-4">이 정보가 PDF 포트폴리오 커버에 자동 반영됩니다.</p>
-        <div className="bg-[#F4F3EE] rounded-[16px] p-8 text-center">
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] p-6 shadow-sm">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold mb-4">PDF PORTFOLIO PREVIEW</p>
+        <p className="text-xs text-[#8a8a8a] mb-4">이 정보가 PDF 포트폴리오 커버에 자동 반영됩니다.</p>
+        <div className="bg-[#ececec] dark:bg-[#1f1f1f] rounded-[16px] p-8 text-center">
           {logoUrl ? (
             <img src={logoUrl} alt="logo" className="w-16 h-16 rounded-[12px] object-cover mx-auto mb-3" />
           ) : (
-            <div className="w-16 h-16 rounded-[12px] bg-gradient-to-br from-[#828DF8] to-[#6366F1] mx-auto mb-3 flex items-center justify-center">
-              <span className="text-white text-2xl font-black">{initial}</span>
+            <div className="w-16 h-16 rounded-[12px] bg-gradient-to-br from-[#F4A259] to-[#6366F1] mx-auto mb-3 flex items-center justify-center">
+              <span className="text-[#181818] dark:text-white text-2xl font-black">{initial}</span>
             </div>
           )}
-          <p className="text-lg font-black tracking-tighter text-gray-900">{name || 'PORTFOLIO'}</p>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#828DF8] mt-1">{profession || 'CREATIVE'}</p>
-          {bio && <p className="text-xs text-gray-500 mt-2 max-w-xs mx-auto">{bio}</p>}
-          <p className="text-[10px] text-gray-400 mt-3">{email}{phone ? ` | ${phone}` : ''}</p>
-          {instagram && <p className="text-[10px] text-gray-400">@{instagram}</p>}
+          <p className="text-lg font-black tracking-tighter text-[#181818] dark:text-white">{name || 'PORTFOLIO'}</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#F4A259] mt-1">{profession || 'CREATIVE'}</p>
+          {bio && <p className="text-xs text-[#6a6a6a] dark:text-[#b3b3b3] mt-2 max-w-xs mx-auto">{bio}</p>}
+          <p className="text-[10px] text-[#8a8a8a] mt-3">{email}{phone ? ` | ${phone}` : ''}</p>
+          {instagram && <p className="text-[10px] text-[#8a8a8a]">@{instagram}</p>}
         </div>
       </div>
 
@@ -205,13 +215,13 @@ export default function ProfileSettings() {
             setShareCopied(true)
             setTimeout(() => setShareCopied(false), 2000)
           }}
-          className="flex-1 py-4 bg-[#828DF8] text-white rounded-[24px] shadow-lg shadow-[#828DF8]/25 text-sm font-bold hover:bg-[#6366F1] transition-all"
+          className="flex-1 py-4 bg-[#F4A259] text-white rounded-[12px] shadow-lg text-sm font-bold hover:bg-[#6366F1] transition-all"
         >
           {shareCopied ? '링크 복사됨!' : '📤 친구에게 추천하기'}
         </button>
         <button
           onClick={logout}
-          className="px-6 py-4 bg-white text-red-500 rounded-[24px] shadow-sm text-sm font-bold hover:bg-red-50 transition-all"
+          className="px-6 py-4 bg-[#f5f5f5] dark:bg-[#181818] text-red-500 rounded-[12px] shadow-md text-sm font-bold hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] transition-all"
         >
           로그아웃
         </button>

@@ -27,14 +27,14 @@ export default function LoginScreen() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#F4F3EE]">
+    <div className="min-h-screen bg-[#FAFAFA]">
       {/* ── Hero ── */}
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 pt-12 pb-8">
         {/* 로고 */}
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#828DF8] to-[#6366F1] mx-auto mb-6 flex items-center justify-center shadow-xl shadow-[#828DF8]/30">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#F4A259] to-[#6366F1] mx-auto mb-6 flex items-center justify-center shadow-xl">
           <span className="text-white text-3xl font-black">A</span>
         </div>
-        <p className="text-[11px] tracking-[0.3em] uppercase text-[#828DF8] font-bold mb-3">CREATIVE STAFF PLATFORM</p>
+        <p className="text-[11px] tracking-[0.3em] uppercase text-[#F4A259] font-bold mb-3">CREATIVE STAFF PLATFORM</p>
         <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-gray-900 mb-4 text-center">ASSI</h1>
         <p className="text-gray-500 text-base md:text-lg mb-2 text-center max-w-md">
           크리에이티브 스태프를 위한<br />올인원 포트폴리오 관리 플랫폼
@@ -48,7 +48,7 @@ export default function LoginScreen() {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full py-4 bg-white border-2 border-gray-200 rounded-[16px] font-bold text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-sm"
+            className="w-full py-4 bg-white border-2 border-gray-200 rounded-[16px] font-bold text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-md"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -74,20 +74,50 @@ export default function LoginScreen() {
           )}
 
           <p className="text-[11px] text-gray-400 text-center pt-2">
-            로그인 시 <span className="text-[#828DF8] cursor-pointer">이용약관</span> 및 <span className="text-[#828DF8] cursor-pointer">개인정보처리방침</span>에 동의합니다
+            로그인 시 <span className="text-[#F4A259] cursor-pointer">이용약관</span> 및 <span className="text-[#F4A259] cursor-pointer">개인정보처리방침</span>에 동의합니다
           </p>
+        </div>
+      </div>
+
+      {/* ── Folder Mirroring Story ── */}
+      <div className="px-6 py-16 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-[11px] tracking-[0.25em] uppercase text-[#F4A259] font-bold text-center mb-2">FOLDER → PORTFOLIO</p>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 text-center mb-3 leading-tight">
+            내 컴퓨터 폴더 관리만 하면<br />
+            <span className="bg-gradient-to-r from-[#F4A259] to-[#6366F1] bg-clip-text text-transparent">업로드부터 분류, 웹사이트 제작까지</span> 한번에
+          </h2>
+          <p className="text-gray-400 text-sm md:text-base text-center mb-10 max-w-xl mx-auto">
+            1단계 폴더는 카테고리, 2단계 폴더는 프로젝트가 됩니다. 데스크톱 앱이 변경을 감지해 자동으로 동기화해요.
+          </p>
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="bg-[#FAFAFA] rounded-[24px] p-5 shadow-sm border border-gray-100">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-bold mb-3">STEP 1 · 폴더만 만들면 끝</p>
+              <img src="/landing-folders.png" alt="폴더 구조" className="w-full rounded-[16px] border border-gray-200" />
+              <p className="text-sm text-gray-600 mt-4 leading-relaxed">
+                <span className="font-bold text-gray-900">FASHION / BEAUTY / VIDEO …</span> 카테고리 폴더 아래에 프로젝트 폴더만 만들면, 데스크톱 앱이 자동으로 분류·업로드합니다.
+              </p>
+            </div>
+            <div className="bg-[#FAFAFA] rounded-[24px] p-5 shadow-sm border border-gray-100">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-bold mb-3">STEP 2 · 웹에서 바로 확인</p>
+              <img src="/landing-projects.png" alt="웹 프로젝트 화면" className="w-full rounded-[16px] border border-gray-200" />
+              <p className="text-sm text-gray-600 mt-4 leading-relaxed">
+                자동 생성된 카테고리, 썸네일, 정렬까지 완성된 상태로 웹 대시보드에 표시됩니다. 그대로 <span className="font-bold text-gray-900">웹 포트폴리오</span>로 발행하세요.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ── Features ── */}
       <div className="px-6 pb-16 max-w-3xl mx-auto">
-        <p className="text-[11px] tracking-[0.25em] uppercase text-[#828DF8] font-bold text-center mb-2">FEATURES</p>
+        <p className="text-[11px] tracking-[0.25em] uppercase text-[#F4A259] font-bold text-center mb-2">FEATURES</p>
         <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gray-900 text-center mb-8">
           촬영부터 포트폴리오까지, 한 곳에서
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {features.map(f => (
-            <div key={f.title} className="bg-white rounded-[24px] p-5 shadow-sm hover:shadow-lg transition-all text-center">
+            <div key={f.title} className="bg-white rounded-[24px] p-5 shadow-md hover:shadow-xl transition-all text-center">
               <div className="text-3xl mb-3">{f.icon}</div>
               <p className="text-sm font-bold text-gray-900 tracking-tight mb-1">{f.title}</p>
               <p className="text-xs text-gray-400 leading-relaxed">{f.desc}</p>

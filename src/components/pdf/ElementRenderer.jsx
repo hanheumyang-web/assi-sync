@@ -28,7 +28,7 @@ export default function ElementRenderer({
     <div
       id={`el-${el.id}`}
       style={base}
-      className={isSel ? 'ring-2 ring-[#828DF8]' : ''}
+      className={isSel ? 'ring-2 ring-[#F4A259]' : ''}
       onMouseDown={e => handlers.handleElementMouseDown(e, el)}
       onDoubleClick={e => handlers.handleElementDoubleClick(e, el)}
     >
@@ -62,8 +62,8 @@ export default function ElementRenderer({
             )}
             {/* 드롭 하이라이트 */}
             {isDragOver && (
-              <div className="absolute inset-0 border-2 border-dashed border-[#828DF8] bg-[#828DF8]/10 rounded-[4px] z-30 pointer-events-none flex items-center justify-center">
-                <span className="text-[10px] font-bold text-[#828DF8] bg-white/80 px-2 py-0.5 rounded">드롭하여 교체</span>
+              <div className="absolute inset-0 border-2 border-dashed border-[#F4A259] rounded-[4px] z-30 pointer-events-none flex items-center justify-center">
+                <span className="text-[10px] font-bold text-[#F4A259] bg-white/80 px-2 py-0.5 rounded">드롭하여 교체</span>
               </div>
             )}
           </>
@@ -95,7 +95,7 @@ export default function ElementRenderer({
         <>
           {/* 상단 라벨 + 크롭/삭제 버튼 */}
           <div className="absolute -top-7 left-0 flex items-center gap-1 z-10">
-            <div className="bg-[#828DF8] text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">
+            <div className="bg-[#F4A259] text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">
               {el.type === 'image' ? `${Math.round(el.w)}×${Math.round(el.h)}` : el.type === 'text' ? `텍스트 ${el.fontSize}pt` : '도형'}
             </div>
             {el.type === 'image' && (
@@ -128,7 +128,7 @@ export default function ElementRenderer({
                 className="absolute z-10 flex items-center justify-center"
                 style={{ ...style, width: 22, height: 22, cursor: CURSORS[h] }}
                 onMouseDown={e => handlers.handleHandleMouseDown(e, el, h)}>
-                <div className="w-3 h-3 bg-white border-2 border-[#828DF8] rounded-full shadow-sm" />
+                <div className="w-3 h-3 bg-white border-2 border-[#F4A259] rounded-full shadow-sm" />
               </div>
             )
           })}

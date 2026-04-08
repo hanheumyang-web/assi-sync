@@ -6,7 +6,7 @@ export default function PortfolioCategoryFilter({ categories, activeCategory, on
   if (!categories?.length) return null
 
   const text = theme?.text || '#1A1A1A'
-  const accent = theme?.accent || '#828DF8'
+  const accent = theme?.accent || '#F4A259'
 
   const all = ['All', ...categories]
 

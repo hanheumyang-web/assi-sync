@@ -47,7 +47,7 @@ export default function InstagramCallback() {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen bg-[#F4F3EE] flex items-center justify-center px-6"
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-6"
       style={{ fontFamily: 'Pretendard, -apple-system, sans-serif' }}>
       <div className="bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center">
         {/* Instagram gradient icon */}
@@ -73,7 +73,7 @@ export default function InstagramCallback() {
             <h2 className="text-xl font-black text-gray-900 tracking-tight mb-2">Instagram</h2>
             <p className="text-sm text-gray-500">{status}</p>
             {status.includes('연결 중') && (
-              <div className="mt-6 w-8 h-8 border-3 border-[#828DF8] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="mt-6 w-8 h-8 border-3 border-[#F4A259] border-t-transparent rounded-full animate-spin mx-auto" />
             )}
           </>
         )}

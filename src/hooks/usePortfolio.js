@@ -7,7 +7,7 @@ const DEFAULT_PORTFOLIO = {
   columns: 3,
   backgroundColor: '#FFFFFF',
   textColor: '#1A1A1A',
-  accentColor: '#828DF8',
+  accentColor: '#F4A259',
   rowAspectRatio: 0.667,
   businessName: '',
   tagline: '',

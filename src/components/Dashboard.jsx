@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProjects } from '../hooks/useProjects'
-import { PageTransition, StatSkeleton } from './UIKit'
+import { PageTransition } from './UIKit'
 import { IconFeed, IconPdf, IconPlus } from './Icons'
 
 export default function Dashboard({ setPage, isMobile }) {
   const { user, userDoc } = useAuth()
   const { projects, stats, addProject } = useProjects()
   const [showAddModal, setShowAddModal] = useState(false)
-  const [calMonth, setCalMonth] = useState(() => new Date()) // 캘린더 현재 표시 월
+  const [calMonth, setCalMonth] = useState(() => new Date())
+  const [embargoOpen, setEmbargoOpen] = useState(false)
 
   const displayName = userDoc?.displayName || user?.displayName || '사용자'
 
@@ -23,7 +24,6 @@ export default function Dashboard({ setPage, isMobile }) {
   const nextMonth = () => setCalMonth(new Date(calYear, calMon + 1, 1))
   const goToday = () => setCalMonth(new Date())
 
-  // 해당 월의 엠바고/촬영일 맵
   const calendarEvents = {}
   projects.forEach(p => {
     if (p.embargoDate) {
@@ -46,53 +46,55 @@ export default function Dashboard({ setPage, isMobile }) {
 
   return (
     <PageTransition>
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isMobile ? 'pb-24' : 'pb-8'}`}>
       {/* 헤더 */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-sm tracking-[0.2em] uppercase text-gray-400 font-semibold">DASHBOARD</p>
-          <h1 className="text-3xl font-black tracking-tighter text-gray-900">안녕하세요, {displayName}님</h1>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">DASHBOARD</p>
+          <h1 className="text-4xl font-black tracking-tight text-[#181818] dark:text-white mt-1.5">안녕하세요, {displayName}님</h1>
         </div>
-        <p className="text-sm text-gray-400">{dateStr}</p>
+        <p className="text-base text-[#6a6a6a] dark:text-[#b3b3b3] font-medium">{dateStr}</p>
       </div>
 
       {/* 통계 카드 */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-4`}>
         {[
-          { en: 'PROJECTS', label: '프로젝트', value: String(stats.totalProjects), sub: '전체 프로젝트', color: 'from-[#828DF8] to-[#6366F1]' },
-          { en: 'IMAGES', label: '이미지', value: String(stats.totalImages), sub: '전체 이미지', color: 'from-[#34D399] to-[#059669]' },
-          { en: 'EMBARGO', label: '엠바고 대기', value: String(stats.activeEmbargoes), sub: '업로드 대기 중', color: 'from-[#F59E0B] to-[#D97706]' },
-          { en: 'PDF', label: 'PDF 생성', value: '0', sub: '이번 달', color: 'from-[#F472B6] to-[#EC4899]' },
+          { en: 'PROJECTS', value: String(stats.totalProjects), sub: '전체 프로젝트' },
+          { en: 'IMAGES', value: String(stats.totalImages), sub: '전체 이미지' },
+          { en: 'EMBARGO', value: String(stats.activeEmbargoes), sub: '업로드 대기 중' },
+          { en: 'PDF', value: '0', sub: '이번 달' },
         ].map((card) => (
-          <div key={card.en} className="bg-white rounded-[24px] p-6 shadow-sm hover:shadow-lg transition-all">
-            <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold">{card.en}</p>
-            <p className="text-4xl font-black tracking-tighter text-gray-900 mt-1">{card.value}</p>
-            <p className="text-sm text-gray-400 mt-1">{card.sub}</p>
-            <div className={`h-1 w-12 rounded-full bg-gradient-to-r ${card.color} mt-3`} />
+          <div key={card.en} className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] p-6 transition-all hover:bg-[#ececec] dark:hover:bg-[#1f1f1f]"
+            style={{ boxShadow: 'rgba(0,0,0,0.3) 0px 8px 8px' }}>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{card.en}</p>
+            <p className="text-5xl font-black tracking-tight text-[#181818] dark:text-white mt-2">{card.value}</p>
+            <p className="text-base text-[#6a6a6a] dark:text-[#b3b3b3] font-medium mt-1">{card.sub}</p>
+            <div className="h-1 w-12 rounded-full bg-[#F4A259] mt-3" />
           </div>
         ))}
       </div>
 
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-6`}>
         {/* 엠바고 캘린더 */}
-        <div className={`${isMobile ? '' : 'col-span-2'} bg-white rounded-[24px] p-6 shadow-sm`}>
+        <div className={`${isMobile ? '' : 'col-span-2'} bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] p-6`}
+          style={{ boxShadow: 'rgba(0,0,0,0.3) 0px 8px 8px' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold">EMBARGO CALENDAR</p>
-              <h2 className="text-lg font-black tracking-tighter text-gray-900">엠바고 일정</h2>
+              <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">EMBARGO CALENDAR</p>
+              <h2 className="text-2xl font-black tracking-tight text-[#181818] dark:text-white mt-1">엠바고 일정</h2>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={prevMonth} className="w-8 h-8 rounded-full bg-[#F4F3EE] flex items-center justify-center text-gray-400 hover:bg-gray-200 text-xs">◀</button>
-              <button onClick={goToday} className="px-3 py-1.5 rounded-full bg-[#F4F3EE] text-xs font-bold text-gray-500 hover:bg-gray-200">
+              <button onClick={prevMonth} className="w-9 h-9 rounded-full bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] hover:text-white text-sm transition-all">◀</button>
+              <button onClick={goToday} className="px-4 py-2 rounded-full bg-[#ececec] dark:bg-[#1f1f1f] text-xs font-bold text-[#181818] dark:text-white hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] uppercase tracking-[0.1em] transition-all">
                 {calYear}년 {calMon + 1}월
               </button>
-              <button onClick={nextMonth} className="w-8 h-8 rounded-full bg-[#F4F3EE] flex items-center justify-center text-gray-400 hover:bg-gray-200 text-xs">▶</button>
+              <button onClick={nextMonth} className="w-9 h-9 rounded-full bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] hover:text-white text-sm transition-all">▶</button>
             </div>
           </div>
 
           <div className="grid grid-cols-7 gap-1 text-center">
             {['일','월','화','수','목','금','토'].map(d => (
-              <p key={d} className="text-xs tracking-[0.1em] uppercase text-gray-400 font-semibold py-2">{d}</p>
+              <p key={d} className="text-[11px] tracking-[0.15em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold py-2">{d}</p>
             ))}
             {Array.from({ length: firstDay }, (_, i) => (
               <div key={`empty-${i}`} className="min-h-[3rem]" />
@@ -109,20 +111,19 @@ export default function Dashboard({ setPage, isMobile }) {
               return (
                 <div
                   key={day}
-                  className={`min-h-[3rem] rounded-[10px] flex flex-col items-center justify-center text-xs font-bold relative transition-all cursor-default
-                    ${isToday ? 'bg-[#828DF8] text-white shadow-md' : ''}
-                    ${hasEmbargo && !isToday ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-200' : ''}
-                    ${hasReleased && !hasEmbargo && !isToday ? 'bg-emerald-50 text-emerald-600' : ''}
-                    ${!isToday && !hasEmbargo && !hasReleased ? 'text-gray-600 hover:bg-[#F4F3EE]' : ''}
+                  className={`min-h-[3.25rem] rounded-[6px] flex flex-col items-center justify-center text-sm font-bold relative transition-all cursor-default
+                    ${isToday ? 'bg-[#F4A259] text-white' : ''}
+                    ${hasEmbargo && !isToday ? 'text-[#F4A259]' : ''}
+                    ${hasReleased && !hasEmbargo && !isToday ? 'text-[#4a4a4a] dark:text-[#cbcbcb]' : ''}
+                    ${!isToday && !hasEmbargo && !hasReleased ? 'text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] hover:text-white' : ''}
                   `}
                   title={tooltip}
                 >
                   {day}
                   {events.length > 0 && (
                     <div className="flex gap-0.5 mt-0.5">
-                      {hasEmbargo && <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />}
-                      {hasReleased && <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />}
-                      {hasShoot && <span className="w-1.5 h-1.5 bg-[#828DF8] rounded-full" />}
+                      {hasEmbargo && <span className="w-1.5 h-1.5 bg-[#F4A259] rounded-full" />}
+                      {hasReleased && <span className="w-1.5 h-1.5 bg-[#cbcbcb] rounded-full" />}
                     </div>
                   )}
                 </div>
@@ -131,82 +132,90 @@ export default function Dashboard({ setPage, isMobile }) {
           </div>
 
           {/* 범례 */}
-          <div className="flex gap-4 mt-3 mb-4">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-amber-400 rounded-full" />
-              <span className="text-sm text-gray-400 font-semibold">엠바고 대기</span>
+          <div className="flex gap-5 mt-4 mb-5">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-[#F4A259] rounded-full" />
+              <span className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3] font-bold uppercase tracking-[0.05em]">엠바고 대기</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-emerald-400 rounded-full" />
-              <span className="text-sm text-gray-400 font-semibold">업로드 가능</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-[#828DF8] rounded-full" />
-              <span className="text-sm text-gray-400 font-semibold">촬영일</span>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-[#cbcbcb] rounded-full" />
+              <span className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3] font-bold uppercase tracking-[0.05em]">업로드 가능</span>
             </div>
           </div>
 
-          {/* 엠바고 목록 */}
-          <div className="space-y-2">
-            {projects.filter(p => p.embargoStatus === 'active').length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">엠바고 대기 중인 프로젝트가 없습니다</p>
-            ) : (
-              projects.filter(p => p.embargoStatus === 'active')
-                .sort((a, b) => (a.embargoDate || '').localeCompare(b.embargoDate || ''))
-                .map((p) => {
-                  const embargoAt = p.embargoDate?.includes('T') ? new Date(p.embargoDate) : new Date(p.embargoDate + 'T00:00')
-                  const daysLeft = p.embargoDate ? Math.ceil((embargoAt - today) / 86400000) : null
-                  const timeStr = p.embargoDate?.includes('T') ? p.embargoDate.slice(11, 16) : null
-                  return (
-                    <div key={p.id} className="flex items-center gap-3 bg-[#F4F3EE] rounded-[12px] px-5 py-3.5">
-                      <div className="flex-shrink-0">
-                        <span className="text-base font-black text-gray-900">{p.embargoDate?.slice(5, 10).replace('-', '.')}</span>
-                        {timeStr && <span className="text-xs text-gray-400 ml-1">{timeStr}</span>}
-                      </div>
-                      <span className="text-sm text-gray-600 flex-1">{p.name}</span>
-                      {daysLeft !== null && (
-                        <span className={`text-xs px-3 py-1 rounded-full font-bold
-                          ${daysLeft <= 3 ? 'bg-red-100 text-red-600' : daysLeft <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {daysLeft <= 0 ? '오늘 업로드' : `D-${daysLeft}`}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })
-            )}
-          </div>
+          {/* 엠바고 목록 — 가장 가까운 하나 + 드롭다운 */}
+          {(() => {
+            const sorted = projects.filter(p => p.embargoStatus === 'active')
+              .sort((a, b) => (a.embargoDate || '').localeCompare(b.embargoDate || ''))
+            if (sorted.length === 0) {
+              return <p className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3] text-center py-4">엠바고 대기 중인 프로젝트가 없습니다</p>
+            }
+            const renderItem = (p) => {
+              const embargoAt = p.embargoDate?.includes('T') ? new Date(p.embargoDate) : new Date(p.embargoDate + 'T00:00')
+              const daysLeft = p.embargoDate ? Math.ceil((embargoAt - today) / 86400000) : null
+              const timeStr = p.embargoDate?.includes('T') ? p.embargoDate.slice(11, 16) : null
+              return (
+                <div key={p.id} className="flex items-center gap-4 bg-[#ececec] dark:bg-[#1f1f1f] rounded-[6px] px-5 py-4 hover:bg-[#e4e4e4] dark:hover:bg-[#252525] transition-all">
+                  <div className="flex-shrink-0">
+                    <span className="text-lg font-black text-[#181818] dark:text-white">{p.embargoDate?.slice(5, 10).replace('-', '.')}</span>
+                    {timeStr && <span className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3] ml-1.5">{timeStr}</span>}
+                  </div>
+                  <span className="text-base text-[#4a4a4a] dark:text-[#cbcbcb] font-medium flex-1 truncate">{p.name}</span>
+                  {daysLeft !== null && (
+                    <span className={`text-[11px] px-3 py-1.5 rounded-full font-bold uppercase tracking-[0.1em]
+                      ${daysLeft <= 3 ? 'bg-[#F4A259] text-black' : daysLeft <= 7 ? 'bg-[#e4e4e4] dark:bg-[#252525] text-[#F4A259]' : 'bg-[#e4e4e4] dark:bg-[#252525] text-[#6a6a6a] dark:text-[#b3b3b3]'}`}>
+                      {daysLeft <= 0 ? '오늘 업로드' : `D-${daysLeft}`}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+            return (
+              <div className="space-y-2">
+                {renderItem(sorted[0])}
+                {sorted.length > 1 && (
+                  <>
+                    <button onClick={() => setEmbargoOpen(v => !v)}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-[11px] tracking-[0.15em] uppercase font-bold text-[#6a6a6a] dark:text-[#b3b3b3] hover:text-white transition-all">
+                      {embargoOpen ? '접기' : `외 ${sorted.length - 1}건 더 보기`}
+                      <span className={`transition-transform ${embargoOpen ? 'rotate-180' : ''}`}>▾</span>
+                    </button>
+                    {embargoOpen && <div className="space-y-2">{sorted.slice(1).map(renderItem)}</div>}
+                  </>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* 최근 프로젝트 */}
-        <div className="bg-white rounded-[24px] p-6 shadow-sm">
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] p-6"
+          style={{ boxShadow: 'rgba(0,0,0,0.3) 0px 8px 8px' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold">RECENT PROJECTS</p>
-              <h2 className="text-lg font-black tracking-tighter text-gray-900">최근 프로젝트</h2>
+              <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">RECENT PROJECTS</p>
+              <h2 className="text-2xl font-black tracking-tight text-[#181818] dark:text-white mt-1">최근 프로젝트</h2>
             </div>
-            <button onClick={() => setPage('projects')} className="text-sm text-[#828DF8] font-bold hover:underline">전체보기</button>
+            <button onClick={() => setPage('projects')} className="text-xs text-[#F4A259] font-bold uppercase tracking-[0.1em] hover:text-white transition-all">전체보기</button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {projects.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-400 text-sm mb-3">아직 프로젝트가 없습니다</p>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="text-sm text-[#828DF8] font-bold hover:underline"
-                >
+                <p className="text-[#6a6a6a] dark:text-[#b3b3b3] text-sm mb-3">아직 프로젝트가 없습니다</p>
+                <button onClick={() => setShowAddModal(true)} className="text-[11px] text-[#F4A259] font-bold uppercase tracking-[0.1em] hover:text-white transition-all">
                   + 첫 프로젝트 만들기
                 </button>
               </div>
             ) : (
               projects.slice(0, 5).map((p) => (
-                <div key={p.id} onClick={() => setPage('projects')} className="flex items-center gap-3 p-3 rounded-[14px] hover:bg-[#F4F3EE] transition-all cursor-pointer">
-                  <div className="w-11 h-11 rounded-[10px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-                    {p.thumbnailUrl ? <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" /> : '📸'}
+                <div key={p.id} onClick={() => setPage('projects')} className="flex items-center gap-3 p-2 rounded-[6px] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] transition-all cursor-pointer">
+                  <div className="w-12 h-12 rounded-[4px] bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                    {p.thumbnailUrl ? <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : '📸'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 tracking-tight truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.client || '클라이언트 미지정'} · {p.imageCount}장</p>
+                    <p className="text-base font-bold text-[#181818] dark:text-white tracking-tight truncate">{p.name}</p>
+                    <p className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3] font-medium mt-0.5">{p.client || '클라이언트 미지정'} · {p.imageCount}장</p>
                   </div>
                 </div>
               ))
@@ -222,27 +231,19 @@ export default function Dashboard({ setPage, isMobile }) {
           { label: '포트폴리오 빌더', en: 'PORTFOLIO BUILDER', Icon: IconPdf, action: () => setPage('pdf') },
           { label: '새 프로젝트 추가', en: 'NEW PROJECT', Icon: IconPlus, action: () => setShowAddModal(true) },
         ].map((btn) => (
-          <button
-            key={btn.en}
-            onClick={btn.action}
-            className="bg-white rounded-[24px] p-6 shadow-sm hover:shadow-lg transition-all text-left group"
-          >
-            <div className="w-14 h-14 rounded-[14px] bg-[#828DF8]/10 flex items-center justify-center text-[#828DF8] group-hover:bg-[#828DF8] group-hover:text-white transition-all mb-3">
-              <btn.Icon className="w-6 h-6" />
+          <button key={btn.en} onClick={btn.action}
+            className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] p-6 transition-all hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] text-left group"
+            style={{ boxShadow: 'rgba(0,0,0,0.3) 0px 8px 8px' }}>
+            <div className="w-14 h-14 rounded-[10px] bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-[#F4A259] mb-4 transition-all group-hover:scale-110 origin-left">
+              <btn.Icon className="w-7 h-7" />
             </div>
-            <p className="text-xs tracking-[0.2em] uppercase text-gray-400 font-semibold">{btn.en}</p>
-            <p className="text-sm font-bold text-gray-900 tracking-tight">{btn.label}</p>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{btn.en}</p>
+            <p className="text-lg font-bold text-[#181818] dark:text-white tracking-tight mt-1">{btn.label}</p>
           </button>
         ))}
       </div>
 
-      {/* 프로젝트 추가 모달 */}
-      {showAddModal && (
-        <AddProjectModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={addProject}
-        />
-      )}
+      {showAddModal && <AddProjectModal onClose={() => setShowAddModal(false)} onAdd={addProject} />}
     </div>
     </PageTransition>
   )
@@ -261,94 +262,61 @@ function AddProjectModal({ onClose, onAdd }) {
   const handleSubmit = async () => {
     if (!name.trim()) return
     setSaving(true)
-    await onAdd({
-      name: name.trim(),
-      client: client.trim(),
-      category,
-      embargoDate: embargoDate || null,
-    })
+    await onAdd({ name: name.trim(), client: client.trim(), category, embargoDate: embargoDate || null })
     setSaving(false)
     onClose()
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <p className="text-sm tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">NEW PROJECT</p>
-        <h2 className="text-2xl font-black tracking-tighter text-gray-900 mb-6">새 프로젝트</h2>
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[16px] p-8 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <p className="text-sm tracking-[0.2em] uppercase text-[#F4A259] font-bold mb-1">NEW PROJECT</p>
+        <h2 className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white mb-6">새 프로젝트</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">PROJECT NAME</label>
-            <input
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-              placeholder="예: VOGUE KOREA 화보"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <label className="text-sm tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">PROJECT NAME</label>
+            <input className="w-full mt-1 px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none focus:border-[#F4A259]"
+              placeholder="예: VOGUE KOREA 화보" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">CLIENT</label>
-            <input
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-              placeholder="클라이언트명"
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-            />
+            <label className="text-sm tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">CLIENT</label>
+            <input className="w-full mt-1 px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none focus:border-[#F4A259]"
+              placeholder="클라이언트명" value={client} onChange={(e) => setClient(e.target.value)} />
           </div>
           <div>
-            <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">CATEGORY</label>
+            <label className="text-sm tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">CATEGORY</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
+                <button key={c} onClick={() => setCategory(c)}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all
-                    ${category === c ? 'bg-[#828DF8] text-white shadow-md' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}
-                >
+                    ${category === c ? 'bg-[#F4A259] text-white shadow-md' : 'bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#e4e4e4] dark:hover:bg-[#252525]'}`}>
                   {c}
                 </button>
               ))}
               {category && !categories.includes(category) && (
-                <button className="px-4 py-2 rounded-full text-xs font-bold bg-[#828DF8] text-white shadow-md">
-                  {category}
-                </button>
+                <button className="px-4 py-2 rounded-full text-xs font-bold bg-[#F4A259] text-white shadow-md">{category}</button>
               )}
             </div>
             <div className="flex gap-2 mt-2">
-              <input
-                className="flex-1 px-3 py-2 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-                placeholder="직접 입력"
-                value={customCat}
-                onChange={(e) => setCustomCat(e.target.value.toUpperCase())}
-                onKeyDown={(e) => { if (e.key === 'Enter' && customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
-              />
-              <button
-                onClick={() => { if (customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
-                className="px-3 py-2 bg-[#828DF8] text-white rounded-[12px] text-xs font-bold hover:bg-[#6b77e6] transition-colors"
-              >+</button>
+              <input className="flex-1 px-3 py-2 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-xs text-[#181818] dark:text-white outline-none"
+                placeholder="직접 입력" value={customCat} onChange={(e) => setCustomCat(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter' && customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }} />
+              <button onClick={() => { if (customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
+                className="px-3 py-2 bg-[#F4A259] text-white rounded-[12px] text-xs font-bold hover:brightness-110 transition-all">+</button>
             </div>
           </div>
           <div>
-            <label className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">EMBARGO DATE (선택)</label>
-            <input
-              type="date"
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
-              value={embargoDate}
-              onChange={(e) => setEmbargoDate(e.target.value)}
-            />
+            <label className="text-sm tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">EMBARGO DATE (선택)</label>
+            <input type="date" className="w-full mt-1 px-4 py-3 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none focus:border-[#F4A259]"
+              value={embargoDate} onChange={(e) => setEmbargoDate(e.target.value)} />
           </div>
         </div>
 
         <div className="flex gap-3 mt-8">
-          <button onClick={onClose} className="flex-1 py-4 bg-[#F4F3EE] text-gray-500 rounded-[16px] font-bold text-sm hover:bg-gray-200 transition-all">
-            취소
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!name.trim() || saving}
-            className="flex-1 py-4 bg-[#828DF8] text-white rounded-[16px] font-bold text-sm hover:bg-[#6366F1] transition-all shadow-lg shadow-[#828DF8]/25 disabled:opacity-50"
-          >
+          <button onClick={onClose} className="flex-1 py-4 bg-[#ececec] dark:bg-[#1f1f1f] border border-[#dcdcdc] dark:border-[#2a2a2a] text-[#6a6a6a] dark:text-[#b3b3b3] rounded-[12px] font-bold text-sm hover:bg-[#e4e4e4] dark:hover:bg-[#252525] transition-all">취소</button>
+          <button onClick={handleSubmit} disabled={!name.trim() || saving}
+            className="flex-1 py-4 bg-[#F4A259] text-white rounded-[12px] font-bold text-sm hover:brightness-110 transition-all shadow-lg disabled:opacity-50">
             {saving ? '생성 중...' : '프로젝트 생성'}
           </button>
         </div>

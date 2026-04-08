@@ -17,8 +17,8 @@ const ASPECT_OPTIONS = [
 ]
 
 const COLOR_PRESETS = [
-  { label: 'Light', bg: '#FFFFFF', text: '#1A1A1A', accent: '#828DF8' },
-  { label: 'Dark', bg: '#0A0A0A', text: '#FFFFFF', accent: '#828DF8' },
+  { label: 'Light', bg: '#FFFFFF', text: '#1A1A1A', accent: '#F4A259' },
+  { label: 'Dark', bg: '#0A0A0A', text: '#FFFFFF', accent: '#F4A259' },
   { label: 'Warm', bg: '#F4F3EE', text: '#2C2C2C', accent: '#C19A6B' },
   { label: 'Navy', bg: '#0D1B2A', text: '#E0E1DD', accent: '#778DA9' },
   { label: 'Forest', bg: '#1B2721', text: '#E8E4D9', accent: '#7D8F69' },
@@ -45,10 +45,10 @@ const FONT_LIST = [
 function RangeSlider({ label, value, min, max, step, unit, onChange }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm text-gray-500 w-20 flex-shrink-0">{label}</span>
+      <span className="text-sm text-[#b3b3b3] w-[5.5rem] flex-shrink-0">{label}</span>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))}
-        className="flex-1 h-1 accent-[#828DF8] cursor-pointer" />
-      <span className="text-sm text-gray-700 font-mono w-14 text-right flex-shrink-0">{value}{unit}</span>
+        className="flex-1 h-1 accent-[#F4A259] cursor-pointer" />
+      <span className="text-sm text-[#cbcbcb] font-mono w-16 text-right flex-shrink-0">{value}{unit}</span>
     </div>
   )
 }
@@ -63,7 +63,7 @@ export default function PortfolioEditor({ isMobile }) {
   const [columns, setColumns] = useState(3)
   const [bgColor, setBgColor] = useState('#FFFFFF')
   const [textColor, setTextColor] = useState('#1A1A1A')
-  const [accentColor, setAccentColor] = useState('#828DF8')
+  const [accentColor, setAccentColor] = useState('#F4A259')
   const [rowAspectRatio, setRowAspectRatio] = useState(0.667)
   const [businessName, setBusinessName] = useState('')
   const [tagline, setTagline] = useState('')
@@ -73,7 +73,8 @@ export default function PortfolioEditor({ isMobile }) {
   const [showWebsite, setShowWebsite] = useState(true)
   const [projectOrder, setProjectOrder] = useState([])
   const [featuredProjects, setFeaturedProjects] = useState([])
-  const [projectLayout, setProjectLayout] = useState({}) // { [pid]: { row, col, span } }
+  // 카테고리별 레이아웃: { _all: { [pid]: {row,col,...} }, FASHION: {...}, ... }
+  const [projectLayout, setProjectLayout] = useState({})
   const [enabledCategories, setEnabledCategories] = useState([])
   // 상세 조정
   const [photoGap, setPhotoGap] = useState(8)
@@ -88,6 +89,8 @@ export default function PortfolioEditor({ isMobile }) {
   const [autoSaved, setAutoSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [previewCategory, setPreviewCategory] = useState(null)
+  const layoutKey = previewCategory || '_all'
+  const currentLayout = projectLayout[layoutKey] || {}
   const [projectAssets, setProjectAssets] = useState({})
   const autoSaveTimer = useRef(null)
   const initialLoad = useRef(true)
@@ -98,7 +101,7 @@ export default function PortfolioEditor({ isMobile }) {
     setColumns(portfolio.columns || 3)
     setBgColor(portfolio.backgroundColor || '#FFFFFF')
     setTextColor(portfolio.textColor || '#1A1A1A')
-    setAccentColor(portfolio.accentColor || '#828DF8')
+    setAccentColor(portfolio.accentColor || '#F4A259')
     setRowAspectRatio(portfolio.rowAspectRatio || 0.667)
     setBusinessName(portfolio.businessName || userDoc?.displayName || '')
     setTagline(portfolio.tagline || userDoc?.profession || '')
@@ -108,7 +111,10 @@ export default function PortfolioEditor({ isMobile }) {
     setShowWebsite(portfolio.showWebsite !== false)
     setProjectOrder(portfolio.projectOrder || [])
     setFeaturedProjects(portfolio.featuredProjects || [])
-    setProjectLayout(portfolio.projectLayout || {})
+    // 마이그레이션: flat 구조면 _all로 wrap
+    const rawLayout = portfolio.projectLayout || {}
+    const isLegacy = Object.values(rawLayout).some(v => v && typeof v === 'object' && 'row' in v)
+    setProjectLayout(isLegacy ? { _all: rawLayout } : rawLayout)
     setEnabledCategories(portfolio.enabledCategories || [])
     setPhotoGap(portfolio.photoGap ?? 8)
     setFontSize(portfolio.fontSize ?? 100)
@@ -183,20 +189,107 @@ export default function PortfolioEditor({ isMobile }) {
 
 
   const toggleProject = (pid) => {
-    setProjectOrder(prev => {
-      if (prev.includes(pid)) {
-        setProjectLayout(pl => { const n = { ...pl }; delete n[pid]; return n })
-        return prev.filter(id => id !== pid)
-      }
-      const newOrder = [...prev, pid]
+    if (projectOrder.includes(pid)) {
+      // 제거
+      setProjectOrder(prev => prev.filter(id => id !== pid))
       setProjectLayout(pl => {
-        const colSpan = featuredProjects.includes(pid) ? Math.min(2, columns) : 1
-        const rowSpan = 2 // 기본: 세로
-        const nextPos = findNextEmpty(pl, columns, colSpan, rowSpan)
-        return { ...pl, [pid]: { ...nextPos, colSpan, rowSpan } }
+        const next = { ...pl }
+        for (const k of Object.keys(next)) {
+          if (next[k] && typeof next[k] === 'object' && next[k][pid]) {
+            const c = { ...next[k] }; delete c[pid]; next[k] = c
+          }
+        }
+        return next
       })
-      return newOrder
+      return
+    }
+    // 신규 추가: 1칸(1×1)으로 맨 앞에 — 1×1 타일들만 한 자리씩 밀고, 멀티셀 타일은 그대로
+    setProjectOrder(prev => [pid, ...prev])
+    setProjectLayout(pl => {
+      const cur = pl[layoutKey] || {}
+      const singles = []
+      const multis = {}
+      for (const [id, pos] of Object.entries(cur)) {
+        const cs = pos.colSpan || 1, rs = pos.rowSpan || 1
+        if (cs === 1 && rs === 1) singles.push({ id, pos })
+        else multis[id] = pos
+      }
+      singles.sort((a, b) => (a.pos.row - b.pos.row) || (a.pos.col - b.pos.col))
+      const slots = singles.map(s => ({ row: s.pos.row, col: s.pos.col }))
+      const newOrder = [pid, ...singles.map(s => s.id)]
+
+      const result = { ...multis }
+      // 기존 1×1 슬롯에 순서대로 채워넣기 (신규가 맨앞 슬롯 차지)
+      for (let i = 0; i < Math.min(newOrder.length, slots.length); i++) {
+        result[newOrder[i]] = { ...slots[i], colSpan: 1, rowSpan: 1 }
+      }
+      // 슬롯이 부족한 마지막 타일은 첫 빈 셀에 배치
+      if (newOrder.length > slots.length) {
+        const last = newOrder[newOrder.length - 1]
+        const used = new Set()
+        for (const r of Object.values(result)) {
+          const cs = r.colSpan || 1, rs = r.rowSpan || 1
+          for (let dr = 0; dr < rs; dr++)
+            for (let dc = 0; dc < cs; dc++)
+              used.add(`${r.row + dr}-${r.col + dc}`)
+        }
+        let placed = false
+        for (let r = 0; !placed; r++) {
+          for (let c = 0; c < columns; c++) {
+            if (!used.has(`${r}-${c}`)) {
+              result[last] = { row: r, col: c, colSpan: 1, rowSpan: 1 }
+              placed = true
+              break
+            }
+          }
+        }
+      }
+      return { ...pl, [layoutKey]: result }
     })
+  }
+
+  // 주어진 순서대로 레이아웃 재패킹 (각 타일의 기존 크기 유지)
+  const packLayoutFromOrder = (order) => {
+    const newLayout = {}
+    const occupied = new Set()
+    for (const pid of order) {
+      const existing = currentLayout[pid]
+      const colSpan = existing?.colSpan || 1
+      const rowSpan = existing?.rowSpan || 2
+      let placed = false
+      for (let r = 0; !placed; r++) {
+        for (let c = 0; c <= columns - colSpan; c++) {
+          let ok = true
+          for (let dr = 0; dr < rowSpan && ok; dr++)
+            for (let dc = 0; dc < colSpan && ok; dc++)
+              if (occupied.has(`${r + dr}-${c + dc}`)) ok = false
+          if (ok) {
+            newLayout[pid] = { row: r, col: c, colSpan, rowSpan }
+            for (let dr = 0; dr < rowSpan; dr++)
+              for (let dc = 0; dc < colSpan; dc++)
+                occupied.add(`${r + dr}-${c + dc}`)
+            placed = true
+            break
+          }
+        }
+      }
+    }
+    setProjectLayout(prev => ({ ...prev, [layoutKey]: newLayout }))
+  }
+
+  // 좌측 패널 드래그앤드롭으로 순서 변경
+  const [dragProjId, setDragProjId] = useState(null)
+  const reorderProjectInList = (targetId) => {
+    if (!dragProjId || dragProjId === targetId) return
+    setProjectOrder(prev => {
+      const next = prev.filter(id => id !== dragProjId)
+      const idx = next.indexOf(targetId)
+      if (idx < 0) return prev
+      next.splice(idx, 0, dragProjId)
+      packLayoutFromOrder(next)
+      return next
+    })
+    setDragProjId(null)
   }
 
   // 다음 빈 공간 찾기 (colSpan × rowSpan 크기)
@@ -221,7 +314,17 @@ export default function PortfolioEditor({ isMobile }) {
   }
 
   const handleLayoutChange = (newLayout) => {
-    setProjectLayout(newLayout)
+    setProjectLayout(prev => ({ ...prev, [layoutKey]: newLayout }))
+    // _all 뷰에서 편집한 순서를 좌측 프로젝트 리스트에도 반영
+    if (layoutKey === '_all') {
+      const sorted = Object.entries(newLayout)
+        .sort(([, a], [, b]) => (a.row - b.row) || (a.col - b.col))
+        .map(([id]) => id)
+      setProjectOrder(prev => {
+        const others = prev.filter(id => !sorted.includes(id))
+        return [...sorted, ...others]
+      })
+    }
   }
 
   // 자동 정렬: 위에서부터 빈틈없이 재배치 (각 타일의 현재 크기 유지)
@@ -234,7 +337,7 @@ export default function PortfolioEditor({ isMobile }) {
     // projectOrder도 정리
     setProjectOrder(validOrder)
     for (const pid of validOrder) {
-      const existing = projectLayout[pid]
+      const existing = currentLayout[pid]
       const colSpan = existing?.colSpan || (featuredProjects.includes(pid) ? Math.min(2, columns) : 1)
       const rowSpan = existing?.rowSpan || 2
       let placed = false
@@ -256,7 +359,7 @@ export default function PortfolioEditor({ isMobile }) {
       }
     }
     console.log('[autoAlign] 결과:', Object.entries(newLayout).map(([k,v]) => `${k.slice(0,6)}:r${v.row}c${v.col}`).join(' '))
-    setProjectLayout(newLayout)
+    setProjectLayout(prev => ({ ...prev, [layoutKey]: newLayout }))
   }
 
   // 초기화: 모든 타일을 기본 크기(1×2)로 리셋 + 위에서부터 정렬
@@ -284,7 +387,7 @@ export default function PortfolioEditor({ isMobile }) {
       }
     }
     setFeaturedProjects([])
-    setProjectLayout(newLayout)
+    setProjectLayout(prev => ({ ...prev, [layoutKey]: newLayout }))
   }
 
   const toggleCategory = (cat) => {
@@ -311,7 +414,7 @@ export default function PortfolioEditor({ isMobile }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#828DF8] to-[#6366F1] animate-pulse" />
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F4A259] to-[#6366F1] animate-pulse" />
       </div>
     )
   }
@@ -321,7 +424,7 @@ export default function PortfolioEditor({ isMobile }) {
     return (
       <div className="space-y-4">
         {/* 미리보기 먼저 */}
-        <div className="rounded-[24px] overflow-hidden shadow-lg" style={{ backgroundColor: bgColor }}>
+        <div className="rounded-[12px] overflow-hidden border border-[#2a2a2a] shadow-sm" style={{ backgroundColor: bgColor }}>
           {renderPreview()}
         </div>
         {/* 설정 패널 */}
@@ -334,7 +437,7 @@ export default function PortfolioEditor({ isMobile }) {
   return (
     <div className="flex gap-6 h-[calc(100vh-64px)]">
       {/* 좌: 설정 패널 — 고정 너비, 독립 스크롤 */}
-      <div className="w-[340px] flex-shrink-0 overflow-y-auto space-y-4 pr-1">
+      <div className="w-[400px] flex-shrink-0 overflow-y-auto space-y-4 pr-1">
         {renderSettings()}
       </div>
 
@@ -344,14 +447,14 @@ export default function PortfolioEditor({ isMobile }) {
         {previewProjects.length > 0 && (
           <div className="flex justify-end px-3 pb-2">
             <button onClick={autoAlign}
-              className="px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-sm hover:shadow"
+              className="px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow"
               style={{ backgroundColor: accentColor, color: '#fff' }}>
               정렬
             </button>
           </div>
         )}
-        <div className="flex-1 min-h-0 rounded-[24px] overflow-y-auto overflow-x-hidden shadow-lg"
-          style={{ backgroundColor: bgColor }}>
+        <div className="flex-1 min-h-0 rounded-[12px] overflow-y-auto overflow-x-hidden border border-[#2a2a2a] shadow-sm"
+          style={{ backgroundColor: bgColor, padding: `0 ${Math.max(24 - pagePadding, 0)}px` }}>
           {renderPreview()}
         </div>
       </div>
@@ -377,7 +480,7 @@ export default function PortfolioEditor({ isMobile }) {
           projects={previewProjects} projectAssets={projectAssets}
           columns={columns} rowAspectRatio={rowAspectRatio}
           featuredProjects={featuredProjects}
-          projectLayout={projectLayout}
+          projectLayout={currentLayout}
           photoGap={photoGap} pagePadding={pagePadding}
           borderRadius={borderRadius}
           masonry={true}
@@ -402,11 +505,11 @@ export default function PortfolioEditor({ isMobile }) {
     return (
       <button onClick={() => toggleSection(id)}
         className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <p className="text-sm tracking-[0.15em] uppercase text-gray-400 font-semibold">{label}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="text-sm tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold truncate">{label}</p>
           {badge}
         </div>
-        <svg className={`w-4 h-4 text-gray-300 transition-transform ${open ? 'rotate-180' : ''}`}
+        <svg className={`w-4 h-4 text-[#6a6a6a] transition-transform ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -419,7 +522,7 @@ export default function PortfolioEditor({ isMobile }) {
       <>
         {/* 타이틀 */}
         <div className="flex items-center gap-2 mb-2">
-          <h2 className="text-xl font-black tracking-tight text-gray-900">웹 포트폴리오</h2>
+          <h2 className="text-xl font-black tracking-tight text-white">웹 포트폴리오</h2>
           {autoSaved && (
             <span className="flex items-center gap-1 ml-auto">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
@@ -429,36 +532,36 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 포트폴리오 주소 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="slug" label="포트폴리오 주소" />
           {openSections.slug && (
-            <div className="flex items-center gap-1 bg-[#F4F3EE] rounded-[12px] px-3 py-2.5">
-              <span className="text-xs text-gray-400 flex-shrink-0">/p/</span>
+            <div className="flex items-center gap-1 bg-[#252525] rounded-[12px] px-3 py-2.5">
+              <span className="text-xs text-[#8a8a8a] flex-shrink-0">/p/</span>
               <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="my-portfolio" className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none min-w-0" />
+                placeholder="my-portfolio" className="flex-1 bg-transparent text-sm font-bold text-white outline-none min-w-0" />
               {slugStatus === 'ok' && <span className="text-emerald-500 text-xs">✓</span>}
               {slugStatus === 'taken' && <span className="text-red-500 text-xs">사용중</span>}
-              {slugStatus === 'checking' && <span className="text-gray-400 text-xs">...</span>}
+              {slugStatus === 'checking' && <span className="text-[#8a8a8a] text-xs">...</span>}
             </div>
           )}
         </div>
 
         {/* ── 컬러 테마 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="color" label="컬러 테마"
-            badge={<div className="flex gap-0.5">{[bgColor, accentColor].map((c,i) => <div key={i} className="w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: c }} />)}</div>}
+            badge={<div className="flex gap-0.5">{[bgColor, accentColor].map((c,i) => <div key={i} className="w-3 h-3 rounded-full border border-[#2a2a2a]" style={{ backgroundColor: c }} />)}</div>}
           />
           {openSections.color && (
             <>
               <div className="flex gap-1.5">
                 {COLOR_PRESETS.map(p => (
                   <button key={p.label} onClick={() => applyPreset(p)}
-                    className="flex-1 flex flex-col items-center gap-1 py-1.5 rounded-[10px] hover:bg-gray-50 transition-all">
-                    <div className="w-6 h-6 rounded-full border border-gray-200 overflow-hidden flex">
+                    className="flex-1 flex flex-col items-center gap-1 py-1.5 rounded-[10px] hover:bg-[#1f1f1f] transition-all">
+                    <div className="w-6 h-6 rounded-full border border-[#2a2a2a] overflow-hidden flex">
                       <div className="w-1/2 h-full" style={{ backgroundColor: p.bg }} />
                       <div className="w-1/2 h-full" style={{ backgroundColor: p.accent }} />
                     </div>
-                    <span className="text-xs text-gray-500">{p.label}</span>
+                    <span className="text-xs text-[#b3b3b3]">{p.label}</span>
                   </button>
                 ))}
               </div>
@@ -471,9 +574,9 @@ export default function PortfolioEditor({ isMobile }) {
                   <div key={c.label} className="flex items-center gap-2">
                     <input type="color" value={c.value} onChange={e => c.set(e.target.value)}
                       className="w-7 h-7 rounded-[6px] cursor-pointer border-0 p-0 flex-shrink-0" />
-                    <span className="text-sm text-gray-500 w-14 flex-shrink-0">{c.label}</span>
+                    <span className="text-sm text-[#b3b3b3] w-14 flex-shrink-0">{c.label}</span>
                     <input value={c.value} onChange={e => c.set(e.target.value)}
-                      className="flex-1 min-w-0 bg-[#F4F3EE] rounded-[8px] px-2 py-1.5 text-sm text-gray-700 font-mono outline-none" />
+                      className="flex-1 min-w-0 bg-[#252525] rounded-[8px] px-2 py-1.5 text-sm text-[#cbcbcb] font-mono outline-none" />
                   </div>
                 ))}
               </div>
@@ -482,31 +585,31 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 레이아웃 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="layout" label="레이아웃"
-            badge={<span className="text-xs text-gray-400 font-mono">{columns}열 · {ASPECT_OPTIONS.find(o=>o.value===rowAspectRatio)?.label||'3:2'}</span>}
+            badge={<span className="text-xs text-[#8a8a8a] font-mono">{columns}열 · {ASPECT_OPTIONS.find(o=>o.value===rowAspectRatio)?.label||'3:2'}</span>}
           />
           {openSections.layout && (
             <>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">열 수</label>
+                <label className="text-xs text-[#b3b3b3] mb-1 block">열 수</label>
                 <div className="flex gap-1.5">
                   {[2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setColumns(n)}
                       className={`flex-1 py-2 rounded-[10px] text-sm font-bold transition-all
-                        ${columns === n ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}>
+                        ${columns === n ? 'bg-white text-[#181818]' : 'bg-[#252525] text-[#b3b3b3] hover:bg-[#2a2a2a]'}`}>
                       {n}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">비율</label>
+                <label className="text-xs text-[#b3b3b3] mb-1 block">비율</label>
                 <div className="flex flex-wrap gap-1.5">
                   {ASPECT_OPTIONS.map(opt => (
                     <button key={opt.value} onClick={() => setRowAspectRatio(opt.value)}
                       className={`px-3 py-1.5 rounded-[10px] text-sm font-bold transition-all
-                        ${rowAspectRatio === opt.value ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}>
+                        ${rowAspectRatio === opt.value ? 'bg-white text-[#181818]' : 'bg-[#252525] text-[#b3b3b3] hover:bg-[#2a2a2a]'}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -517,26 +620,26 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 헤더 정보 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="header" label="헤더 정보"
-            badge={businessName ? <span className="text-xs text-gray-400 truncate max-w-[100px]">{businessName}</span> : null}
+            badge={businessName ? <span className="text-xs text-[#8a8a8a] truncate max-w-[100px]">{businessName}</span> : null}
           />
           {openSections.header && (
             <>
               <input value={businessName} onChange={e => setBusinessName(e.target.value)}
-                placeholder="이름 / 스튜디오명" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
+                placeholder="이름 / 스튜디오명" className="w-full bg-[#252525] text-white placeholder:text-[#6a6a6a] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <input value={tagline} onChange={e => setTagline(e.target.value)}
-                placeholder="한줄 소개" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
+                placeholder="한줄 소개" className="w-full bg-[#252525] text-white placeholder:text-[#6a6a6a] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <input value={contactEmail} onChange={e => setContactEmail(e.target.value)}
-                placeholder="연락 이메일" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
+                placeholder="연락 이메일" className="w-full bg-[#252525] text-white placeholder:text-[#6a6a6a] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <input value={contactPhone} onChange={e => setContactPhone(e.target.value)}
-                placeholder="연락처 (010-0000-0000)" className="w-full bg-[#F4F3EE] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
+                placeholder="연락처 (010-0000-0000)" className="w-full bg-[#252525] text-white placeholder:text-[#6a6a6a] rounded-[12px] px-3 py-2.5 text-sm outline-none" />
               <div className="flex gap-4">
-                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                <label className="flex items-center gap-1.5 text-xs text-[#b3b3b3] cursor-pointer">
                   <input type="checkbox" checked={showInstagram} onChange={e => setShowInstagram(e.target.checked)} className="rounded" />
                   인스타그램
                 </label>
-                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                <label className="flex items-center gap-1.5 text-xs text-[#b3b3b3] cursor-pointer">
                   <input type="checkbox" checked={showWebsite} onChange={e => setShowWebsite(e.target.checked)} className="rounded" />
                   웹사이트
                 </label>
@@ -546,21 +649,21 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 상세 조정 (별도 섹션) ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="advanced" label="상세 조정"
-            badge={<span className="text-xs text-gray-400 font-mono">{photoGap}px · {fontSize}% · {pagePadding}px · R{borderRadius}</span>}
+            badge={<span className="text-xs text-[#8a8a8a] font-mono">{photoGap}px · {fontSize}% · {pagePadding}px · R{borderRadius}</span>}
           />
           {openSections.advanced && (
             <div className="space-y-4">
               {/* 폰트 선택 */}
               <div>
-                <label className="text-xs text-gray-500 mb-1.5 block">폰트</label>
-                <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
+                <label className="text-xs text-[#b3b3b3] mb-1.5 block">폰트</label>
+                <div className="flex flex-col gap-1 max-h-[280px] overflow-y-auto">
                   {FONT_LIST.map(f => (
                     <button key={f.id} onClick={() => setFontFamily(f.id)}
-                      className={`px-3 py-2 rounded-[10px] text-left transition-all ${fontFamily === f.id ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-600 hover:bg-gray-200'}`}>
-                      <span className="text-sm font-bold block truncate" style={{ fontFamily: f.family }}>{f.label}</span>
-                      <span className={`text-[10px] ${fontFamily === f.id ? 'text-white/60' : 'text-gray-400'}`}>{f.type}</span>
+                      className={`w-full px-3 py-2.5 rounded-[10px] text-left transition-all flex items-center justify-between gap-3 ${fontFamily === f.id ? 'bg-white text-[#181818]' : 'bg-[#252525] text-[#b3b3b3] hover:bg-[#2a2a2a]'}`}>
+                      <span className="text-sm font-bold truncate" style={{ fontFamily: f.family }}>{f.label}</span>
+                      <span className={`text-[10px] shrink-0 ${fontFamily === f.id ? 'text-[#181818]/60' : 'text-[#8a8a8a]'}`}>{f.type}</span>
                     </button>
                   ))}
                 </div>
@@ -574,32 +677,47 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 프로젝트 선택 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <div className="flex items-center justify-between">
             <SectionHeader id="projects" label={`프로젝트 선택 (${projectOrder.length}개)`} />
             {projectOrder.length > 0 && (
               <button onClick={(e) => { e.stopPropagation(); autoAlign() }}
-                className="text-xs text-[#828DF8] font-bold tracking-wide hover:underline flex-shrink-0 ml-2">
+                className="text-xs text-[#F4A259] font-bold tracking-wide hover:underline flex-shrink-0 ml-2">
                 정렬
               </button>
             )}
           </div>
           {openSections.projects && (
-            <div className="max-h-64 overflow-y-auto space-y-1">
-              {projects.map(p => {
+            <div className="max-h-[28rem] overflow-y-auto space-y-1 px-1 py-1">
+              {(() => {
+                const selectedSet = new Set(projectOrder)
+                const selectedList = projectOrder.map(id => projects.find(p => p.id === id)).filter(Boolean)
+                const unselected = projects.filter(p => !selectedSet.has(p.id))
+                return [...selectedList, ...unselected]
+              })().map(p => {
                 const included = projectOrder.includes(p.id)
                 return (
-                  <div key={p.id} onClick={() => toggleProject(p.id)}
+                  <div key={p.id}
+                    draggable={included}
+                    onDragStart={(e) => { if (included) { setDragProjId(p.id); e.dataTransfer.effectAllowed = 'move' } }}
+                    onDragOver={(e) => { if (included && dragProjId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
+                    onDrop={(e) => { e.preventDefault(); if (included) reorderProjectInList(p.id) }}
+                    onDragEnd={() => setDragProjId(null)}
+                    onClick={() => toggleProject(p.id)}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left cursor-pointer
-                      ${included ? 'bg-[#828DF8]/10 ring-1 ring-[#828DF8]/30' : 'hover:bg-[#F4F3EE]'}`}>
+                      ${included ? 'bg-[#181818] ring-2 ring-[#F4A259]' : 'hover:bg-[#1f1f1f]'}
+                      ${dragProjId === p.id ? 'opacity-40' : ''}`}>
+                    {included && (
+                      <span className="text-[#6a6a6a] text-xs cursor-grab active:cursor-grabbing flex-shrink-0" onClick={(e) => e.stopPropagation()}>⋮⋮</span>
+                    )}
                     {p.thumbnailUrl ? (
                       <img src={p.thumbnailUrl} alt="" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
                     ) : (
-                      <div className="w-8 h-8 rounded-[6px] bg-gray-200 flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-[6px] bg-[#2a2a2a] flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0 text-left">
-                      <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
-                      <p className="text-xs text-gray-400">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
+                      <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                      <p className="text-xs text-[#8a8a8a]">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
                     </div>
                     {included && (
                       <button onClick={(e) => {
@@ -614,12 +732,12 @@ export default function PortfolioEditor({ isMobile }) {
                         })
                       }}
                         className={`w-6 h-6 flex items-center justify-center rounded-full transition-all flex-shrink-0
-                          ${featuredProjects.includes(p.id) ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-300 hover:text-amber-400'}`}>
+                          ${featuredProjects.includes(p.id) ? 'bg-amber-400 text-white' : 'bg-[#252525] text-[#6a6a6a] hover:text-amber-400'}`}>
                         <span className="text-xs">★</span>
                       </button>
                     )}
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0
-                      ${included ? 'bg-[#828DF8] border-[#828DF8]' : 'border-gray-300'}`}>
+                      ${included ? 'bg-[#F4A259] border-[#F4A259]' : 'border-[#6a6a6a]'}`}>
                       {included && (
                         <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       )}
@@ -632,9 +750,9 @@ export default function PortfolioEditor({ isMobile }) {
         </div>
 
         {/* ── 필터 카테고리 ── */}
-        <div className="bg-white rounded-[20px] shadow-sm p-5 space-y-3">
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <SectionHeader id="categories" label="필터 카테고리"
-            badge={enabledCategories.length > 0 ? <span className="text-xs text-gray-400">{enabledCategories.length}개</span> : null}
+            badge={enabledCategories.length > 0 ? <span className="text-xs text-[#8a8a8a]">{enabledCategories.length}개</span> : null}
           />
           {openSections.categories && (() => {
             const projectCats = [...new Set(projects.map(p => p.category).filter(c => c && !CATEGORY_LIST.includes(c)))]
@@ -648,7 +766,7 @@ export default function PortfolioEditor({ isMobile }) {
                     return (
                       <button key={cat} onClick={() => toggleCategory(cat)}
                         className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all
-                          ${on ? 'bg-gray-900 text-white' : 'bg-[#F4F3EE] text-gray-400 hover:bg-gray-200'}`}>
+                          ${on ? 'bg-white text-[#181818]' : 'bg-[#252525] text-[#8a8a8a] hover:bg-[#2a2a2a]'}`}>
                         {cat}
                       </button>
                     )
@@ -656,7 +774,7 @@ export default function PortfolioEditor({ isMobile }) {
                 </div>
                 <div className="flex gap-1.5">
                   <input
-                    className="flex-1 px-3 py-1.5 bg-[#F4F3EE] rounded-full text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                    className="flex-1 px-3 py-1.5 bg-[#252525] rounded-full text-sm text-white placeholder:text-[#6a6a6a] outline-none"
                     placeholder="커스텀 카테고리 추가"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.target.value.trim()) {
@@ -675,11 +793,11 @@ export default function PortfolioEditor({ isMobile }) {
         {/* ── 액션 ── */}
         <div className="space-y-2 pb-4">
           <button onClick={handleSave} disabled={saving}
-            className="w-full py-3 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-[16px] hover:bg-gray-50 transition-all disabled:opacity-50">
+            className="w-full py-3 bg-[#181818] border border-[#2a2a2a] text-[#cbcbcb] text-sm font-bold rounded-[16px] hover:bg-[#1f1f1f] transition-all disabled:opacity-50">
             {saving ? '저장 중...' : '저장'}
           </button>
           <button onClick={copyLink}
-            className="w-full py-3 bg-[#828DF8] text-white text-sm font-bold rounded-[16px] hover:bg-[#7078E8] transition-all shadow-lg shadow-[#828DF8]/25">
+            className="w-full py-3 bg-[#F4A259] text-white text-sm font-bold rounded-[16px] hover:bg-[#7078E8] transition-all shadow-lg">
             {copied ? '복사됨!' : '링크 복사'}
           </button>
         </div>

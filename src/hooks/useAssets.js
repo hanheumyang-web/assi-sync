@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, increment } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, increment, writeBatch } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject, updateMetadata } from 'firebase/storage'
 import { db, storage } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -104,7 +104,14 @@ export function useAssets(projectId) {
 
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      data.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+      // order 우선, 없으면 fileName 알파벳 순 (데스크톱 sync 순서와 일치)
+      data.sort((a, b) => {
+        const ao = a.order, bo = b.order
+        if (ao != null && bo != null) return ao - bo
+        if (ao != null) return -1
+        if (bo != null) return 1
+        return (a.fileName || '').localeCompare(b.fileName || '')
+      })
       setAssets(data)
       setLoading(false)
     })
@@ -187,5 +194,23 @@ export function useAssets(projectId) {
     })
   }
 
-  return { assets, loading, uploading, uploadProgress, uploadFiles, deleteAsset }
+  // 드래그앤드롭으로 순서 변경 + 1번 자동 썸네일
+  const reorderAssets = async (orderedIds) => {
+    const batch = writeBatch(db)
+    orderedIds.forEach((id, idx) => {
+      batch.update(doc(db, 'assets', id), { order: idx })
+    })
+    // 1번을 프로젝트 썸네일로
+    const firstId = orderedIds[0]
+    const first = assets.find(a => a.id === firstId)
+    if (first && projectId) {
+      batch.update(doc(db, 'projects', projectId), {
+        thumbnailUrl: first.url,
+        updatedAt: new Date().toISOString(),
+      })
+    }
+    await batch.commit()
+  }
+
+  return { assets, loading, uploading, uploadProgress, uploadFiles, deleteAsset, reorderAssets }
 }

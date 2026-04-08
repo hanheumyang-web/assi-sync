@@ -1,12 +1,52 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useProjects } from '../hooks/useProjects'
 import { useAssets } from '../hooks/useAssets'
 import { useAuth } from '../contexts/AuthContext'
-import { collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore'
+import { collection, addDoc, doc, updateDoc, increment, getDocs, query, where, limit, orderBy } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '../firebase'
 import { guessContentType, compressImage } from '../hooks/useAssets'
 import { PageTransition, GridSkeleton, EmptyState } from './UIKit'
+
+// 프로젝트 썸네일 — thumbnailUrl 깨지면 assets에서 첫 이미지 자가치유
+function ProjectThumb({ project }) {
+  const [src, setSrc] = useState(project.thumbnailUrl || '')
+  const [failed, setFailed] = useState(false)
+  useEffect(() => { setSrc(project.thumbnailUrl || ''); setFailed(false) }, [project.thumbnailUrl])
+  const healFromAssets = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'assets'), where('projectId', '==', project.id), limit(20)))
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const firstImg = docs.find(a => !a.isVideo && (a.url || a.thumbUrl))
+      const url = firstImg?.url || firstImg?.thumbUrl
+      if (url && url !== src) {
+        setSrc(url)
+        setFailed(false)
+        // 자가치유 — firestore 업데이트
+        try { await updateDoc(doc(db, 'projects', project.id), { thumbnailUrl: url }) } catch {}
+      } else {
+        setFailed(true)
+      }
+    } catch {
+      setFailed(true)
+    }
+  }
+  useEffect(() => {
+    if (!project.thumbnailUrl) healFromAssets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id])
+  if (!src || failed) return null
+  return (
+    <img
+      src={src}
+      alt=""
+      className="w-full h-full object-cover"
+      loading="lazy"
+      decoding="async"
+      onError={() => { setFailed(true); healFromAssets() }}
+    />
+  )
+}
 
 const GRADIENT_COLORS = [
   'from-rose-200 to-rose-400',
@@ -19,11 +59,111 @@ const GRADIENT_COLORS = [
   'from-teal-200 to-teal-400',
 ]
 
+function ExplorerView({ projects, categories, onMove, onSelect }) {
+  const [dragId, setDragId] = useState(null)
+  const [overCat, setOverCat] = useState(null)
+  const [openCats, setOpenCats] = useState(() => new Set(categories))
+
+  const grouped = {}
+  for (const c of categories) grouped[c] = []
+  const uncategorized = []
+  for (const p of projects) {
+    if (p.category && grouped[p.category]) grouped[p.category].push(p)
+    else if (p.category) { grouped[p.category] = grouped[p.category] || []; grouped[p.category].push(p) }
+    else uncategorized.push(p)
+  }
+
+  const toggleCat = (c) => {
+    const next = new Set(openCats)
+    next.has(c) ? next.delete(c) : next.add(c)
+    setOpenCats(next)
+  }
+
+  const handleDrop = async (e, cat) => {
+    e.preventDefault()
+    setOverCat(null)
+    if (!dragId) return
+    await onMove(dragId, cat)
+    setDragId(null)
+  }
+
+  const allCats = Object.keys(grouped)
+
+  return (
+    <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] shadow-md p-4 space-y-1">
+      <div className="px-3 py-2 mb-2 text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-bold border-b border-[#dcdcdc] dark:border-[#2a2a2a]">
+        📂 폴더 트리 — 드래그로 분류 이동
+      </div>
+      {uncategorized.length > 0 && (
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] border border-[#F4A259] rounded-[8px] p-3 mb-2">
+          <div className="text-[11px] font-bold text-[#F4A259] mb-2">⚠️ 위치 오류 ({uncategorized.length}) — 분류 없음</div>
+          <div className="flex flex-wrap gap-1.5">
+            {uncategorized.map((p) => (
+              <div
+                key={p.id}
+                draggable
+                onDragStart={() => setDragId(p.id)}
+                onClick={() => onSelect(p.id)}
+                className="px-3 py-1.5 bg-[#f5f5f5] dark:bg-[#181818] rounded-full text-[11px] font-bold text-[#4a4a4a] dark:text-[#cbcbcb] border border-[#F4A259] cursor-grab hover:bg-[#ececec] dark:hover:bg-[#1f1f1f]"
+              >📁 {p.name}</div>
+            ))}
+          </div>
+        </div>
+      )}
+      {allCats.map((cat) => {
+        const items = grouped[cat] || []
+        const open = openCats.has(cat)
+        return (
+          <div
+            key={cat}
+            onDragOver={(e) => { e.preventDefault(); setOverCat(cat) }}
+            onDragLeave={() => setOverCat(null)}
+            onDrop={(e) => handleDrop(e, cat)}
+            className={`rounded-[8px] border transition-all ${overCat === cat ? 'border-[#F4A259] bg-[#f5f5f5] dark:bg-[#181818]' : 'border-transparent'}`}
+          >
+            <button
+              onClick={() => toggleCat(cat)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] rounded-[8px]"
+            >
+              <span className="text-xs text-[#8a8a8a]">{open ? '▼' : '▶'}</span>
+              <span className="text-[11px] text-blue-600 font-bold">✅</span>
+              <span className="text-sm font-bold text-[#181818] dark:text-white">{cat}</span>
+              <span className="text-[11px] text-[#8a8a8a] ml-auto">{items.length}</span>
+            </button>
+            {open && (
+              <div className="pl-8 pr-3 pb-2 space-y-1">
+                {items.length === 0 && <div className="text-[11px] text-[#6a6a6a] py-1">— 비어 있음 —</div>}
+                {items.map((p) => {
+                  const total = (p.imageCount || 0) + (p.videoCount || 0)
+                  return (
+                    <div
+                      key={p.id}
+                      draggable
+                      onDragStart={() => setDragId(p.id)}
+                      onClick={() => onSelect(p.id)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-[10px] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] cursor-grab text-sm"
+                    >
+                      <span className="text-[11px]">{total > 0 ? '🟢' : '⏳'}</span>
+                      <span className="font-semibold text-[#e5e5e5] truncate flex-1">{p.name}</span>
+                      <span className="text-[10px] text-[#8a8a8a]">{total}장</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ProjectView({ isMobile }) {
   const { user } = useAuth()
   const { projects, loading, addProject, deleteProject, updateProject } = useProjects()
   const [selectedId, setSelectedId] = useState(null)
   const [filter, setFilter] = useState('전체')
+  const [viewMode, setViewMode] = useState('grid') // 'grid' | 'explorer'
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
@@ -299,23 +439,33 @@ export default function ProjectView({ isMobile }) {
       {/* 헤더 */}
       <div className={`${isMobile ? 'space-y-3' : 'flex items-end justify-between'}`}>
         <div>
-          <p className="text-[11px] tracking-[0.2em] uppercase text-gray-400 font-semibold">PROJECTS</p>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black tracking-tighter text-gray-900`}>프로젝트</h1>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">PROJECTS</p>
+          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black tracking-tighter text-[#181818] dark:text-white`}>프로젝트</h1>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a8a8a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="프로젝트 검색..."
-              className={`pl-9 pr-4 py-2.5 bg-white rounded-full text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30 shadow-sm ${isMobile ? 'w-full' : 'w-52'}`}
+              className={`pl-9 pr-4 py-2.5 bg-[#f5f5f5] dark:bg-[#181818] rounded-full text-xs text-[#181818] dark:text-white outline-none shadow-md ${isMobile ? 'w-full' : 'w-52'}`}
             />
+          </div>
+          <div className="flex bg-[#f5f5f5] dark:bg-[#181818] rounded-full shadow-md border border-[#dcdcdc] dark:border-[#2a2a2a] p-1 flex-shrink-0">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${viewMode === 'grid' ? 'bg-[#F4A259] text-white' : 'text-[#6a6a6a] dark:text-[#b3b3b3]'}`}
+            >프로젝트</button>
+            <button
+              onClick={() => setViewMode('explorer')}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${viewMode === 'explorer' ? 'bg-[#F4A259] text-white' : 'text-[#6a6a6a] dark:text-[#b3b3b3]'}`}
+            >탐색기</button>
           </div>
           {!bulkMode ? (
             <button
               onClick={() => setBulkMode(true)}
-              className="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border bg-white text-gray-500 border-gray-200 hover:bg-gray-50 shadow-sm"
+              className="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 border bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] border-[#dcdcdc] dark:border-[#2a2a2a] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] shadow-md"
             >
               선택
             </button>
@@ -323,7 +473,7 @@ export default function ProjectView({ isMobile }) {
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={exitBulkMode}
-                className="px-4 py-2.5 rounded-full text-xs font-bold transition-all border bg-[#828DF8] text-white border-[#828DF8] shadow-md"
+                className="px-4 py-2.5 rounded-full text-xs font-bold transition-all border bg-[#F4A259] text-white border-[#F4A259] shadow-md"
               >
                 선택 취소
               </button>
@@ -350,13 +500,13 @@ export default function ProjectView({ isMobile }) {
               <button
                 onClick={() => folderInputRef.current?.click()}
                 disabled={folderImporting}
-                className="px-5 py-2.5 bg-white text-gray-700 rounded-full text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex-shrink-0 border border-gray-200 disabled:opacity-50"
+                className="px-5 py-2.5 bg-[#f5f5f5] dark:bg-[#181818] text-[#4a4a4a] dark:text-[#cbcbcb] rounded-full text-xs font-bold shadow-md hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] transition-all flex-shrink-0 border border-[#dcdcdc] dark:border-[#2a2a2a] disabled:opacity-50"
               >
                 📁 폴더 불러오기
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-5 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all flex-shrink-0"
+                className="px-5 py-2.5 bg-[#F4A259] text-white rounded-full text-xs font-bold shadow-lg hover:bg-[#6366F1] transition-all flex-shrink-0"
               >
                 + 새 프로젝트
               </button>
@@ -366,7 +516,7 @@ export default function ProjectView({ isMobile }) {
             <>
               <button
                 onClick={selectAllFiltered}
-                className="px-4 py-2.5 bg-white text-gray-600 rounded-full text-xs font-bold shadow-sm border border-gray-200 hover:bg-gray-50 transition-all flex-shrink-0"
+                className="px-4 py-2.5 bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] rounded-full text-xs font-bold shadow-md border border-[#dcdcdc] dark:border-[#2a2a2a] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] transition-all flex-shrink-0"
               >
                 {bulkSelected.size === filtered.length ? '전체 해제' : '전체 선택'}
               </button>
@@ -375,14 +525,26 @@ export default function ProjectView({ isMobile }) {
         </div>
       </div>
 
+      {viewMode === 'explorer' && (
+        <ExplorerView
+          projects={projects}
+          categories={[...DEFAULT_CATEGORIES, ...customCats]}
+          onMove={async (projectId, category) => {
+            await updateProject(projectId, { category })
+          }}
+          onSelect={setSelectedId}
+        />
+      )}
+
+      {viewMode === 'grid' && <>
       {/* 필터 */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all
-              ${filter === f ? 'bg-[#828DF8] text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-100 shadow-sm'}`}
+            className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0
+              ${filter === f ? 'bg-[#F4A259] text-white shadow-md' : 'bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#e4e4e4] dark:hover:bg-[#252525] shadow-sm border border-[#dcdcdc] dark:border-[#2a2a2a]'}`}
           >
             {f}
           </button>
@@ -405,20 +567,18 @@ export default function ProjectView({ isMobile }) {
           {filtered.map((p, i) => (
             <div
               key={p.id}
-              className={`bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl transition-all text-left group relative cursor-pointer ${
-                bulkMode && bulkSelected.has(p.id) ? 'ring-3 ring-[#828DF8] shadow-lg shadow-[#828DF8]/20' : ''
+              className={`bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] overflow-hidden shadow-md hover:shadow-xl transition-all text-left group relative cursor-pointer ${
+                bulkMode && bulkSelected.has(p.id) ? 'ring-2 ring-[#F4A259] shadow-lg' : ''
               }`}
               onClick={() => bulkMode ? toggleBulkSelect(p.id) : setSelectedId(p.id)}
             >
-              <div className={`${isMobile ? 'h-32' : 'h-40'} relative overflow-hidden ${p.thumbnailUrl ? '' : `bg-gradient-to-br ${getColor(i)}`}`}>
-                {p.thumbnailUrl && (
-                  <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                )}
+              <div className={`${isMobile ? 'h-32' : 'h-44'} relative overflow-hidden bg-gradient-to-br ${getColor(i)}`}>
+                <ProjectThumb project={p} />
                 {bulkMode && (
                   <div className={`absolute top-3 left-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                     bulkSelected.has(p.id)
-                      ? 'bg-[#828DF8] border-[#828DF8] text-white'
-                      : 'bg-white/80 border-gray-300'
+                      ? 'bg-[#F4A259] border-[#F4A259] text-white'
+                      : 'bg-[#f5f5f5] dark:bg-[#181818]/80 border-[#dcdcdc] dark:border-[#2a2a2a]'
                   }`}>
                     {bulkSelected.has(p.id) && (
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -430,7 +590,7 @@ export default function ProjectView({ isMobile }) {
                     EMBARGO
                   </div>
                 )}
-                <div className="absolute bottom-3 right-3 bg-white/80 text-[10px] font-bold px-2 py-1 rounded-full">
+                <div className="absolute bottom-3 right-3 bg-[#f5f5f5] dark:bg-[#181818]/80 text-[10px] font-bold px-2 py-1 rounded-full">
                   {(p.imageCount || 0) + (p.videoCount || 0)}장
                 </div>
                 {/* 호버 수정 버튼 */}
@@ -438,13 +598,13 @@ export default function ProjectView({ isMobile }) {
                   <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all flex gap-1.5">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingProject(p) }}
-                      className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-[#828DF8] transition-all"
+                      className="w-8 h-8 bg-[#f5f5f5] dark:bg-[#181818]/90 hover:bg-[#f5f5f5] dark:hover:bg-[#181818] rounded-full flex items-center justify-center shadow-md text-[#6a6a6a] dark:text-[#b3b3b3] hover:text-[#F4A259] transition-all"
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); if (window.confirm('이 프로젝트를 삭제하시겠습니까?')) deleteProject(p.id) }}
-                      className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-red-500 transition-all"
+                      className="w-8 h-8 bg-[#f5f5f5] dark:bg-[#181818]/90 hover:bg-[#f5f5f5] dark:hover:bg-[#181818] rounded-full flex items-center justify-center shadow-md text-[#6a6a6a] dark:text-[#b3b3b3] hover:text-red-500 transition-all"
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
@@ -452,38 +612,39 @@ export default function ProjectView({ isMobile }) {
                 )}
               </div>
               <div className={isMobile ? 'p-3' : 'p-5'}>
-                <p className="text-[10px] tracking-[0.15em] uppercase text-gray-400 font-semibold truncate">{p.client || 'CLIENT'}</p>
-                <p className="text-base font-bold text-gray-900 tracking-tight mt-0.5 group-hover:text-[#828DF8] transition-colors truncate">{p.name}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[11px] bg-[#F4F3EE] text-gray-500 px-2.5 py-0.5 rounded-full font-semibold">{p.category}</span>
-                  {!isMobile && <span className="text-[11px] text-gray-400">{p.createdAt?.slice(0, 10)}</span>}
+                <p className="text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold truncate">{p.client || 'CLIENT'}</p>
+                <p className="text-base font-bold text-[#181818] dark:text-white tracking-tight mt-1 group-hover:text-[#F4A259] transition-colors line-clamp-1">{p.name}</p>
+                <div className="flex items-center gap-2 mt-2.5 overflow-hidden">
+                  <span className="text-xs bg-[#e4e4e4] dark:bg-[#252525] text-[#6a6a6a] dark:text-[#b3b3b3] px-3 py-1 rounded-full font-semibold flex-shrink-0">{p.category}</span>
+                  {!isMobile && <span className="text-xs text-[#8a8a8a] truncate">{p.createdAt?.slice(0, 10)}</span>}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+      </>}
 
       {/* 일괄 편집 액션바 */}
       {bulkMode && bulkSelected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-[24px] shadow-2xl border border-gray-100 px-5 py-3 z-40 flex items-center gap-3" style={{ maxWidth: '90vw' }}>
-          <div className="text-sm font-black tracking-tighter text-gray-900 whitespace-nowrap">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] shadow-2xl px-5 py-3 z-40 flex items-center gap-3" style={{ maxWidth: '90vw' }}>
+          <div className="text-sm font-black tracking-tighter text-[#181818] dark:text-white whitespace-nowrap">
             {bulkSelected.size}개 선택
           </div>
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-[#dcdcdc] dark:bg-[#2a2a2a]" />
           <div className="flex flex-wrap gap-1.5 items-center">
             {[...DEFAULT_CATEGORIES, ...customCats].map((c) => (
               <button
                 key={c}
                 onClick={() => setBulkCategory(c)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all
-                  ${bulkCategory === c ? 'bg-[#828DF8] text-white shadow-sm' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}
+                  ${bulkCategory === c ? 'bg-[#F4A259] text-white shadow-sm' : 'bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] shadow-sm'}`}
               >
                 {c}
               </button>
             ))}
             <input
-              className="w-20 px-2 py-1.5 bg-[#F4F3EE] rounded-[8px] text-[10px] text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-20 px-2 py-1.5 bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] text-[10px] text-[#181818] dark:text-white outline-none"
               placeholder="직접 입력"
               value={bulkCustomCat}
               onChange={(e) => setBulkCustomCat(e.target.value.toUpperCase())}
@@ -493,7 +654,7 @@ export default function ProjectView({ isMobile }) {
           <button
             onClick={applyBulkCategory}
             disabled={!bulkCategory || bulkSaving}
-            className="px-5 py-2.5 bg-[#828DF8] text-white rounded-full text-xs font-bold shadow-lg shadow-[#828DF8]/25 hover:bg-[#6366F1] transition-all disabled:opacity-50 whitespace-nowrap"
+            className="px-5 py-2.5 bg-[#F4A259] text-white rounded-full text-xs font-bold shadow-lg hover:bg-[#6366F1] transition-all disabled:opacity-50 whitespace-nowrap"
           >
             {bulkSaving ? '적용 중...' : '일괄 적용'}
           </button>
@@ -527,36 +688,36 @@ export default function ProjectView({ isMobile }) {
       {/* 폴더 임포트 진행 오버레이 */}
       {folderImporting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[#828DF8]/10 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-[#828DF8] border-t-transparent rounded-full animate-spin" />
+          <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[16px] p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[#f5f5f5] dark:bg-[#181818] flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#F4A259] border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-[11px] tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">IMPORTING</p>
-            <h3 className="text-lg font-black tracking-tighter text-gray-900 mb-2">폴더 불러오는 중</h3>
-            <p className="text-sm font-bold text-gray-700 mb-1">{importProgress.projectName}</p>
-            <p className="text-xs text-gray-400 mb-1">
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#F4A259] font-bold mb-1">IMPORTING</p>
+            <h3 className="text-lg font-black tracking-tighter text-[#181818] dark:text-white mb-2">폴더 불러오는 중</h3>
+            <p className="text-sm font-bold text-[#4a4a4a] dark:text-[#cbcbcb] mb-1">{importProgress.projectName}</p>
+            <p className="text-xs text-[#8a8a8a] mb-1">
               {importProgress.step === 'upload'
                 ? `파일 업로드 ${importProgress.current} / ${importProgress.total}`
                 : `프로젝트 생성 중...`}
             </p>
             {/* 용량 + ETA */}
-            <div className="flex items-center justify-center gap-3 text-[10px] text-gray-400 mb-4">
+            <div className="flex items-center justify-center gap-3 text-[10px] text-[#8a8a8a] mb-4">
               <span>{formatBytes(importProgress.uploadedBytes)} / {formatBytes(importProgress.totalBytes)}</span>
               <span>·</span>
               <span>{importProgress.eta || '계산 중...'}</span>
             </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-[#dcdcdc] dark:bg-[#2a2a2a] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#828DF8] rounded-full transition-all duration-300"
+                className="h-full bg-[#F4A259] rounded-full transition-all duration-300"
                 style={{ width: `${importProgress.total ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%` }}
               />
             </div>
-            <p className="text-[10px] text-gray-400 mt-2 mb-4">
+            <p className="text-[10px] text-[#8a8a8a] mt-2 mb-4">
               {importProgress.total ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%
             </p>
             <button
               onClick={cancelImport}
-              className="px-6 py-2.5 bg-[#F4F3EE] text-gray-600 rounded-full text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-all"
+              className="px-6 py-2.5 bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] rounded-full text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-all"
             >
               업로드 취소
             </button>
@@ -569,11 +730,22 @@ export default function ProjectView({ isMobile }) {
 }
 
 function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, editingProject, setEditingProject, updateProject }) {
-  const { assets, uploading, uploadProgress, uploadFiles, deleteAsset } = useAssets(project.id)
+  const { assets, uploading, uploadProgress, uploadFiles, deleteAsset, reorderAssets } = useAssets(project.id)
+  const [dragAssetId, setDragAssetId] = useState(null)
   const fileInputRef = useRef(null)
   const [lightboxIdx, setLightboxIdx] = useState(null)
   const [assetFilter, setAssetFilter] = useState('all') // all | image | video
-  const [sortBy, setSortBy] = useState('newest') // newest | oldest | name
+  const [sortBy, setSortBy] = useState('manual') // manual | newest | oldest | name
+
+  // 라이트박스 이웃 이미지 프리로드 → 좌우 이동 즉시 반응
+  useEffect(() => {
+    if (lightboxIdx == null) return
+    const neighbors = [lightboxIdx + 1, lightboxIdx - 1]
+    neighbors.forEach(i => {
+      const url = imageAssets[i]?.url
+      if (url) { const img = new Image(); img.decoding = 'async'; img.src = url }
+    })
+  }, [lightboxIdx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
@@ -593,6 +765,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
   const filteredAssets = assets
     .filter(a => assetFilter === 'all' ? true : assetFilter === 'image' ? !a.isVideo : a.isVideo)
     .sort((a, b) => {
+      if (sortBy === 'manual') return 0 // hook이 이미 order 순으로 반환
       if (sortBy === 'newest') return (b.createdAt || '').localeCompare(a.createdAt || '')
       if (sortBy === 'oldest') return (a.createdAt || '').localeCompare(b.createdAt || '')
       return (a.fileName || '').localeCompare(b.fileName || '')
@@ -603,58 +776,58 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="text-sm text-[#828DF8] font-bold hover:underline">← 프로젝트 목록</button>
+      <button onClick={onBack} className="text-sm text-[#F4A259] font-bold hover:underline">← 프로젝트 목록</button>
 
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[11px] tracking-[0.2em] uppercase text-gray-400 font-semibold">{project.client || 'CLIENT'}</p>
-          <h1 className="text-3xl font-black tracking-tighter text-gray-900">{project.name}</h1>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">{project.client || 'CLIENT'}</p>
+          <h1 className="text-3xl font-black tracking-tighter text-[#181818] dark:text-white">{project.name}</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {project.embargoStatus === 'active' && (
-            <span className="text-[10px] bg-amber-100 text-amber-700 px-4 py-2 rounded-full font-bold">
+            <span className="text-[11px] bg-[#f5f5f5] dark:bg-[#181818] text-[#F4A259] px-4 py-2 rounded-full font-bold border border-[#F4A259]">
               엠바고: {project.embargoDate?.includes('T') ? project.embargoDate.replace('T', ' ') : project.embargoDate}
             </span>
           )}
-          <span className="text-[10px] bg-[#828DF8]/10 text-[#828DF8] px-4 py-2 rounded-full font-bold">{project.category}</span>
-          <button onClick={onEdit} className="text-[10px] bg-[#F4F3EE] text-gray-500 px-4 py-2 rounded-full font-bold hover:bg-gray-200">수정</button>
-          <button onClick={onDelete} className="text-[10px] bg-red-50 text-red-500 px-4 py-2 rounded-full font-bold hover:bg-red-100">삭제</button>
+          <span className="text-[11px] bg-[#f5f5f5] dark:bg-[#181818] text-[#F4A259] px-4 py-2 rounded-full font-bold">{project.category}</span>
+          <button onClick={onEdit} className="text-[11px] bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] px-4 py-2 rounded-full font-bold hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] border border-[#dcdcdc] dark:border-[#2a2a2a]">수정</button>
+          <button onClick={onDelete} className="text-[11px] bg-red-50 text-red-500 px-4 py-2 rounded-full font-bold hover:bg-red-100">삭제</button>
         </div>
       </div>
 
       {/* 통계 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-[20px] p-4 shadow-sm">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold">IMAGES</p>
-          <p className="text-2xl font-black tracking-tighter text-gray-900">{assets.filter(a => !a.isVideo).length}</p>
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[20px] p-5 shadow-sm">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">IMAGES</p>
+          <p className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white">{assets.filter(a => !a.isVideo).length}</p>
         </div>
-        <div className="bg-white rounded-[20px] p-4 shadow-sm">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold">VIDEOS</p>
-          <p className="text-2xl font-black tracking-tighter text-gray-900">{assets.filter(a => a.isVideo).length}</p>
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[20px] p-5 shadow-sm">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">VIDEOS</p>
+          <p className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white">{assets.filter(a => a.isVideo).length}</p>
         </div>
-        <div className="bg-white rounded-[20px] p-4 shadow-sm">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold">CATEGORY</p>
-          <p className="text-2xl font-black tracking-tighter text-gray-900">{project.category}</p>
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[20px] p-5 shadow-sm">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">CATEGORY</p>
+          <p className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white truncate">{project.category}</p>
         </div>
-        <div className="bg-white rounded-[20px] p-4 shadow-sm">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-gray-400 font-semibold">STATUS</p>
-          <p className="text-2xl font-black tracking-tighter text-gray-900">{project.embargoStatus === 'active' ? '🔒' : '✅'}</p>
+        <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[20px] p-5 shadow-sm">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8a8a8a] font-semibold">STATUS</p>
+          <p className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white">{project.embargoStatus === 'active' ? '🔒' : '✅'}</p>
         </div>
       </div>
 
       {/* 작업물 영역 */}
-      <div className="bg-white rounded-[24px] p-6 shadow-sm">
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[12px] p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-black tracking-tighter text-gray-900">작업물</h2>
+          <h2 className="text-lg font-black tracking-tighter text-[#181818] dark:text-white">작업물</h2>
           <div className="flex items-center gap-3">
             {/* 필터 토글 */}
-            <div className="flex bg-[#F4F3EE] rounded-full p-0.5">
+            <div className="flex bg-[#f5f5f5] dark:bg-[#181818] rounded-full p-0.5">
               {[{ id: 'all', label: '전체' }, { id: 'image', label: '사진' }, { id: 'video', label: '영상' }].map(f => (
                 <button
                   key={f.id}
                   onClick={() => setAssetFilter(f.id)}
                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all
-                    ${assetFilter === f.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+                    ${assetFilter === f.id ? 'bg-[#f5f5f5] dark:bg-[#181818] text-[#181818] dark:text-white shadow-sm' : 'text-[#8a8a8a]'}`}
                 >
                   {f.label}
                 </button>
@@ -664,18 +837,19 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-[10px] font-bold text-gray-500 bg-[#F4F3EE] rounded-full px-3 py-1.5 outline-none cursor-pointer"
+              className="text-[10px] font-bold text-[#6a6a6a] dark:text-[#b3b3b3] bg-[#f5f5f5] dark:bg-[#181818] rounded-full px-3 py-1.5 outline-none cursor-pointer"
             >
+              <option value="manual">수동 정렬</option>
               <option value="newest">최신순</option>
               <option value="oldest">오래된순</option>
               <option value="name">파일명순</option>
             </select>
             {uploading && (
               <div className="flex items-center gap-2">
-                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#828DF8] rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                <div className="w-24 h-2 bg-[#dcdcdc] dark:bg-[#2a2a2a] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#F4A259] rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
-                <span className="text-[10px] text-gray-400">{uploadProgress}%</span>
+                <span className="text-[10px] text-[#8a8a8a]">{uploadProgress}%</span>
               </div>
             )}
             <input
@@ -689,7 +863,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="px-4 py-2 bg-[#828DF8] text-white rounded-full text-xs font-bold hover:bg-[#6366F1] disabled:opacity-50 transition-all"
+              className="px-4 py-2 bg-[#F4A259] text-white rounded-full text-xs font-bold hover:bg-[#6366F1] disabled:opacity-50 transition-all"
             >
               + 업로드
             </button>
@@ -698,13 +872,13 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
 
         {filteredAssets.length === 0 && !uploading ? (
           <div
-            className="border-2 border-dashed border-gray-300 rounded-[20px] p-12 text-center hover:border-[#828DF8] transition-all cursor-pointer"
+            className="border-2 border-dashed border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[20px] p-12 text-center hover:border-[#F4A259] transition-all cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <p className="text-gray-400 text-sm mb-2">이미지나 영상을 드래그하거나 클릭하여 업로드</p>
-            <p className="text-xs text-gray-300">JPG, PNG, MP4, MOV 지원</p>
+            <p className="text-[#8a8a8a] text-sm mb-2">이미지나 영상을 드래그하거나 클릭하여 업로드</p>
+            <p className="text-xs text-[#6a6a6a]">JPG, PNG, MP4, MOV 지원</p>
           </div>
         ) : (
           <div
@@ -712,33 +886,61 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            {filteredAssets.map((asset) => {
+            {filteredAssets.map((asset, idx) => {
               const imgIdx = !asset.isVideo ? imageAssets.indexOf(asset) : -1
+              const isFirst = idx === 0 && sortBy === 'manual'
               return (
                 <div
                   key={asset.id}
-                  className="aspect-square rounded-[14px] overflow-hidden relative group cursor-pointer"
+                  draggable={sortBy === 'manual'}
+                  onDragStart={() => setDragAssetId(asset.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    e.preventDefault()
+                    if (!dragAssetId || dragAssetId === asset.id) return
+                    const ids = filteredAssets.map(a => a.id)
+                    const fromIdx = ids.indexOf(dragAssetId)
+                    const toIdx = ids.indexOf(asset.id)
+                    if (fromIdx < 0 || toIdx < 0) return
+                    const reordered = [...ids]
+                    const [moved] = reordered.splice(fromIdx, 1)
+                    reordered.splice(toIdx, 0, moved)
+                    setDragAssetId(null)
+                    await reorderAssets(reordered)
+                  }}
+                  className={`aspect-square rounded-[14px] overflow-hidden relative group ${sortBy === 'manual' ? 'cursor-grab' : 'cursor-pointer'} ${dragAssetId === asset.id ? 'opacity-40' : ''}`}
                   onClick={() => { if (!asset.isVideo && imgIdx >= 0) setLightboxIdx(imgIdx) }}
                 >
+                  {isFirst && (
+                    <div className="absolute top-2 left-2 z-10 bg-[#F4A259] text-white text-[9px] font-black tracking-wider px-2 py-1 rounded-full shadow-lg">
+                      ⭐ 썸네일
+                    </div>
+                  )}
                   {asset.isVideo ? (
-                    <video src={asset.url} className="w-full h-full object-cover" muted />
+                    <video src={asset.url} className="w-full h-full object-cover" muted preload="metadata" />
                   ) : (
-                    <img src={asset.url} alt={asset.fileName} className="w-full h-full object-cover" />
+                    <img
+                      src={asset.thumbUrl || asset.url}
+                      alt={asset.fileName}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                   {asset.isVideo && (
-                    <div className="absolute top-2 right-2 bg-white/80 rounded-full w-6 h-6 flex items-center justify-center">
+                    <div className="absolute top-2 right-2 bg-[#f5f5f5] dark:bg-[#181818]/80 rounded-full w-6 h-6 flex items-center justify-center">
                       <span className="text-[10px]">▶</span>
                     </div>
                   )}
                   {/* 파일명 + 삭제 (hover) */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2">
-                    <p className="text-white text-[10px] font-medium truncate max-w-[90%] px-2">{asset.fileName}</p>
+                    <p className="text-[#181818] dark:text-white text-[10px] font-medium truncate max-w-[90%] px-2">{asset.fileName}</p>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         if (window.confirm('이 파일을 삭제하시겠습니까?')) deleteAsset(asset)
                       }}
-                      className="bg-white/90 text-red-500 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white"
+                      className="bg-[#f5f5f5] dark:bg-[#181818]/90 text-red-500 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-[#f5f5f5] dark:hover:bg-[#181818]"
                     >
                       삭제
                     </button>
@@ -749,9 +951,9 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
             {/* 추가 업로드 카드 */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="aspect-square rounded-[14px] bg-[#F4F3EE] flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-all border-2 border-dashed border-gray-300"
+              className="aspect-square rounded-[14px] bg-[#f5f5f5] dark:bg-[#181818] flex items-center justify-center cursor-pointer hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] transition-all border-2 border-dashed border-[#dcdcdc] dark:border-[#2a2a2a]"
             >
-              <span className="text-2xl text-gray-400">+</span>
+              <span className="text-2xl text-[#8a8a8a]">+</span>
             </div>
           </div>
         )}
@@ -766,7 +968,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
           {/* 닫기 */}
           <button
             onClick={() => setLightboxIdx(null)}
-            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-lg transition-all"
+            className="absolute top-6 right-6 w-10 h-10 bg-[#f5f5f5] dark:bg-[#181818]/10 hover:bg-[#f5f5f5] dark:hover:bg-[#181818]/20 rounded-full flex items-center justify-center text-[#181818] dark:text-white text-lg transition-all"
           >
             ✕
           </button>
@@ -780,7 +982,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
           {lightboxIdx > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1) }}
-              className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl transition-all"
+              className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#f5f5f5] dark:bg-[#181818]/10 hover:bg-[#f5f5f5] dark:hover:bg-[#181818]/20 rounded-full flex items-center justify-center text-[#181818] dark:text-white text-xl transition-all"
             >
               ‹
             </button>
@@ -792,13 +994,15 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
             alt={imageAssets[lightboxIdx].fileName}
             className="max-w-[85vw] max-h-[85vh] object-contain rounded-[8px]"
             onClick={(e) => e.stopPropagation()}
+            decoding="async"
+            fetchpriority="high"
           />
 
           {/* 다음 */}
           {lightboxIdx < imageAssets.length - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1) }}
-              className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl transition-all"
+              className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#f5f5f5] dark:bg-[#181818]/10 hover:bg-[#f5f5f5] dark:hover:bg-[#181818]/20 rounded-full flex items-center justify-center text-[#181818] dark:text-white text-xl transition-all"
             >
               ›
             </button>
@@ -849,51 +1053,51 @@ function ProjectModal({ project, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <p className="text-[11px] tracking-[0.2em] uppercase text-[#828DF8] font-bold mb-1">{project ? 'EDIT PROJECT' : 'NEW PROJECT'}</p>
-        <h2 className="text-2xl font-black tracking-tighter text-gray-900 mb-6">{project ? '프로젝트 수정' : '새 프로젝트'}</h2>
+      <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[16px] p-8 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <p className="text-[11px] tracking-[0.2em] uppercase text-[#F4A259] font-bold mb-1">{project ? 'EDIT PROJECT' : 'NEW PROJECT'}</p>
+        <h2 className="text-2xl font-black tracking-tighter text-[#181818] dark:text-white mb-6">{project ? '프로젝트 수정' : '새 프로젝트'}</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">PROJECT NAME</label>
+            <label className="text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">PROJECT NAME</label>
             <input
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-full mt-1 px-4 py-3 bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
               placeholder="예: VOGUE KOREA 화보"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">CLIENT</label>
+            <label className="text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">CLIENT</label>
             <input
-              className="w-full mt-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+              className="w-full mt-1 px-4 py-3 bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
               placeholder="클라이언트명"
               value={client}
               onChange={(e) => setClient(e.target.value)}
             />
           </div>
           <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">CATEGORY</label>
+            <label className="text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">CATEGORY</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {categories.map((c) => (
                 <button
                   key={c}
                   onClick={() => setCategory(c)}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all
-                    ${category === c ? 'bg-[#828DF8] text-white shadow-md' : 'bg-[#F4F3EE] text-gray-500 hover:bg-gray-200'}`}
+                  className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all
+                    ${category === c ? 'bg-[#F4A259] text-white shadow-md' : 'bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] text-[#6a6a6a] dark:text-[#b3b3b3] hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] shadow-sm'}`}
                 >
                   {c}
                 </button>
               ))}
               {category && !categories.includes(category) && (
-                <button className="px-4 py-2 rounded-full text-xs font-bold bg-[#828DF8] text-white shadow-md">
+                <button className="px-4 py-2.5 rounded-full text-xs font-bold bg-[#F4A259] text-white shadow-md">
                   {category}
                 </button>
               )}
             </div>
             <div className="flex gap-2 mt-2">
               <input
-                className="flex-1 px-3 py-2 bg-[#F4F3EE] rounded-[12px] text-xs text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="flex-1 px-3 py-2 bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-xs text-[#181818] dark:text-white outline-none"
                 placeholder="직접 입력"
                 value={customCat}
                 onChange={(e) => setCustomCat(e.target.value.toUpperCase())}
@@ -901,29 +1105,29 @@ function ProjectModal({ project, onClose, onSave }) {
               />
               <button
                 onClick={() => { if (customCat.trim()) { setCategory(customCat.trim()); setCustomCat('') } }}
-                className="px-3 py-2 bg-[#828DF8] text-white rounded-[12px] text-xs font-bold hover:bg-[#6b77e6] transition-colors"
+                className="px-3 py-2 bg-[#F4A259] text-white rounded-[12px] text-xs font-bold hover:bg-[#6b77e6] transition-colors"
               >+</button>
             </div>
           </div>
           <div>
-            <label className="text-[11px] tracking-[0.15em] uppercase text-gray-400 font-semibold">EMBARGO DATE (선택)</label>
+            <label className="text-[11px] tracking-[0.15em] uppercase text-[#8a8a8a] font-semibold">EMBARGO DATE (선택)</label>
             <div className="flex gap-2 mt-1">
               <input
                 type="date"
-                className="flex-1 px-4 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="flex-1 px-4 py-3 bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
                 value={embargoDate}
                 onChange={(e) => setEmbargoDate(e.target.value)}
               />
               <input
                 type="time"
-                className="w-[120px] px-3 py-3 bg-[#F4F3EE] rounded-[12px] text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#828DF8]/30"
+                className="w-[120px] px-3 py-3 bg-[#f5f5f5] dark:bg-[#181818] border border-[#dcdcdc] dark:border-[#2a2a2a] rounded-[12px] text-sm text-[#181818] dark:text-white outline-none"
                 value={embargoTime}
                 onChange={(e) => setEmbargoTime(e.target.value)}
                 disabled={!embargoDate}
               />
             </div>
             {embargoDate && (
-              <p className="text-[10px] text-gray-400 mt-1.5 ml-1">
+              <p className="text-[10px] text-[#8a8a8a] mt-1.5 ml-1">
                 {embargoDate} {embargoTime} 업로드 예정
               </p>
             )}
@@ -931,13 +1135,13 @@ function ProjectModal({ project, onClose, onSave }) {
         </div>
 
         <div className="flex gap-3 mt-8">
-          <button onClick={onClose} className="flex-1 py-4 bg-[#F4F3EE] text-gray-500 rounded-[16px] font-bold text-sm hover:bg-gray-200 transition-all">
+          <button onClick={onClose} className="flex-1 py-4 bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] rounded-[8px] font-bold text-sm hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] transition-all">
             취소
           </button>
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || saving}
-            className="flex-1 py-4 bg-[#828DF8] text-white rounded-[16px] font-bold text-sm hover:bg-[#6366F1] transition-all shadow-lg shadow-[#828DF8]/25 disabled:opacity-50"
+            className="flex-1 py-4 bg-[#F4A259] text-white rounded-[8px] font-bold text-sm hover:bg-[#6366F1] transition-all shadow-lg disabled:opacity-50"
           >
             {saving ? '저장 중...' : project ? '수정 완료' : '프로젝트 생성'}
           </button>
