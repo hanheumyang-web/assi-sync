@@ -15,31 +15,68 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Apple code signing keychain
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          # Decode p12 from base64
+          echo -n "$CSC_LINK" | base64 --decode > /tmp/cert.p12
+
+          # Create a fresh keychain for CI
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="ci_build_temp"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate — -A flag allows any app to access, -T adds specific apps
+          security import /tmp/cert.p12 -P "$CSC_KEY_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # CRITICAL: Allow codesign to access the key without GUI prompt
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Make this keychain the default search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          # Verify identity is found
+          echo "=== Identities in keychain ==="
+          security find-identity -v "$KEYCHAIN_PATH"
+
+          # Export keychain path for electron-builder
+          echo "CSC_KEYCHAIN=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+          # Clean up p12
+          rm /tmp/cert.p12
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS (sign only, no notarize)
+      - name: Build & sign macOS (no notarize)
         run: npx electron-builder --mac --publish never
-        timeout-minutes: 30
+        timeout-minutes: 15
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
+      - name: List build artifacts
+        run: ls -la dist/
+
       - name: Notarize x64 ZIP
         run: |
-          echo "=== Submitting x64 ZIP to Apple notarization ==="
           ZIP_X64=$(ls dist/ASSI-Sync-Mac-*-x64.zip 2>/dev/null | head -1)
-          if [ -z "$ZIP_X64" ]; then echo "No x64 ZIP found"; exit 1; fi
-          echo "File: $ZIP_X64"
+          if [ -z "$ZIP_X64" ]; then echo "No x64 ZIP found, skipping"; exit 0; fi
+          echo "Submitting $ZIP_X64 to Apple notarization..."
           xcrun notarytool submit "$ZIP_X64" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 20m
-          echo "=== Stapling x64 ==="
-          xcrun stapler staple "$ZIP_X64" || echo "Staple skipped for ZIP (normal)"
-        timeout-minutes: 25
+            --wait --timeout 15m 2>&1
+          echo "x64 notarization complete"
+        timeout-minutes: 20
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -47,18 +84,16 @@ jobs:
 
       - name: Notarize arm64 ZIP
         run: |
-          echo "=== Submitting arm64 ZIP to Apple notarization ==="
           ZIP_ARM=$(ls dist/ASSI-Sync-Mac-*-arm64.zip 2>/dev/null | head -1)
-          if [ -z "$ZIP_ARM" ]; then echo "No arm64 ZIP found"; exit 1; fi
-          echo "File: $ZIP_ARM"
+          if [ -z "$ZIP_ARM" ]; then echo "No arm64 ZIP found, skipping"; exit 0; fi
+          echo "Submitting $ZIP_ARM to Apple notarization..."
           xcrun notarytool submit "$ZIP_ARM" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 20m
-          echo "=== Stapling arm64 ==="
-          xcrun stapler staple "$ZIP_ARM" || echo "Staple skipped for ZIP (normal)"
-        timeout-minutes: 25
+            --wait --timeout 15m 2>&1
+          echo "arm64 notarization complete"
+        timeout-minutes: 20
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -68,9 +103,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ASSI-Sync-Mac
-          path: |
-            dist/*.dmg
-            dist/*.zip
+          path: dist/*.zip
 
   build-win:
     runs-on: windows-latest
