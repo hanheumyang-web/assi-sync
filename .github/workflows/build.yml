@@ -74,9 +74,9 @@ jobs:
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 15m 2>&1
+            --wait --timeout 45m 2>&1
           echo "x64 notarization complete"
-        timeout-minutes: 20
+        timeout-minutes: 50
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -91,9 +91,9 @@ jobs:
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 15m 2>&1
+            --wait --timeout 45m 2>&1
           echo "arm64 notarization complete"
-        timeout-minutes: 20
+        timeout-minutes: 50
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
