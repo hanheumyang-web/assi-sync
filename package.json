@@ -37,7 +37,7 @@
       "target": [
         { "target": "zip", "arch": ["x64", "arm64"] }
       ],
-      "identity": "Developer ID Application: Hanheum Yang (3V9GKC2R66)",
+      "identity": "Hanheum Yang (3V9GKC2R66)",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
