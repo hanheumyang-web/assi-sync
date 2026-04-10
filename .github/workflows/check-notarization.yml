@@ -9,11 +9,32 @@ jobs:
     steps:
       - name: Check notarization history
         run: |
-          echo "=== Recent notarization submissions ==="
+          echo "=== Recent submissions ==="
           xcrun notarytool history \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID"
+            --team-id "$APPLE_TEAM_ID" 2>&1 | head -30
+
+          echo ""
+          echo "=== Detailed info for latest submission ==="
+          LATEST_ID=$(xcrun notarytool history \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" 2>&1 | grep "id:" | head -1 | awk '{print $2}')
+
+          echo "Submission ID: $LATEST_ID"
+
+          xcrun notarytool info "$LATEST_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" 2>&1
+
+          echo ""
+          echo "=== Notarization log ==="
+          xcrun notarytool log "$LATEST_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" 2>&1 || echo "No log available yet"
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
