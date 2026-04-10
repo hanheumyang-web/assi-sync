@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
   "author": "ASSI",
@@ -37,9 +37,14 @@
       "target": [
         { "target": "zip", "arch": ["x64", "arm64"] }
       ],
-      "identity": null,
-      "hardenedRuntime": false,
+      "identity": "Developer ID Application: Hanheum Yang (3V9GKC2R66)",
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "3V9GKC2R66"
+      },
       "artifactName": "ASSI-Sync-Mac-${version}-${arch}.${ext}"
     },
     "nsis": {

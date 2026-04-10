@@ -18,10 +18,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS DMG
+      - name: Build macOS (ZIP)
         run: npx electron-builder --mac --publish never
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Apple Developer 승인 전: ad-hoc 서명 (CSC_LINK 없으면 자동으로 identity:null 동작)
+          # 승인 후: GitHub Secrets에 아래 5개 등록하면 자동으로 서명 + notarize
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4
@@ -90,7 +97,7 @@ jobs:
             - `ASSI-Sync-Windows-${{ steps.version.outputs.version }}.exe` 다운로드 → 더블클릭 → 설치
             - SmartScreen 경고: "추가 정보 → 실행" 클릭
 
-            **🍎 Mac** (DMG 배포 안 함 — macOS Sequoia 호환을 위해 ZIP 사용)
+            **🍎 Mac** (Apple 공증 완료 — 별도 설정 없이 바로 실행)
             - Apple Silicon (M1/M2/M3/M4): `ASSI-Sync-Mac-${{ steps.version.outputs.version }}-arm64.zip`
             - Intel Mac: `ASSI-Sync-Mac-${{ steps.version.outputs.version }}-x64.zip`
             - 내 칩 확인: 🍎 → 이 Mac에 관하여 → 칩/프로세서 항목
@@ -98,17 +105,7 @@ jobs:
             **Mac 설치 순서**
             1. ZIP 다운로드 → 더블클릭하면 자동 압축 해제
             2. 나온 **ASSI Sync.app** 을 **응용 프로그램(Applications)** 폴더로 드래그
-            3. Launchpad 또는 응용 프로그램에서 실행
-            4. "손상되어 열 수 없습니다" 경고 시:
-               - **시스템 설정 → 개인정보 보호 및 보안** 진입
-               - 하단으로 스크롤 → "ASSI Sync이(가) 차단되었습니다" 옆 **"확인 없이 열기"** 클릭
-               - Mac 비밀번호 입력 → 다시 실행 → **열기** 선택
-            5. 그래도 안 되면 터미널에서:
-               ```
-               xattr -cr /Applications/ASSI\ Sync.app
-               ```
-
-            > ⚠️ Apple Developer 서명 적용 전까지는 위 Gatekeeper 해제 과정이 1회 필요합니다. 서명 적용 후에는 다운로드 → 바로 실행으로 간소화됩니다.
+            3. Launchpad 또는 응용 프로그램에서 실행 → 끝
           files: release-assets/*
           make_latest: true
         env:
