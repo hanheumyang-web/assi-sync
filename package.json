@@ -42,9 +42,6 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "3V9GKC2R66"
-      },
       "artifactName": "ASSI-Sync-Mac-${version}-${arch}.${ext}"
     },
     "nsis": {
