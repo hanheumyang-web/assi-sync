@@ -18,16 +18,50 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS (ZIP)
+      - name: Build macOS (sign only, no notarize)
         run: npx electron-builder --mac --publish never
-        timeout-minutes: 60
+        timeout-minutes: 30
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+
+      - name: Notarize x64 ZIP
+        run: |
+          echo "=== Submitting x64 ZIP to Apple notarization ==="
+          ZIP_X64=$(ls dist/ASSI-Sync-Mac-*-x64.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP_X64" ]; then echo "No x64 ZIP found"; exit 1; fi
+          echo "File: $ZIP_X64"
+          xcrun notarytool submit "$ZIP_X64" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait --timeout 20m
+          echo "=== Stapling x64 ==="
+          xcrun stapler staple "$ZIP_X64" || echo "Staple skipped for ZIP (normal)"
+        timeout-minutes: 25
+        env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Notarize arm64 ZIP
+        run: |
+          echo "=== Submitting arm64 ZIP to Apple notarization ==="
+          ZIP_ARM=$(ls dist/ASSI-Sync-Mac-*-arm64.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP_ARM" ]; then echo "No arm64 ZIP found"; exit 1; fi
+          echo "File: $ZIP_ARM"
+          xcrun notarytool submit "$ZIP_ARM" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait --timeout 20m
+          echo "=== Stapling arm64 ==="
+          xcrun stapler staple "$ZIP_ARM" || echo "Staple skipped for ZIP (normal)"
+        timeout-minutes: 25
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload Mac artifacts
