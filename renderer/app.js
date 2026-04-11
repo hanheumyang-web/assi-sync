@@ -118,7 +118,7 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
 
 // ── Open Web ──
 document.getElementById('btn-open-web').addEventListener('click', () => {
-  window.api.openExternal('https://assi.lat')
+  window.api.openExternal('https://assi-portfolio.vercel.app')
 })
 
 // ── Logout ──
