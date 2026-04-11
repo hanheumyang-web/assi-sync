@@ -772,11 +772,22 @@ window.api.onUpdateStatus((data) => {
     updateReady = true
     banner.style.display = 'block'
     banner.innerHTML = `
-      <div class="update-banner">
-        <span class="update-icon">✨</span>
-        <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
-        <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
-        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
+      <div class="update-banner" style="flex-direction:column;align-items:stretch;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="update-icon">✨</span>
+          <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
+        </div>
+        <div style="font-size:10px;color:#777;line-height:1.6;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:8px">
+          • 탐색기 크기 슬라이더 (30~200px)<br>
+          • 창 최대화 지원<br>
+          • 업데이트 확인 버튼 + 알림 UI 개선<br>
+          • Windows 앱 아이콘 적용<br>
+          • 챗봇 보안 강화
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
+          <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
+        </div>
       </div>
     `
   } else if (data.status === 'up-to-date') {
