@@ -130,6 +130,7 @@ app.on('window-all-closed', () => {
 
 // ──── IPC Handlers ────
 
+ipcMain.handle('open-external', (_, url) => shell.openExternal(url))
 ipcMain.handle('minimize-window', () => mainWindow?.minimize())
 ipcMain.handle('close-window', () => mainWindow?.hide())
 ipcMain.handle('check-update', () => autoUpdater.checkForUpdatesAndNotify())

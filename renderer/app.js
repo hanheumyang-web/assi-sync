@@ -116,6 +116,11 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
   }
 })
 
+// ── Open Web ──
+document.getElementById('btn-open-web').addEventListener('click', () => {
+  window.api.openExternal('https://assi.lat')
+})
+
 // ── Logout ──
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await window.api.stopSync()
