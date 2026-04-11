@@ -322,11 +322,15 @@ function switchTab(tab) {
   if (isExp) refreshExplorer()
 }
 
+let explorerRoot = ''
+
 async function refreshExplorer() {
   const pane = document.getElementById('explorer-pane')
   pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">스캔 중...</div>'
   const data = await window.api.scanFolderTree()
   if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">동기화 폴더가 없습니다</div>'; return }
+  explorerRoot = data.root
+  expandedProjects.clear()
   pane.innerHTML = renderTree(data.tree, data.root)
   attachExplorerHandlers(data.root)
 }
@@ -348,32 +352,53 @@ function renderTree(nodes, root) {
   return `<div style="font-size:12px">${nodes.map(n => renderNode(n, root)).join('')}</div>`
 }
 
+function getProjectKey(fullPath, root) {
+  // fullPath에서 root 기준 상대 경로 추출
+  let rel = fullPath.replace(/\\/g, '/')
+  const r = root.replace(/\\/g, '/')
+  if (rel.startsWith(r)) rel = rel.slice(r.length)
+  if (rel.startsWith('/')) rel = rel.slice(1)
+  return rel
+}
+
 function renderNode(n, root) {
   const isCat = n.depth === 0
+  const isProject = n.depth === 1
   const indent = n.depth * 16
   const icon = isCat ? '📂' : '📁'
   const childHtml = n.children?.length
     ? n.children.map(c => renderNode(c, root)).join('')
     : (isCat ? '<div style="padding:4px 0 4px 32px;color:#D1D5DB;font-size:10px">— 비어 있음 —</div>' : '')
+  const projectKey = isProject ? getProjectKey(n.path, root) : ''
   return `
-    <div class="tree-node" data-path="${n.path.replace(/"/g, '&quot;')}" data-depth="${n.depth}" draggable="${!isCat}"
-         style="padding:6px 8px;margin-left:${indent}px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:${isCat ? 'default' : 'grab'};border:1px solid transparent">
+    <div class="tree-node" data-path="${n.path.replace(/"/g, '&quot;')}" data-depth="${n.depth}" data-project-key="${projectKey}" draggable="${!isCat}"
+         style="padding:6px 8px;margin-left:${indent}px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:${isCat ? 'default' : 'pointer'};border:1px solid transparent">
       <span>${icon}</span>
-      <span style="font-weight:${isCat ? '700' : '600'};color:${isCat ? '#111' : '#444'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.name}</span>
+      <span class="node-name" style="font-weight:${isCat ? '700' : '600'};color:${isCat ? '#111' : '#444'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.name}</span>
       ${badgeHtml(n.badge)}
       <span style="font-size:9px;color:#bbb">${n.fileCount || 0}</span>
+      ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
     </div>
+    ${isProject ? `<div class="tree-files" id="files-${projectKey.replace(/[^a-zA-Z0-9]/g, '_')}" style="display:none"></div>` : ''}
     ${childHtml}
   `
 }
+
+let expandedProjects = new Set()
+let fileDragData = null
 
 function attachExplorerHandlers(root) {
   document.querySelectorAll('.tree-node').forEach(el => {
     const depth = parseInt(el.dataset.depth)
     const fullPath = el.dataset.path
+    const projectKey = el.dataset.projectKey
 
+    // 카테고리 간 프로젝트 이동 (기존)
     if (depth > 0) {
-      el.addEventListener('dragstart', (e) => { dragNode = fullPath; el.style.opacity = '0.4' })
+      el.addEventListener('dragstart', (e) => {
+        if (fileDragData) { e.preventDefault(); return } // 파일 드래그 중이면 무시
+        dragNode = fullPath; el.style.opacity = '0.4'
+      })
       el.addEventListener('dragend', () => { el.style.opacity = '1'; dragNode = null })
     }
 
@@ -395,8 +420,191 @@ function attachExplorerHandlers(root) {
       })
     }
 
-    el.addEventListener('dblclick', () => window.api.openInExplorer(fullPath))
+    // 프로젝트 클릭 → 파일 목록 펼치기/접기
+    if (depth === 1 && projectKey) {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+        toggleProjectFiles(projectKey, root)
+      })
+
+      // 이름 변경 버튼
+      const renameBtn = el.querySelector('.btn-rename')
+      if (renameBtn) {
+        renameBtn.addEventListener('click', (e) => {
+          e.stopPropagation()
+          startRenameProject(el, projectKey)
+        })
+      }
+    }
+
+    // 더블클릭 → 파일 탐색기에서 열기
+    el.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+      window.api.openInExplorer(fullPath)
+    })
   })
+}
+
+async function toggleProjectFiles(projectKey, root) {
+  const safeId = 'files-' + projectKey.replace(/[^a-zA-Z0-9]/g, '_')
+  const container = document.getElementById(safeId)
+  if (!container) return
+
+  if (expandedProjects.has(projectKey)) {
+    expandedProjects.delete(projectKey)
+    container.style.display = 'none'
+    container.innerHTML = ''
+    return
+  }
+
+  expandedProjects.add(projectKey)
+  container.style.display = 'block'
+  container.innerHTML = '<div style="padding:8px;color:#999;font-size:10px">불러오는 중...</div>'
+
+  const files = await window.api.getProjectFiles(projectKey)
+  if (files.length === 0) {
+    container.innerHTML = '<div style="padding:8px;color:#ccc;font-size:10px">파일 없음</div>'
+    return
+  }
+
+  container.innerHTML = files.map((f, i) => `
+    <div class="tree-file" draggable="true" data-asset-id="${f.assetId}" data-rel-path="${f.relPath.replace(/"/g, '&quot;')}" data-index="${i}">
+      <span class="file-grip">⋮⋮</span>
+      <span style="font-size:12px">${f.isVideo ? '🎬' : '📷'}</span>
+      <span class="file-name">${f.fileName}</span>
+      <span class="file-order">#${i + 1}</span>
+      <button class="btn-rename" title="이름 변경">✏️</button>
+    </div>
+  `).join('')
+
+  attachFileHandlers(container, projectKey)
+}
+
+function attachFileHandlers(container, projectKey) {
+  const fileEls = container.querySelectorAll('.tree-file')
+
+  fileEls.forEach(el => {
+    // 파일 이름 변경
+    el.querySelector('.btn-rename').addEventListener('click', (e) => {
+      e.stopPropagation()
+      startRenameFile(el)
+    })
+
+    // 드래그 순서 변경
+    el.addEventListener('dragstart', (e) => {
+      e.stopPropagation()
+      fileDragData = { el, assetId: el.dataset.assetId, index: parseInt(el.dataset.index) }
+      el.classList.add('dragging')
+    })
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging')
+      fileDragData = null
+      container.querySelectorAll('.tree-file').forEach(f => f.classList.remove('drag-over'))
+    })
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!fileDragData) return
+      container.querySelectorAll('.tree-file').forEach(f => f.classList.remove('drag-over'))
+      el.classList.add('drag-over')
+    })
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'))
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      el.classList.remove('drag-over')
+      if (!fileDragData || fileDragData.assetId === el.dataset.assetId) return
+
+      // 순서 재배치
+      const allFiles = [...container.querySelectorAll('.tree-file')]
+      const fromIdx = allFiles.indexOf(fileDragData.el)
+      const toIdx = allFiles.indexOf(el)
+      if (fromIdx < 0 || toIdx < 0) return
+
+      // DOM 이동
+      if (fromIdx < toIdx) {
+        el.after(fileDragData.el)
+      } else {
+        el.before(fileDragData.el)
+      }
+
+      // 순서 번호 업데이트 + Firestore 저장
+      const reordered = [...container.querySelectorAll('.tree-file')]
+      const orderedIds = reordered.map((f, i) => {
+        f.querySelector('.file-order').textContent = `#${i + 1}`
+        f.dataset.index = i
+        return f.dataset.assetId
+      })
+
+      await window.api.reorderFiles(orderedIds)
+    })
+  })
+}
+
+function startRenameProject(nodeEl, projectKey) {
+  const nameSpan = nodeEl.querySelector('.node-name')
+  const oldName = nameSpan.textContent
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.value = oldName
+  input.className = 'rename-input'
+  nameSpan.replaceWith(input)
+  input.focus()
+  input.select()
+
+  const finish = async (save) => {
+    const newName = input.value.trim()
+    if (save && newName && newName !== oldName) {
+      const result = await window.api.renameProject(projectKey, newName)
+      if (!result.ok) {
+        alert('이름 변경 실패: ' + result.error)
+      }
+    }
+    setTimeout(refreshExplorer, 300)
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true) }
+    if (e.key === 'Escape') finish(false)
+  })
+  input.addEventListener('blur', () => finish(true))
+}
+
+function startRenameFile(fileEl) {
+  const nameSpan = fileEl.querySelector('.file-name')
+  const relPath = fileEl.dataset.relPath
+  const oldName = nameSpan.textContent
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.value = oldName
+  input.className = 'rename-input'
+  nameSpan.replaceWith(input)
+  input.focus()
+
+  // 확장자 앞까지만 선택
+  const dotIdx = oldName.lastIndexOf('.')
+  if (dotIdx > 0) input.setSelectionRange(0, dotIdx)
+  else input.select()
+
+  const finish = async (save) => {
+    const newName = input.value.trim()
+    if (save && newName && newName !== oldName) {
+      const result = await window.api.renameFile(relPath, newName)
+      if (!result.ok) {
+        alert('이름 변경 실패: ' + result.error)
+      }
+    }
+    // 파일 목록 새로고침
+    const projectKey = relPath.split('/').slice(0, -1).join('/')
+    expandedProjects.delete(projectKey)
+    toggleProjectFiles(projectKey)
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true) }
+    if (e.key === 'Escape') finish(false)
+  })
+  input.addEventListener('blur', () => finish(true))
 }
 
 // ── File List Rendering ──

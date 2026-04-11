@@ -43,6 +43,12 @@ contextBridge.exposeInMainWorld('api', {
   moveFolder: (from, to) => ipcRenderer.invoke('move-folder', { from, to }),
   openInExplorer: (p) => ipcRenderer.invoke('open-in-explorer', p),
 
+  // Explorer: rename & reorder
+  renameProject: (projectKey, newName) => ipcRenderer.invoke('rename-project', { projectKey, newName }),
+  renameFile: (relPath, newFileName) => ipcRenderer.invoke('rename-file', { relPath, newFileName }),
+  getProjectFiles: (projectKey) => ipcRenderer.invoke('get-project-files', projectKey),
+  reorderFiles: (orderedAssetIds) => ipcRenderer.invoke('reorder-files', orderedAssetIds),
+
   // Auth
   googleLogin: () => ipcRenderer.invoke('google-login'),
 

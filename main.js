@@ -456,3 +456,41 @@ ipcMain.handle('open-in-explorer', (_, p) => {
   shell.showItemInFolder(p)
   return true
 })
+
+// ── Explorer: Rename & Reorder ──
+
+ipcMain.handle('rename-project', async (_, { projectKey, newName }) => {
+  if (!syncEngine) return { ok: false, error: '동기화가 실행 중이 아닙니다' }
+  try {
+    const result = await syncEngine.renameProject(projectKey, newName)
+    mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
+    return result
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('rename-file', async (_, { relPath, newFileName }) => {
+  if (!syncEngine) return { ok: false, error: '동기화가 실행 중이 아닙니다' }
+  try {
+    return await syncEngine.renameFile(relPath, newFileName)
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('get-project-files', async (_, projectKey) => {
+  if (!syncEngine) return []
+  try {
+    return await syncEngine.getProjectFiles(projectKey)
+  } catch { return [] }
+})
+
+ipcMain.handle('reorder-files', async (_, orderedAssetIds) => {
+  if (!syncEngine) return { ok: false }
+  try {
+    return await syncEngine.reorderFiles(orderedAssetIds)
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
