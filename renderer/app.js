@@ -467,15 +467,27 @@ async function toggleProjectFiles(projectKey, root) {
     return
   }
 
-  container.innerHTML = files.map((f, i) => `
-    <div class="tree-file" draggable="true" data-asset-id="${f.assetId}" data-rel-path="${f.relPath.replace(/"/g, '&quot;')}" data-index="${i}">
-      <span class="file-grip">⋮⋮</span>
-      <span style="font-size:12px">${f.isVideo ? '🎬' : '📷'}</span>
-      <span class="file-name">${f.fileName}</span>
-      <span class="file-order">#${i + 1}</span>
-      <button class="btn-rename" title="이름 변경">✏️</button>
-    </div>
-  `).join('')
+  container.innerHTML = files.map((f, i) => {
+    const thumbSrc = f.isVideo
+      ? (f.videoThumbnailUrl || '')
+      : (f.url || '')
+    const thumbHtml = thumbSrc
+      ? `<img class="file-thumb" src="${thumbSrc}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:12px">${f.isVideo ? '🎬' : '📷'}</div>`
+    const badges = []
+    if (f.isThumbnail) badges.push('<span class="badge-thumb">대표</span>')
+    if (f.isVideo) badges.push('<span class="badge-video">영상</span>')
+    return `
+      <div class="tree-file" draggable="true" data-asset-id="${f.assetId}" data-rel-path="${f.relPath.replace(/"/g, '&quot;')}" data-index="${i}">
+        <span class="file-grip">⋮⋮</span>
+        ${thumbHtml}
+        <span class="file-name">${f.fileName}</span>
+        ${badges.join('')}
+        <span class="file-order">#${i + 1}</span>
+        <button class="btn-rename" title="이름 변경">✏️</button>
+      </div>
+    `
+  }).join('')
 
   attachFileHandlers(container, projectKey)
 }
