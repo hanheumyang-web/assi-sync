@@ -472,7 +472,17 @@ async function toggleProjectFiles(projectKey, root) {
     return
   }
 
-  container.innerHTML = files.map((f, i) => {
+  // 썸네일 크기 슬라이더
+  const currentSize = parseInt(document.documentElement.style.getPropertyValue('--thumb-size')) || 60
+  const sizeBarHtml = `
+    <div class="thumb-size-bar">
+      <span style="font-size:11px">🖼</span>
+      <input type="range" min="32" max="120" value="${currentSize}" oninput="setThumbSize(this.value)">
+      <span class="thumb-size-label">${currentSize}px</span>
+    </div>
+  `
+
+  container.innerHTML = sizeBarHtml + files.map((f, i) => {
     const thumbSrc = f.isVideo
       ? (f.videoThumbnailUrl || '')
       : (f.url || '')
@@ -623,6 +633,13 @@ function startRenameFile(fileEl) {
   })
   input.addEventListener('blur', () => finish(true))
 }
+
+// ── Thumbnail Size ──
+function setThumbSize(val) {
+  document.documentElement.style.setProperty('--thumb-size', val + 'px')
+  document.querySelectorAll('.thumb-size-label').forEach(el => el.textContent = val + 'px')
+}
+window.setThumbSize = setThumbSize
 
 // ── File List Rendering ──
 function renderFileList() {

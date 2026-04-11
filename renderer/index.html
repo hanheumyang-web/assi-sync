@@ -209,6 +209,14 @@
 
     /* ── Explorer: file items, rename, reorder ── */
     .tree-files { padding-left: 32px; }
+    .thumb-size-bar {
+      display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+      margin: 0 0 4px 32px; font-size: 10px; color: #999;
+    }
+    .thumb-size-bar input[type=range] {
+      width: 100px; height: 3px; accent-color: #828DF8; cursor: pointer;
+    }
+    .thumb-size-bar span { min-width: 32px; text-align: center; }
     .tree-file {
       display: flex; align-items: center; gap: 10px;
       padding: 6px 8px; margin: 2px 0; border-radius: 8px;
@@ -220,7 +228,7 @@
     .tree-file.drag-over { border-color: #828DF8; background: #EEF2FF; }
     .tree-file .file-grip { color: #ccc; cursor: grab; font-size: 10px; flex-shrink: 0; }
     .tree-file .file-thumb {
-      width: 40px; height: 40px; border-radius: 6px; object-fit: cover;
+      width: var(--thumb-size, 60px); height: var(--thumb-size, 60px); border-radius: 6px; object-fit: cover;
       background: #F3F4F6; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08);
     }
     .tree-file .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
