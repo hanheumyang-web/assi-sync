@@ -109,12 +109,15 @@ app.whenReady().then(() => {
   autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('update-available', (info) => {
+    mainWindow?.show()
     mainWindow?.webContents.send('update-status', { status: 'available', version: info.version })
   })
   autoUpdater.on('download-progress', (progress) => {
     mainWindow?.webContents.send('update-status', { status: 'downloading', percent: Math.round(progress.percent) })
   })
   autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.show()
+    mainWindow?.focus()
     mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version })
   })
   autoUpdater.on('update-not-available', () => {
@@ -125,8 +128,8 @@ app.whenReady().then(() => {
     mainWindow?.webContents.send('update-status', { status: 'error', message: err.message })
   })
 
-  // 앱 시작 5초 후 업데이트 체크
-  setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 5000)
+  // 앱 시작 5초 후 업데이트 체크 (알림 대신 직접 체크)
+  setTimeout(() => autoUpdater.checkForUpdates(), 5000)
 })
 
 app.on('window-all-closed', () => {
@@ -142,8 +145,10 @@ ipcMain.handle('maximize-window', () => {
   else mainWindow?.maximize()
 })
 ipcMain.handle('close-window', () => mainWindow?.hide())
-ipcMain.handle('check-update', () => autoUpdater.checkForUpdatesAndNotify())
-ipcMain.handle('install-update', () => autoUpdater.quitAndInstall())
+ipcMain.handle('check-update', () => autoUpdater.checkForUpdates())
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true)
+})
 ipcMain.handle('get-app-version', () => app.getVersion())
 
 // ──── Google OAuth via localhost ────
