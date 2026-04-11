@@ -776,6 +776,7 @@ window.api.onUpdateStatus((data) => {
         <span class="update-icon">✨</span>
         <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
         <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
+        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
       </div>
     `
   } else if (data.status === 'up-to-date') {
@@ -784,15 +785,16 @@ window.api.onUpdateStatus((data) => {
       <div class="update-banner">
         <span class="update-icon">✅</span>
         <div class="update-text">최신 버전입니다</div>
+        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
-    setTimeout(() => { banner.style.display = 'none' }, 3000)
   } else if (data.status === 'error') {
     banner.style.display = 'block'
     banner.innerHTML = `
       <div class="update-banner">
         <span class="update-icon">⚠️</span>
         <div class="update-text">업데이트 확인 실패</div>
+        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
     setTimeout(() => { banner.style.display = 'none' }, 3000)
