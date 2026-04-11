@@ -794,14 +794,14 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
           <span className="text-[11px] bg-[#f5f5f5] dark:bg-[#181818] text-[#F4A259] px-4 py-2 rounded-full font-bold">{project.category}</span>
           <button onClick={() => setShowShareModal(true)} className="text-[11px] bg-[#F4A259] text-black px-4 py-2 rounded-full font-bold hover:brightness-110 flex items-center gap-1.5">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 8l-4-4-4 4m4-4v12"/></svg>
-            원본 공유
+            무압축 공유
           </button>
           <button onClick={onEdit} className="text-[11px] bg-[#f5f5f5] dark:bg-[#181818] text-[#6a6a6a] dark:text-[#b3b3b3] px-4 py-2 rounded-full font-bold hover:bg-[#dcdcdc] dark:hover:bg-[#2a2a2a] border border-[#dcdcdc] dark:border-[#2a2a2a]">수정</button>
           <button onClick={onDelete} className="text-[11px] bg-red-50 text-red-500 px-4 py-2 rounded-full font-bold hover:bg-red-100">삭제</button>
         </div>
       </div>
 
-      {showShareModal && <ProjectShareModal project={project} onClose={() => setShowShareModal(false)} />}
+      {showShareModal && <ProjectShareModal project={project} assets={assets} onClose={() => setShowShareModal(false)} />}
 
       {/* 통계 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

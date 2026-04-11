@@ -1,6 +1,10 @@
 const functions = require('firebase-functions')
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
+const { defineSecret } = require('firebase-functions/params')
 const admin = require('firebase-admin')
 const sharp = require('sharp')
+const { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 
 admin.initializeApp()
 const db = admin.firestore()
@@ -254,8 +258,31 @@ exports.bunnyWebhook = functions
       .get()
 
     if (snap.empty) {
-      console.log('[Bunny Webhook] Asset 없음:', VideoGuid)
-      res.status(404).send('Asset not found')
+      // assets에 없으면 shares 컬렉션 확인 (원본 공유 비디오)
+      const shareSnap = await db.collection('shares')
+        .where('bunnyVideoId', '==', VideoGuid)
+        .limit(1)
+        .get()
+      if (!shareSnap.empty) {
+        const shareDoc = shareSnap.docs[0]
+        if (Status === 4) {
+          await shareDoc.ref.update({
+            previewStatus: 'ready',
+            bunnyEncodedAt: new Date().toISOString(),
+          })
+          console.log('[Bunny Webhook] Share 인코딩 완료:', VideoGuid)
+        } else if (Status === 5) {
+          await shareDoc.ref.update({
+            previewStatus: 'error',
+            previewError: 'Encoding failed',
+          })
+          console.log('[Bunny Webhook] Share 인코딩 실패:', VideoGuid)
+        }
+        res.status(200).send('OK')
+        return
+      }
+      console.log('[Bunny Webhook] Asset/Share 없음:', VideoGuid)
+      res.status(404).send('Not found')
       return
     }
 
@@ -553,4 +580,644 @@ exports.cleanupVideos = functions
       }
     }
     console.log(`[Cleanup] 완료: ${cleaned}개 정리`)
+  })
+
+// ═══════════════════════════════════════════════════════════════
+// ─── R2 원본 공유 (Cloudflare R2 + Bunny 미리보기) ───
+// ═══════════════════════════════════════════════════════════════
+
+const R2_ACCESS_KEY_ID = defineSecret('R2_ACCESS_KEY_ID')
+const R2_SECRET_ACCESS_KEY = defineSecret('R2_SECRET_ACCESS_KEY')
+const R2_ACCOUNT_ID = defineSecret('R2_ACCOUNT_ID')
+const R2_BUCKET = defineSecret('R2_BUCKET')
+
+const MAX_SHARE_SIZE = 500 * 1024 * 1024 * 1024 // 500GB
+const SHARE_EXPIRY_DAYS = 7
+const UPLOAD_URL_TTL = 60 * 60 * 6  // 6h (대용량 업로드 대비)
+const DOWNLOAD_URL_TTL = 60 * 60    // 1h
+const IMAGE_THUMB_MAX_SIZE = 100 * 1024 * 1024 // 100MB 이하 이미지만 inline 썸네일
+const IMAGE_THUMB_WIDTH = 1920
+const BUNNY_CDN_HOST = 'vz-cd1dda72-832.b-cdn.net'
+
+function makeR2Client() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+  })
+}
+
+function sanitizeFileName(name) {
+  return String(name || 'file').replace(/[^\w.\-가-힣]/g, '_').slice(0, 200)
+}
+
+function detectFileKind(contentType, fileName) {
+  const ct = (contentType || '').toLowerCase()
+  if (ct.startsWith('video/')) return 'video'
+  if (ct.startsWith('image/')) return 'image'
+  const ext = (fileName || '').toLowerCase().split('.').pop()
+  if (['mov', 'mp4', 'mkv', 'webm', 'avi', 'm4v'].includes(ext)) return 'video'
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'].includes(ext)) return 'image'
+  return 'other'
+}
+
+/**
+ * 공유 업로드 URL 발급 (callable)
+ * 입력: { fileName, size, contentType }
+ * 출력: { shareId, uploadUrl, key }
+ */
+exports.createShareUploadUrl = onCall(
+  {
+    region: 'asia-northeast3',
+    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
+  },
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다.')
+
+    const { fileName, size, contentType } = request.data || {}
+    if (!fileName || !size) {
+      throw new HttpsError('invalid-argument', 'fileName과 size가 필요합니다.')
+    }
+    if (size > MAX_SHARE_SIZE) {
+      throw new HttpsError('invalid-argument', `최대 ${MAX_SHARE_SIZE / (1024 ** 3)}GB까지 업로드 가능합니다.`)
+    }
+
+    const shareId = db.collection('shares').doc().id
+    const safeName = sanitizeFileName(fileName)
+    const key = `shares/${uid}/${shareId}/${safeName}`
+    const bucketName = process.env.R2_BUCKET
+
+    const s3 = makeR2Client()
+    const uploadUrl = await getSignedUrl(
+      s3,
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        ContentType: contentType || 'application/octet-stream',
+      }),
+      { expiresIn: UPLOAD_URL_TTL }
+    )
+
+    const now = admin.firestore.Timestamp.now()
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      now.toMillis() + SHARE_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+    )
+
+    const fileKind = detectFileKind(contentType, fileName)
+
+    await db.collection('shares').doc(shareId).set({
+      uid,
+      fileName: safeName,
+      originalFileName: fileName,
+      size,
+      contentType: contentType || 'application/octet-stream',
+      key,
+      fileKind,
+      status: 'pending',
+      previewType: fileKind === 'video' ? 'video' : (fileKind === 'image' ? 'image' : 'none'),
+      previewStatus: fileKind === 'other' ? 'none' : 'pending',
+      createdAt: now,
+      expiresAt,
+      downloadCount: 0,
+    })
+
+    return { shareId, uploadUrl, key, fileKind }
+  }
+)
+
+/**
+ * 업로드 완료 확인 (callable)
+ * 입력: { shareId }
+ * 출력: { ok, size }
+ */
+exports.confirmShare = onCall(
+  {
+    region: 'asia-northeast3',
+    timeoutSeconds: 540,
+    memory: '1GiB',
+    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
+  },
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다.')
+
+    const { shareId } = request.data || {}
+    if (!shareId) throw new HttpsError('invalid-argument', 'shareId가 필요합니다.')
+
+    const ref = db.collection('shares').doc(shareId)
+    const snap = await ref.get()
+    if (!snap.exists) throw new HttpsError('not-found', '공유를 찾을 수 없습니다.')
+    const data = snap.data()
+    if (data.uid !== uid) throw new HttpsError('permission-denied', '권한이 없습니다.')
+
+    const s3 = makeR2Client()
+    const bucketName = process.env.R2_BUCKET
+
+    // 1) 원본 업로드 검증
+    let head
+    try {
+      head = await s3.send(new HeadObjectCommand({ Bucket: bucketName, Key: data.key }))
+    } catch (err) {
+      throw new HttpsError('failed-precondition', '업로드가 확인되지 않았습니다.')
+    }
+
+    const update = {
+      status: 'ready',
+      uploadedSize: head.ContentLength || 0,
+      uploadedAt: admin.firestore.Timestamp.now(),
+    }
+
+    // 2) 미리보기 처리
+    const fileKind = data.fileKind || 'other'
+
+    if (fileKind === 'video') {
+      // Bunny Fetch: 원본 R2에서 Bunny가 가져가서 트랜스코딩
+      try {
+        if (!BUNNY_API_KEY || !BUNNY_LIBRARY_ID) {
+          throw new Error('Bunny config missing')
+        }
+        // R2 presigned GET URL (Bunny가 fetch할 동안 유효)
+        const fetchUrl = await getSignedUrl(
+          s3,
+          new GetObjectCommand({ Bucket: bucketName, Key: data.key }),
+          { expiresIn: 60 * 60 * 12 } // 12h
+        )
+
+        const fetchRes = await fetch(
+          `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/fetch`,
+          {
+            method: 'POST',
+            headers: {
+              'AccessKey': BUNNY_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: fetchUrl,
+              title: `[SHARE] ${shareId}`,
+            }),
+          }
+        )
+        const fetchJson = await fetchRes.json()
+        if (!fetchJson.id && !fetchJson.guid) {
+          throw new Error('Bunny fetch 실패: ' + JSON.stringify(fetchJson))
+        }
+        update.bunnyVideoId = fetchJson.id || fetchJson.guid
+        update.bunnyEmbedUrl = `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${update.bunnyVideoId}`
+        update.previewStatus = 'processing'
+        console.log('[Share] Bunny fetch 시작:', shareId, update.bunnyVideoId)
+      } catch (err) {
+        console.error('[Share] Bunny fetch 실패:', err)
+        update.previewStatus = 'error'
+        update.previewError = err.message
+      }
+    } else if (fileKind === 'image') {
+      // 1920px 썸네일 생성 (작은 이미지만)
+      try {
+        if ((head.ContentLength || 0) > IMAGE_THUMB_MAX_SIZE) {
+          update.previewStatus = 'skipped'
+        } else {
+          const obj = await s3.send(new GetObjectCommand({ Bucket: bucketName, Key: data.key }))
+          const chunks = []
+          for await (const c of obj.Body) chunks.push(c)
+          const buffer = Buffer.concat(chunks)
+
+          const thumb = await sharp(buffer)
+            .rotate()
+            .resize({ width: IMAGE_THUMB_WIDTH, withoutEnlargement: true })
+            .jpeg({ quality: 82 })
+            .toBuffer()
+
+          const thumbKey = `shares/${data.uid}/${shareId}/_preview.jpg`
+          await s3.send(new PutObjectCommand({
+            Bucket: bucketName,
+            Key: thumbKey,
+            Body: thumb,
+            ContentType: 'image/jpeg',
+          }))
+          update.previewKey = thumbKey
+          update.previewStatus = 'ready'
+          console.log('[Share] 이미지 썸네일 생성:', shareId)
+        }
+      } catch (err) {
+        console.error('[Share] 썸네일 실패:', err)
+        update.previewStatus = 'error'
+        update.previewError = err.message
+      }
+    } else {
+      update.previewStatus = 'none'
+    }
+
+    await ref.update(update)
+    return { ok: true, size: head.ContentLength || 0, previewStatus: update.previewStatus }
+  }
+)
+
+/**
+ * 공유 다운로드 URL 발급 (public callable, 인증 불필요)
+ * 입력: { shareId }
+ * 출력: { downloadUrl, fileName, size, expiresAt }
+ */
+exports.getShareDownloadUrl = onCall(
+  {
+    region: 'asia-northeast3',
+    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
+  },
+  async (request) => {
+    const { shareId } = request.data || {}
+    if (!shareId) throw new HttpsError('invalid-argument', 'shareId가 필요합니다.')
+
+    const ref = db.collection('shares').doc(shareId)
+    const snap = await ref.get()
+    if (!snap.exists) throw new HttpsError('not-found', '공유를 찾을 수 없습니다.')
+    const data = snap.data()
+
+    if (data.expiresAt && data.expiresAt.toMillis() < Date.now()) {
+      throw new HttpsError('failed-precondition', '공유가 만료되었습니다.')
+    }
+
+    // ─── 프로젝트 공유 (R2 무압축 기반) ───
+    if (data.kind === 'project') {
+      // 아직 업로드 중이면 다운로드 카운트 증가 없이 상태만 반환
+      if (data.status === 'pending_upload') {
+        return {
+          kind: 'project',
+          status: 'pending_upload',
+          projectName: data.projectName || '',
+          projectClient: data.projectClient || '',
+          assetCount: data.assetCount || 0,
+          uploadedCount: data.uploadedCount || 0,
+          totalSize: data.totalSize || 0,
+          sender: data.sender || null,
+          expiresAt: data.expiresAt ? data.expiresAt.toMillis() : null,
+        }
+      }
+
+      await ref.update({
+        downloadCount: admin.firestore.FieldValue.increment(1),
+        lastDownloadedAt: admin.firestore.Timestamp.now(),
+      })
+      return {
+        kind: 'project',
+        status: data.status || 'ready',
+        projectName: data.projectName || '',
+        projectClient: data.projectClient || '',
+        projectCategory: data.projectCategory || '',
+        projectThumbnail: data.projectThumbnail || '',
+        assets: data.assets || [],
+        assetCount: data.assetCount || (data.assets || []).length,
+        totalSize: data.totalSize || 0,
+        sender: data.sender || null,
+        expiresAt: data.expiresAt ? data.expiresAt.toMillis() : null,
+        createdAt: data.createdAt ? data.createdAt.toMillis() : null,
+        downloadCount: (data.downloadCount || 0) + 1,
+      }
+    }
+
+    // ─── 단일 파일 공유 (R2 기반) ───
+    if (data.status !== 'ready') {
+      throw new HttpsError('failed-precondition', '아직 업로드가 완료되지 않았습니다.')
+    }
+
+    const s3 = makeR2Client()
+    const bucketName = process.env.R2_BUCKET
+    const downloadUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: bucketName,
+        Key: data.key,
+        ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(data.originalFileName || data.fileName)}`,
+      }),
+      { expiresIn: DOWNLOAD_URL_TTL }
+    )
+
+    // 미리보기 URL 생성
+    let previewUrl = null
+    let previewType = data.previewType || 'none'
+    let previewStatus = data.previewStatus || 'none'
+
+    if (previewType === 'image' && data.previewKey && previewStatus === 'ready') {
+      previewUrl = await getSignedUrl(
+        s3,
+        new GetObjectCommand({ Bucket: bucketName, Key: data.previewKey }),
+        { expiresIn: DOWNLOAD_URL_TTL }
+      )
+    } else if (previewType === 'video' && data.bunnyEmbedUrl) {
+      previewUrl = data.bunnyEmbedUrl
+    }
+
+    // 보낸 사람 정보 (퍼블릭에 노출 가능한 최소한)
+    let sender = null
+    try {
+      const userSnap = await db.collection('users').doc(data.uid).get()
+      if (userSnap.exists) {
+        const u = userSnap.data()
+        sender = {
+          name: u.displayName || u.name || '',
+          title: u.title || u.role || '',
+          slug: u.slug || u.username || '',
+        }
+      }
+    } catch (e) {}
+
+    await ref.update({
+      downloadCount: admin.firestore.FieldValue.increment(1),
+      lastDownloadedAt: admin.firestore.Timestamp.now(),
+    })
+
+    return {
+      downloadUrl,
+      fileName: data.originalFileName || data.fileName,
+      size: data.size,
+      contentType: data.contentType,
+      fileKind: data.fileKind || 'other',
+      previewType,
+      previewStatus,
+      previewUrl,
+      expiresAt: data.expiresAt ? data.expiresAt.toMillis() : null,
+      createdAt: data.createdAt ? data.createdAt.toMillis() : null,
+      downloadCount: (data.downloadCount || 0) + 1,
+      sender,
+    }
+  }
+)
+
+/**
+ * 프로젝트 통째로 공유 (callable)
+ * 입력: { projectId }
+ * 출력: { shareId }
+ *
+ * 파일은 이미 Firebase Storage에 있으므로 R2 재업로드 없이
+ * Firestore에 자산 목록(메타데이터 + url)만 스냅샷으로 저장한다.
+ */
+/**
+ * 프로젝트 공유 자산을 강제 다운로드(Content-Disposition: attachment)로 받기 위한 서명 URL.
+ * Firebase Storage download URL은 response-content-disposition을 무시하므로
+ * GCS V4 서명 URL을 직접 발급한다.
+ */
+exports.getAssetDownloadUrl = onCall(
+  {
+    region: 'asia-northeast3',
+    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
+  },
+  async (request) => {
+    const { shareId, assetId } = request.data || {}
+    if (!shareId || !assetId) {
+      throw new HttpsError('invalid-argument', 'shareId/assetId가 필요합니다.')
+    }
+    const snap = await db.collection('shares').doc(shareId).get()
+    if (!snap.exists) throw new HttpsError('not-found', '공유를 찾을 수 없습니다.')
+    const share = snap.data()
+    if (share.expiresAt && share.expiresAt.toMillis() < Date.now()) {
+      throw new HttpsError('failed-precondition', '만료된 공유입니다.')
+    }
+    const asset = (share.assets || []).find((a) => a.id === assetId)
+    if (!asset) throw new HttpsError('not-found', '자산을 찾을 수 없습니다.')
+
+    const safeName = (asset.fileName || 'download').replace(/"/g, '')
+
+    // R2에 무압축 파일이 있으면 R2에서 다운로드
+    if (asset.r2Key) {
+      const s3 = makeR2Client()
+      const url = await getSignedUrl(
+        s3,
+        new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET,
+          Key: asset.r2Key,
+          ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`,
+        }),
+        { expiresIn: DOWNLOAD_URL_TTL }
+      )
+
+      try {
+        await db.collection('shares').doc(shareId).update({
+          downloadCount: admin.firestore.FieldValue.increment(1),
+        })
+      } catch (e) {}
+
+      return { url }
+    }
+
+    // 레거시: Firebase Storage에서 다운로드 (r2Key 없는 기존 공유)
+    let storagePath = asset.storagePath || ''
+    if (!storagePath) {
+      try {
+        const doc = await db.collection('assets').doc(asset.id).get()
+        if (doc.exists) storagePath = doc.data().storagePath || ''
+      } catch (e) {}
+    }
+    if (!storagePath && asset.url) {
+      const m = /\/o\/([^?]+)/.exec(asset.url)
+      if (m) storagePath = decodeURIComponent(m[1])
+    }
+    if (!storagePath) throw new HttpsError('failed-precondition', 'storagePath를 찾을 수 없습니다.')
+
+    const file = bucket.file(storagePath)
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 60 * 60 * 1000,
+      responseDisposition: `attachment; filename="${safeName}"`,
+    })
+
+    try {
+      await db.collection('shares').doc(shareId).update({
+        downloadCount: admin.firestore.FieldValue.increment(1),
+      })
+    } catch (e) {}
+
+    return { url }
+  }
+)
+
+exports.createProjectShare = onCall(
+  {
+    region: 'asia-northeast3',
+    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
+  },
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다.')
+
+    const { projectId, selectedAssetIds } = request.data || {}
+    if (!projectId) throw new HttpsError('invalid-argument', 'projectId가 필요합니다.')
+
+    const projSnap = await db.collection('projects').doc(projectId).get()
+    if (!projSnap.exists) throw new HttpsError('not-found', '프로젝트를 찾을 수 없습니다.')
+    const proj = projSnap.data()
+    if (proj.uid !== uid) throw new HttpsError('permission-denied', '권한이 없습니다.')
+
+    const assetsSnap = await db.collection('assets')
+      .where('projectId', '==', projectId)
+      .where('uid', '==', uid)
+      .get()
+
+    if (assetsSnap.empty) {
+      throw new HttpsError('failed-precondition', '공유할 파일이 없습니다.')
+    }
+
+    // selectedAssetIds가 있으면 선택된 것만, 없으면 전체
+    const selectedSet = selectedAssetIds ? new Set(selectedAssetIds) : null
+    const allAssets = assetsSnap.docs
+      .filter((d) => !selectedSet || selectedSet.has(d.id))
+      .map((d) => {
+        const a = d.data()
+        return {
+          id: d.id,
+          fileName: a.fileName || '',
+          fileSize: a.fileSize || 0,
+          fileType: a.fileType || '',
+          isVideo: !!a.isVideo,
+          url: a.url || '',
+          embedUrl: a.embedUrl || '',
+          videoThumbnailUrl: a.videoThumbnailUrl || '',
+          thumbUrl: a.thumbUrl || '',
+          bunnyVideoId: a.bunnyVideoId || '',
+          storagePath: a.storagePath || '',
+        }
+      })
+
+    if (allAssets.length === 0) {
+      throw new HttpsError('failed-precondition', '선택된 파일이 없습니다.')
+    }
+
+    const shareId = db.collection('shares').doc().id
+    const now = admin.firestore.Timestamp.now()
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      now.toMillis() + SHARE_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+    )
+    const bucketName = process.env.R2_BUCKET
+    const s3 = makeR2Client()
+
+    // 각 asset에 R2 presigned upload URL 발급
+    const uploadAssets = await Promise.all(allAssets.map(async (asset) => {
+      const safeName = sanitizeFileName(asset.fileName)
+      const r2Key = `shares/${uid}/${shareId}/${asset.id}_${safeName}`
+      const uploadUrl = await getSignedUrl(
+        s3,
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: r2Key,
+          ContentType: asset.fileType || 'application/octet-stream',
+        }),
+        { expiresIn: UPLOAD_URL_TTL }
+      )
+      return {
+        ...asset,
+        r2Key,
+        uploadUrl,
+        uploadStatus: 'pending', // pending | uploaded
+      }
+    }))
+
+    const totalSize = allAssets.reduce((sum, a) => sum + (a.fileSize || 0), 0)
+
+    // 보낸 사람 정보
+    let sender = null
+    try {
+      const u = (await db.collection('users').doc(uid).get()).data() || {}
+      sender = {
+        name: u.displayName || u.name || '',
+        title: u.title || u.role || '',
+        slug: u.slug || u.username || '',
+      }
+    } catch (e) {}
+
+    await db.collection('shares').doc(shareId).set({
+      uid,
+      kind: 'project',
+      projectId,
+      projectName: proj.name || '',
+      projectClient: proj.client || '',
+      projectCategory: proj.category || '',
+      projectThumbnail: proj.thumbnailUrl || '',
+      assets: uploadAssets,
+      totalSize,
+      assetCount: uploadAssets.length,
+      uploadedCount: 0,
+      status: 'pending_upload', // ASSI Sync가 업로드 완료하면 ready로 변경
+      sender,
+      createdAt: now,
+      expiresAt,
+      downloadCount: 0,
+    })
+
+    return { shareId }
+  }
+)
+
+/**
+ * 만료된 공유 정리 (매일 새벽 4시 KST)
+ * - R2 객체 (원본 + 썸네일) 삭제
+ * - Bunny 비디오 삭제
+ * - Firestore doc 삭제
+ */
+exports.cleanupExpiredShares = functions
+  .region('asia-northeast3')
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '512MB',
+    secrets: ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_ACCOUNT_ID', 'R2_BUCKET'],
+  })
+  .pubsub.schedule('0 4 * * *')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
+    const now = admin.firestore.Timestamp.now()
+    const snap = await db.collection('shares')
+      .where('expiresAt', '<', now)
+      .limit(200)
+      .get()
+
+    if (snap.empty) {
+      console.log('[Share Cleanup] 만료된 공유 없음')
+      return null
+    }
+
+    const s3 = makeR2Client()
+    const bucketName = process.env.R2_BUCKET
+    let cleaned = 0
+
+    for (const doc of snap.docs) {
+      const data = doc.data()
+      try {
+        // 프로젝트 공유는 Firestore 문서만 삭제 (원본은 사용자 프로젝트에 그대로)
+        if (data.kind === 'project') {
+          await doc.ref.delete()
+          cleaned++
+          console.log('[Share Cleanup] 프로젝트 공유 정리:', doc.id)
+          continue
+        }
+
+        // R2 폴더 전체 삭제 (원본 + 미리보기)
+        const prefix = `shares/${data.uid}/${doc.id}/`
+        const list = await s3.send(new ListObjectsV2Command({ Bucket: bucketName, Prefix: prefix }))
+        for (const obj of (list.Contents || [])) {
+          await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: obj.Key }))
+        }
+
+        // Bunny 비디오 삭제
+        if (data.bunnyVideoId && BUNNY_API_KEY && BUNNY_LIBRARY_ID) {
+          try {
+            await fetch(
+              `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${data.bunnyVideoId}`,
+              { method: 'DELETE', headers: { 'AccessKey': BUNNY_API_KEY } }
+            )
+          } catch (e) {
+            console.warn('[Share Cleanup] Bunny 삭제 실패:', data.bunnyVideoId, e.message)
+          }
+        }
+
+        await doc.ref.delete()
+        cleaned++
+        console.log('[Share Cleanup] 정리:', doc.id)
+      } catch (err) {
+        console.error('[Share Cleanup] 실패:', doc.id, err.message)
+      }
+    }
+
+    console.log(`[Share Cleanup] 완료: ${cleaned}개 정리`)
+    return null
   })

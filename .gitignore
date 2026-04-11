@@ -25,3 +25,9 @@ dist-ssr
 
 .vercel
 functions/.env
+
+# Security: NEVER commit credentials
+**/serviceAccountKey*.json
+**/*.pem
+.env
+.env.*

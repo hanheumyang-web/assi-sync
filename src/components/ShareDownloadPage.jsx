@@ -43,6 +43,26 @@ export default function ShareDownloadPage() {
     return () => { cancelled = true }
   }, [shareId])
 
+  const handleAssetDownload = async (a) => {
+    try {
+      const fn = httpsCallable(functions, 'getAssetDownloadUrl')
+      const res = await fn({ shareId, assetId: a.id })
+      const link = document.createElement('a')
+      link.href = res.data.url
+      link.download = a.fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      alert('다운로드 링크 발급 실패: ' + (err.message || ''))
+    }
+  }
+
+  const fileExt = (name) => {
+    const m = /\.([^.]+)$/.exec(name || '')
+    return m ? m[1].toUpperCase() : '—'
+  }
+
   const handleDownload = async () => {
     setDownloading(true)
     try {
@@ -83,6 +103,23 @@ export default function ShareDownloadPage() {
   const isVideoProcessing = data.previewType === 'video' && data.previewStatus === 'processing'
   const isImage = data.previewType === 'image' && data.previewStatus === 'ready' && data.previewUrl
 
+  // ─── 프로젝트 공유: 업로드 진행 중 ───
+  if (isProject && data.status === 'pending_upload') {
+    return (
+      <div className="bg-[#FAFAFA] dark:bg-[#000000] min-h-screen text-[#181818] dark:text-white flex items-center justify-center" style={{ fontFamily: 'Pretendard Variable, Pretendard, sans-serif' }}>
+        <div className="text-center px-8">
+          <div className="w-12 h-12 rounded-full border-4 border-[#F4A259] border-t-transparent animate-spin mx-auto mb-4"></div>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold mb-2">UPLOADING IN PROGRESS</p>
+          <h1 className="text-2xl font-black tracking-tight mb-2">무압축 파일을 준비하고 있어요</h1>
+          <p className="text-sm text-[#6a6a6a] dark:text-[#b3b3b3]">
+            {data.projectName} · {data.uploadedCount || 0} / {data.assetCount}개 업로드 완료
+          </p>
+          <p className="text-xs text-[#6a6a6a] dark:text-[#b3b3b3] mt-3">잠시 후 새로고침 해주세요</p>
+        </div>
+      </div>
+    )
+  }
+
   // ─── 프로젝트 공유 렌더 ───
   if (isProject) {
     return (
@@ -100,17 +137,20 @@ export default function ShareDownloadPage() {
         <main className="max-w-[1100px] mx-auto px-8 py-14">
           {/* 헤더 */}
           <div className="mb-8">
-            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{data.projectClient || 'CLIENT'}</p>
-            <h1 className="text-5xl font-black tracking-tighter mt-2">{data.projectName}</h1>
-            <div className="flex items-center gap-3 mt-3 text-sm text-[#6a6a6a] dark:text-[#b3b3b3]">
-              {data.projectCategory && <span className="font-bold">{data.projectCategory}</span>}
-              {data.projectCategory && <span>·</span>}
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">UNCOMPRESSED SHARE</p>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mt-2 leading-[1.1]">
+              {data.sender?.name || '익명'} 님이 무압축 파일을 보냈어요
+            </h1>
+            <div className="flex items-center gap-3 mt-4 text-sm text-[#6a6a6a] dark:text-[#b3b3b3]">
+              <span className="font-bold text-[#181818] dark:text-white">{data.projectName}</span>
+              <span>·</span>
               <span>{data.assetCount}개 파일</span>
               <span>·</span>
               <span>{formatBytes(data.totalSize)}</span>
-              <span>·</span>
-              <span>{formatRelative(data.expiresAt)} 후 만료</span>
             </div>
+            <p className="mt-3 text-xs text-[#F4A259] font-bold tracking-wide">
+              ⚠ 링크는 7일 후 자동 만료됩니다 · {formatRelative(data.expiresAt)} 남음
+            </p>
           </div>
 
           {/* Sender */}
@@ -153,17 +193,58 @@ export default function ShareDownloadPage() {
                   <p className="text-xs font-bold text-[#181818] dark:text-white truncate">{a.fileName}</p>
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[10px] text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{formatBytes(a.fileSize)}</span>
-                    <a
-                      href={a.url}
-                      download={a.fileName}
+                    <button
+                      onClick={() => handleAssetDownload(a)}
                       className="text-[10px] text-[#F4A259] font-black uppercase tracking-[0.1em] hover:opacity-70"
                     >
                       다운로드 ↓
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* 파일 목록 테이블 */}
+          <div className="bg-[#f5f5f5] dark:bg-[#181818] rounded-[8px] overflow-hidden mb-8">
+            <div className="px-5 py-4 border-b border-[#ececec] dark:border-[#1f1f1f] flex items-center justify-between">
+              <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">FILE LIST</p>
+              <p className="text-[11px] tracking-[0.15em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{data.assetCount} FILES · {formatBytes(data.totalSize)}</p>
+            </div>
+            <div className="hidden md:grid grid-cols-[1fr_100px_120px_120px] gap-4 px-5 py-3 border-b border-[#ececec] dark:border-[#1f1f1f] text-[10px] tracking-[0.18em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">
+              <div>NAME</div>
+              <div>TYPE</div>
+              <div>SIZE</div>
+              <div className="text-right">DOWNLOAD</div>
+            </div>
+            <div className="divide-y divide-[#ececec] dark:divide-[#1f1f1f]">
+              {(data.assets || []).map((a) => (
+                <div key={a.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_120px_120px] gap-4 px-5 py-4 items-center hover:bg-[#ececec] dark:hover:bg-[#1f1f1f] transition-colors">
+                  <div className="min-w-0 flex items-center gap-3">
+                    {a.isVideo ? (
+                      <div className="w-9 h-9 rounded-[6px] bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-[#F4A259] flex-shrink-0">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                    ) : (
+                      <div className="w-9 h-9 rounded-[6px] bg-[#ececec] dark:bg-[#1f1f1f] flex items-center justify-center text-[#F4A259] flex-shrink-0">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      </div>
+                    )}
+                    <p className="text-sm font-bold text-[#181818] dark:text-white truncate">{a.fileName}</p>
+                  </div>
+                  <div className="hidden md:block text-xs text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{fileExt(a.fileName)}</div>
+                  <div className="hidden md:block text-xs text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">{formatBytes(a.fileSize)}</div>
+                  <div className="md:text-right">
+                    <button
+                      onClick={() => handleAssetDownload(a)}
+                      className="px-3 py-1.5 rounded-[6px] bg-[#F4A259] text-black text-[10px] font-black uppercase tracking-[0.1em] hover:brightness-110 transition-all"
+                    >
+                      ↓ 다운로드
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <p className="text-center text-[11px] text-[#6a6a6a] dark:text-[#b3b3b3] tracking-wide">
@@ -196,7 +277,7 @@ export default function ShareDownloadPage() {
 
         <div className="mb-6">
           <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">FILE TRANSFER</p>
-          <h1 className="text-4xl font-black tracking-tight mt-1.5">원본 파일이 도착했어요</h1>
+          <h1 className="text-4xl font-black tracking-tight mt-1.5">무압축 파일이 도착했어요</h1>
         </div>
 
         {/* Sender */}
@@ -285,7 +366,7 @@ export default function ShareDownloadPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
-              원본 다운로드 · {formatBytes(data.size)}
+              무압축 다운로드 · {formatBytes(data.size)}
             </>
           )}
         </button>

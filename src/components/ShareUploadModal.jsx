@@ -104,8 +104,8 @@ export default function ShareUploadModal({ onClose }) {
       >
         <div className="flex items-start justify-between mb-6">
           <div>
-            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">SHARE ORIGINAL</p>
-            <h2 className="text-2xl font-black tracking-tight text-[#181818] dark:text-white mt-1">원본 파일 공유</h2>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-[#6a6a6a] dark:text-[#b3b3b3] font-bold">SHARE UNCOMPRESSED</p>
+            <h2 className="text-2xl font-black tracking-tight text-[#181818] dark:text-white mt-1">무압축 파일 공유</h2>
           </div>
           <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#F4A259] text-2xl leading-none">×</button>
         </div>

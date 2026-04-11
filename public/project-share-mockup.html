@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Share - 4 Stages</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px 20px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; max-width: 1600px; margin: 0 auto; }
+  .stage-wrap { text-align: center; }
+  .stage-label { color: #F4A259; font-size: 14px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+  .stage-sublabel { color: #888; font-size: 12px; margin-bottom: 16px; line-height: 1.5; }
+
+  .card { background: #181818; border-radius: 16px; padding: 32px; width: 360px; text-align: left; }
+  .header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .header-left .sub { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .header-left h2 { font-size: 22px; font-weight: 900; color: #fff; margin-top: 4px; letter-spacing: -0.02em; }
+  .close-btn { color: #6a6a6a; font-size: 24px; cursor: pointer; background: none; border: none; }
+
+  /* Project info bar */
+  .proj-info { background: #1f1f1f; border-radius: 8px; padding: 16px; display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .proj-thumb { width: 48px; height: 48px; border-radius: 6px; background: #2a2a2a; display: flex; align-items: center; justify-content: center; color: #F4A259; flex-shrink: 0; overflow: hidden; }
+  .proj-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .proj-client { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .proj-name { font-size: 16px; font-weight: 900; color: #fff; margin-top: 2px; }
+
+  /* Select bar */
+  .select-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .select-bar .toggle { font-size: 12px; font-weight: 700; color: #b3b3b3; background: none; border: none; cursor: pointer; }
+  .select-bar .toggle:hover { color: #F4A259; }
+  .select-bar .info { font-size: 12px; color: #b3b3b3; }
+
+  /* Asset grid */
+  .asset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; max-height: 240px; overflow-y: auto; }
+  .asset-cell { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; cursor: pointer; }
+  .asset-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .asset-cell.unchecked { opacity: 0.35; }
+  .asset-cell.checked { outline: 2px solid #F4A259; outline-offset: 2px; border-radius: 8px; }
+  .check-dot { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
+  .check-dot.on { background: #F4A259; color: #000; }
+  .check-dot.off { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.6); }
+  .video-badge { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.7); color: #fff; font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 3px; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 12px; }
+  .btn { flex: 1; padding: 14px; border-radius: 8px; font-size: 13px; font-weight: 800; border: none; cursor: pointer; text-align: center; }
+  .btn-cancel { background: #1f1f1f; color: #fff; }
+  .btn-primary { background: #F4A259; color: #000; }
+  .btn-disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Progress */
+  .progress-wrap { padding: 24px 0; }
+  .progress-bar { height: 8px; background: #2a2a2a; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #F4A259; border-radius: 999px; }
+  .progress-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; margin-top: 8px; text-align: center; }
+  .progress-sub { font-size: 11px; color: #6a6a6a; text-align: center; margin-top: 6px; }
+
+  /* Done */
+  .done-box { background: #1f1f1f; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 16px; }
+  .done-circle { width: 48px; height: 48px; border-radius: 50%; background: #F4A259; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .done-circle svg { width: 24px; height: 24px; }
+  .done-sub { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .done-title { font-size: 17px; font-weight: 900; color: #fff; margin-top: 4px; }
+  .link-box { background: #0a0a0a; border-radius: 6px; padding: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .link-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 13px; font-weight: 500; outline: none; }
+  .btn-copy { padding: 8px 16px; border-radius: 6px; background: #F4A259; color: #000; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; border: none; cursor: pointer; }
+  .msg-box { background: #1f1f1f; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .msg-header .label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .msg-text { font-size: 12px; color: #fff; white-space: pre-wrap; line-height: 1.6; }
+  .expire-note { font-size: 11px; color: #b3b3b3; text-align: center; margin-bottom: 16px; }
+  .btn-done { width: 100%; padding: 14px; border-radius: 8px; background: #fff; color: #000; font-weight: 800; font-size: 13px; border: none; cursor: pointer; }
+
+  /* Placeholder images */
+  .ph { background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%); }
+  .ph1 { background: linear-gradient(135deg, #3a2a1a 0%, #5a4a2a 100%); }
+  .ph2 { background: linear-gradient(135deg, #1a2a3a 0%, #2a4a5a 100%); }
+  .ph3 { background: linear-gradient(135deg, #2a1a3a 0%, #4a2a5a 100%); }
+  .ph4 { background: linear-gradient(135deg, #1a3a2a 0%, #2a5a4a 100%); }
+  .ph5 { background: linear-gradient(135deg, #3a3a1a 0%, #5a5a2a 100%); }
+  .ph6 { background: linear-gradient(135deg, #3a1a2a 0%, #5a2a4a 100%); }
+  .ph7 { background: linear-gradient(135deg, #1a3a3a 0%, #2a5a5a 100%); }
+</style>
+</head>
+<body>
+
+<div class="grid">
+
+  <!-- Stage 1: 파일 선택 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 1</div>
+    <div class="stage-sublabel">"무압축 공유" 클릭<br>파일 목록 + 체크박스 선택</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE UNCOMPRESSED</div>
+          <h2>무압축 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+
+      <div class="proj-info">
+        <div class="proj-thumb"><div class="ph1" style="width:100%;height:100%"></div></div>
+        <div>
+          <div class="proj-client">STUDIO WEDDING</div>
+          <div class="proj-name">웨딩 촬영</div>
+        </div>
+      </div>
+
+      <div class="select-bar">
+        <button class="toggle">전체 해제</button>
+        <span class="info">8개 선택 · 4.2 GB</span>
+      </div>
+
+      <div class="asset-grid">
+        <div class="asset-cell checked"><div class="ph1" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell checked"><div class="ph2" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell unchecked"><div class="ph3" style="width:100%;height:100%"></div><div class="check-dot off"></div></div>
+        <div class="asset-cell checked"><div class="ph4" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell checked"><div class="ph5" style="width:100%;height:100%"></div><div class="check-dot on">✓</div><div class="video-badge">VIDEO</div></div>
+        <div class="asset-cell checked"><div class="ph6" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell checked"><div class="ph7" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell checked"><div class="ph" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell checked"><div class="ph2" style="width:100%;height:100%"></div><div class="check-dot on">✓</div></div>
+        <div class="asset-cell unchecked"><div class="ph4" style="width:100%;height:100%"></div><div class="check-dot off"></div></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-cancel">취소</button>
+        <button class="btn btn-primary">8개 무압축 공유</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 2: 체크된 파일 업로드 중 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 2</div>
+    <div class="stage-sublabel">ASSI Sync가 로컬 무압축 파일을<br>R2에 자동 업로드 (진행률 표시)</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE UNCOMPRESSED</div>
+          <h2>무압축 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+
+      <div class="proj-info">
+        <div class="proj-thumb"><div class="ph1" style="width:100%;height:100%"></div></div>
+        <div>
+          <div class="proj-client">STUDIO WEDDING</div>
+          <div class="proj-name">웨딩 촬영</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div style="text-align:center;margin-bottom:12px;">
+          <p style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#b3b3b3;font-weight:700;">UPLOADING · 5 / 8</p>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div>
+        <div class="progress-label">62%</div>
+        <div class="progress-sub">ASSI Sync에서 무압축 파일을 업로드하고 있습니다</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-cancel btn-disabled">취소</button>
+        <button class="btn btn-primary btn-disabled">업로드 중...</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 3: 업로드 완료 → 공유 링크 생성 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 3</div>
+    <div class="stage-sublabel">업로드 완료<br>공유 링크 + 메시지 템플릿</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE UNCOMPRESSED</div>
+          <h2>무압축 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+
+      <div class="done-box">
+        <div class="done-circle">
+          <svg fill="none" stroke="#000" viewBox="0 0 24 24" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div class="done-sub">SHARE READY</div>
+        <div class="done-title">공유 링크가 생성되었습니다</div>
+      </div>
+
+      <div class="link-box">
+        <input value="assi.lat/share/wk8x3mZp" readonly />
+        <button class="btn-copy">COPY</button>
+      </div>
+
+      <div class="msg-box">
+        <div class="msg-header">
+          <span class="label">MESSAGE TEMPLATE</span>
+          <button class="btn-copy" style="padding:4px 10px;font-size:9px;">COPY</button>
+        </div>
+        <div class="msg-text">김작가 님이 파일을 보냈어요
+웨딩 촬영 · 8개 파일
+⚠ 링크는 7일 후 자동 만료됩니다
+
+assi.lat/share/wk8x3mZp</div>
+      </div>
+
+      <div class="expire-note">링크는 7일 후 자동 만료됩니다</div>
+      <button class="btn-done">완료</button>
+    </div>
+  </div>
+
+  <!-- Stage 4: 수신자 다운로드 페이지 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 4</div>
+    <div class="stage-sublabel">수신자가 링크 열면<br>무압축 파일 다운로드 (7일 만료)</div>
+    <div class="card" style="background:#0e0e0e;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#b3b3b3;font-weight:700;">FILE TRANSFER</div>
+        <div style="font-size:24px;font-weight:900;color:#fff;margin-top:4px;letter-spacing:-0.02em;">무압축 파일이 도착했어요</div>
+      </div>
+
+      <!-- Sender -->
+      <div style="background:#181818;border-radius:8px;padding:16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#2a2a2a;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:#fff;">김작가</div>
+          <div style="font-size:11px;color:#b3b3b3;">웨딩 포토그래퍼</div>
+        </div>
+      </div>
+
+      <!-- Project info -->
+      <div style="background:#181818;border-radius:8px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#b3b3b3;font-weight:700;">STUDIO WEDDING</div>
+        <div style="font-size:16px;font-weight:900;color:#fff;margin-top:2px;">웨딩 촬영</div>
+        <div style="font-size:12px;color:#b3b3b3;margin-top:4px;">사진 7 · 영상 1 · 총 8개 · 4.2 GB</div>
+      </div>
+
+      <!-- File preview grid -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:16px;border-radius:8px;overflow:hidden;">
+        <div class="ph1" style="aspect-ratio:1;"></div>
+        <div class="ph2" style="aspect-ratio:1;"></div>
+        <div class="ph4" style="aspect-ratio:1;"></div>
+        <div style="aspect-ratio:1;position:relative;"><div class="ph5" style="width:100%;height:100%;"></div><div style="position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.7);color:#fff;font-size:8px;font-weight:800;padding:2px 5px;border-radius:3px;">VIDEO</div></div>
+        <div class="ph6" style="aspect-ratio:1;"></div>
+        <div class="ph7" style="aspect-ratio:1;"></div>
+        <div class="ph" style="aspect-ratio:1;"></div>
+        <div class="ph2" style="aspect-ratio:1;"></div>
+      </div>
+
+      <!-- Download button -->
+      <button style="width:100%;padding:16px;border-radius:8px;background:#F4A259;color:#000;font-weight:900;font-size:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        전체 다운로드 · 4.2 GB
+      </button>
+
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:#6a6a6a;">
+        남은 기간: 7일 · Cloudflare R2 보안 전송
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

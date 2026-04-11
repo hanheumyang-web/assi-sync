@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
-const VERSION = '1.1.9'
+const VERSION = '1.4.0'
 
 export default function DownloadPage({ showLogin }) {
   const { loginWithGoogle } = useAuth()
@@ -37,6 +37,12 @@ export default function DownloadPage({ showLogin }) {
             <img src="/logo/logo-black.png" alt="ASSI" className="h-7 md:h-8 object-contain" />
           </a>
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+            <a
+              href="/guide"
+              className="px-3.5 md:px-5 py-2 md:py-2.5 text-gray-600 text-xs md:text-sm font-bold rounded-full hover:bg-gray-100 transition-colors whitespace-nowrap"
+            >
+              설명서
+            </a>
             {true && (
               <button
                 onClick={handleGoogle}
@@ -96,50 +102,9 @@ export default function DownloadPage({ showLogin }) {
             </a>
           </div>
 
-          {/* Mac 사용자 안내 */}
-          <div className="mt-6 mx-auto max-w-xl bg-amber-50 border border-amber-200 rounded-[20px] p-5 text-left">
-            <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 17 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5Z"/>
-              </svg>
-              <p className="text-sm font-bold text-amber-900">Mac 사용자 첫 실행 안내</p>
-            </div>
-            <p className="text-xs text-amber-900/80 leading-relaxed mb-3">
-              <span className="font-bold">macOS Sequoia(15+) 사용자는 DMG 대신 ZIP 파일을 받아주세요.</span> 릴리스 페이지에서 <code className="bg-white px-1.5 py-0.5 rounded text-[10px]">ASSI-Sync-Mac-*.zip</code> 을 다운받으면 DMG 차단 이슈 없이 바로 실행됩니다. 압축 해제 후 앱을 <span className="font-semibold">응용 프로그램 폴더로 드래그</span>만 하면 끝이에요.
-            </p>
-            <p className="text-xs text-amber-900/80 leading-relaxed mb-3">
-              여전히 "손상됨" 경고가 뜨면 Apple 개발자 서명을 아직 안 붙여서 생기는 Gatekeeper 차단이므로, 아래 방법으로 해제하세요.
-            </p>
-            <div className="space-y-3">
-              <div className="bg-white rounded-[12px] p-3 border border-amber-100">
-                <p className="text-[11px] font-bold text-amber-800 mb-1.5">방법 1 · 터미널 명령어 (가장 확실 · 추천)</p>
-                <p className="text-[11px] text-gray-600 mb-1.5">
-                  <span className="font-semibold">Spotlight(⌘+Space)</span>에서 <span className="font-semibold">"터미널"</span> 검색 → 열기 → 아래 명령 붙여넣고 엔터 → 이후 DMG 더블클릭:
-                </p>
-                <code className="block bg-gray-900 text-emerald-300 text-[11px] font-mono px-3 py-2 rounded-[8px] overflow-x-auto whitespace-nowrap mb-2">
-                  xattr -cr ~/Downloads/ASSI-Sync-Mac-*.dmg
-                </code>
-                <p className="text-[11px] text-gray-600">
-                  설치 후 앱 실행 시에도 동일 경고가 뜨면:
-                </p>
-                <code className="block bg-gray-900 text-emerald-300 text-[11px] font-mono px-3 py-2 rounded-[8px] overflow-x-auto whitespace-nowrap mt-1">
-                  xattr -cr /Applications/ASSI\ Sync.app
-                </code>
-              </div>
-              <div className="bg-white rounded-[12px] p-3 border border-amber-100">
-                <p className="text-[11px] font-bold text-amber-800 mb-1.5">방법 2 · 시스템 설정에서 허용</p>
-                <ol className="text-[11px] text-gray-600 leading-relaxed list-decimal list-inside space-y-0.5">
-                  <li>DMG 더블클릭 → 차단 경고가 뜨면 <span className="font-semibold">취소</span></li>
-                  <li><span className="font-semibold">시스템 설정 → 개인정보 보호 및 보안</span> 진입</li>
-                  <li>아래로 스크롤 → "ASSI Sync이(가) 차단되었습니다" 옆 <span className="font-semibold">"확인 없이 열기"</span> 클릭</li>
-                  <li>비밀번호 입력 → 다시 DMG 실행</li>
-                </ol>
-              </div>
-            </div>
-            <p className="text-[10px] text-amber-800/60 mt-3 leading-relaxed">
-              * Apple Developer 서명은 곧 도입 예정이며, 도입 후에는 이 과정 없이 바로 실행됩니다.
-            </p>
-          </div>
+          <p className="mt-6 text-xs text-gray-400">
+            macOS 12+ / Windows 10+ · Apple 공증 완료 · 별도 설정 없이 바로 실행
+          </p>
 
           {true && (
             <div className="mt-8 text-center">

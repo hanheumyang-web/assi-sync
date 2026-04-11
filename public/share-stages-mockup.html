@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Share Upload Stages</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px 20px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; max-width: 1400px; margin: 0 auto; }
+  .stage-wrap { text-align: center; }
+  .stage-label { color: #F4A259; font-size: 13px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
+  .stage-sublabel { color: #888; font-size: 11px; margin-bottom: 16px; }
+  .card { background: #181818; border-radius: 16px; padding: 32px; width: 380px; text-align: left; }
+  .header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .header-left .sub { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .header-left h2 { font-size: 22px; font-weight: 900; color: #fff; margin-top: 4px; letter-spacing: -0.02em; }
+  .close-btn { color: #6a6a6a; font-size: 24px; cursor: pointer; background: none; border: none; }
+
+  /* Stage 1: Drop zone */
+  .dropzone { border: 2px dashed #2a2a2a; border-radius: 8px; padding: 48px 24px; text-align: center; }
+  .dropzone .icon { color: #F4A259; font-size: 40px; margin-bottom: 12px; }
+  .dropzone .main-text { font-size: 15px; font-weight: 900; color: #fff; letter-spacing: -0.01em; }
+  .dropzone .sub-text { font-size: 12px; color: #b3b3b3; margin-top: 6px; }
+
+  /* Stage 2: File selected */
+  .file-box { background: #1f1f1f; border-radius: 8px; padding: 20px; }
+  .file-info { display: flex; gap: 16px; align-items: flex-start; }
+  .file-icon { width: 48px; height: 48px; background: #2a2a2a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #F4A259; font-size: 20px; flex-shrink: 0; }
+  .file-name { font-size: 15px; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .file-size { font-size: 12px; color: #b3b3b3; margin-top: 2px; }
+  .file-remove { color: #6a6a6a; font-size: 20px; margin-left: auto; background: none; border: none; cursor: pointer; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn { flex: 1; padding: 14px; border-radius: 8px; font-size: 13px; font-weight: 800; border: none; cursor: pointer; text-align: center; }
+  .btn-cancel { background: #1f1f1f; color: #fff; }
+  .btn-primary { background: #F4A259; color: #000; }
+  .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Progress */
+  .progress-wrap { margin-top: 16px; }
+  .progress-bar { height: 8px; background: #2a2a2a; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #F4A259; border-radius: 999px; transition: width 0.3s; }
+  .progress-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; margin-top: 8px; }
+
+  /* Done */
+  .done-box { background: #1f1f1f; border-radius: 8px; padding: 28px; text-align: center; }
+  .done-circle { width: 48px; height: 48px; border-radius: 50%; background: #F4A259; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .done-circle svg { width: 24px; height: 24px; }
+  .done-sub { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #b3b3b3; font-weight: 700; }
+  .done-title { font-size: 17px; font-weight: 900; color: #fff; margin-top: 4px; }
+  .link-box { background: #0a0a0a; border-radius: 6px; padding: 12px; display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+  .link-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 13px; font-weight: 500; outline: none; }
+  .btn-copy { padding: 8px 16px; border-radius: 6px; background: #F4A259; color: #000; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; border: none; cursor: pointer; }
+
+  /* Arrow between stages */
+  .arrow { display: flex; align-items: center; justify-content: center; color: #333; font-size: 28px; padding-top: 60px; }
+</style>
+</head>
+<body>
+
+<div class="grid">
+
+  <!-- Stage 1 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 1</div>
+    <div class="stage-sublabel">파일 선택 전</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE ORIGINAL</div>
+          <h2>원본 파일 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="dropzone">
+        <div class="icon">&#9729;</div>
+        <div class="main-text">파일을 끌어다 놓거나 클릭</div>
+        <div class="sub-text">최대 500GB &middot; 7일간 유효</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 2 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 2</div>
+    <div class="stage-sublabel">파일 선택 완료</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE ORIGINAL</div>
+          <h2>원본 파일 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="file-box">
+        <div class="file-info">
+          <div class="file-icon">&#128196;</div>
+          <div>
+            <div class="file-name">Portfolio_Final_4K.psd</div>
+            <div class="file-size">2.4 GB</div>
+          </div>
+          <button class="file-remove">&times;</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-cancel">취소</button>
+        <button class="btn btn-primary">공유 링크 만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 3 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 3</div>
+    <div class="stage-sublabel">업로드 중</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE ORIGINAL</div>
+          <h2>원본 파일 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="file-box">
+        <div class="file-info">
+          <div class="file-icon">&#128196;</div>
+          <div>
+            <div class="file-name">Portfolio_Final_4K.psd</div>
+            <div class="file-size">2.4 GB</div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:73%"></div></div>
+          <div class="progress-label">UPLOADING &middot; 73%</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-cancel btn-disabled">취소</button>
+        <button class="btn btn-primary btn-disabled">업로드 중...</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 4 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 4</div>
+    <div class="stage-sublabel">확인 중 (Finalizing)</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE ORIGINAL</div>
+          <h2>원본 파일 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="file-box">
+        <div class="file-info">
+          <div class="file-icon">&#128196;</div>
+          <div>
+            <div class="file-name">Portfolio_Final_4K.psd</div>
+            <div class="file-size">2.4 GB</div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+          <div class="progress-label">FINALIZING...</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-cancel btn-disabled">취소</button>
+        <button class="btn btn-primary btn-disabled">업로드 중...</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 5 -->
+  <div class="stage-wrap">
+    <div class="stage-label">Stage 5</div>
+    <div class="stage-sublabel">완료 — 링크 생성됨</div>
+    <div class="card">
+      <div class="header">
+        <div class="header-left">
+          <div class="sub">SHARE ORIGINAL</div>
+          <h2>원본 파일 공유</h2>
+        </div>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="done-box">
+        <div class="done-circle">
+          <svg fill="none" stroke="#000" viewBox="0 0 24 24" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div class="done-sub">UPLOAD COMPLETE</div>
+        <div class="done-title">공유 링크가 생성되었습니다</div>
+      </div>
+      <div class="link-box">
+        <input value="assi.lat/share/abc123def456" readonly />
+        <button class="btn-copy">COPY</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-cancel">다른 파일 공유</button>
+        <button class="btn" style="flex:1;padding:14px;border-radius:8px;background:#fff;color:#000;font-weight:800;font-size:13px;border:none;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

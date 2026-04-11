@@ -12,7 +12,7 @@ admin.initializeApp({
 const db = admin.firestore()
 const bucket = admin.storage().bucket()
 
-const BUNNY_API_KEY = '943d82bf-963e-4946-93506adc8c7f-adcc-4af8'
+const BUNNY_API_KEY = process.env.BUNNY_API_KEY || ''
 const BUNNY_LIBRARY_ID = '631122'
 const BUNNY_API_BASE = 'https://video.bunnycdn.com/library'
 

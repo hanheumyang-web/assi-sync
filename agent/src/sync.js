@@ -9,7 +9,7 @@ import { findOrCreateProject } from './project-manager.js'
 import { createAsset, deleteAsset } from './asset-manager.js'
 import { isFileSynced, markSynced, removeSynced } from './state.js'
 
-const BUNNY_API_KEY = '943d82bf-963e-4946-93506adc8c7f-adcc-4af8'
+const BUNNY_API_KEY = process.env.BUNNY_API_KEY || ''
 const BUNNY_LIBRARY_ID = '631122'
 const BUNNY_API_BASE = `https://video.bunnycdn.com/library/${BUNNY_LIBRARY_ID}/videos`
 
