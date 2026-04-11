@@ -262,12 +262,11 @@
 
     /* ── Update Banner ── */
     .update-banner {
-      padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+      padding: 20px 24px; display: flex; align-items: center; gap: 12px;
       background: linear-gradient(135deg, #EEF2FF, #FDF4FF);
-      border-bottom: 1px solid rgba(130,141,248,0.15);
-      animation: slideDown 0.3s ease;
+      animation: fadeIn 0.2s ease;
     }
-    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     .update-banner .update-icon { font-size: 16px; flex-shrink: 0; }
     .update-banner .update-text { flex: 1; font-size: 11px; color: #555; font-weight: 600; }
     .update-banner .update-text strong { color: #828DF8; }
@@ -395,7 +394,7 @@
     </div>
   </div>
 
-  <div id="update-banner" style="display:none;position:fixed;top:36px;left:0;right:0;z-index:999"></div>
+  <div id="update-banner" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;min-width:280px;max-width:360px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);background:white;overflow:hidden"></div>
   <div id="folder-toasts"></div>
   <script src="app.js"></script>
 </body>
