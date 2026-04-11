@@ -434,6 +434,8 @@ function updateFileItem(data) {
     statusHtml = '<span class="file-status done">✓</span>'
   } else if (data.status === 'failed') {
     statusHtml = `<button class="btn-retry" onclick="retryFile('${data.path}')">재시도</button>`
+  } else if (data.status === 'renamed') {
+    statusHtml = '<span class="file-status" style="color:#828DF8">이름 변경</span>'
   } else if (data.status === 'deleted') {
     statusHtml = '<span class="file-status" style="color:#999">삭제됨</span>'
   }
@@ -478,6 +480,42 @@ function updateSummary() {
 
   retryBtn.style.display = failed > 0 ? 'block' : 'none'
 }
+
+// ── Auto Update UI ──
+window.api.onUpdateStatus((data) => {
+  const banner = document.getElementById('update-banner')
+  if (!banner) return
+
+  if (data.status === 'available') {
+    banner.style.display = 'block'
+    banner.innerHTML = `
+      <div class="update-banner">
+        <span class="update-icon">⬇️</span>
+        <div class="update-text">
+          <strong>v${data.version}</strong> 업데이트 다운로드 중...
+          <div class="update-progress"><div class="update-progress-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    `
+  } else if (data.status === 'downloading') {
+    banner.style.display = 'block'
+    const bar = banner.querySelector('.update-progress-bar')
+    const text = banner.querySelector('.update-text')
+    if (bar) bar.style.width = `${data.percent}%`
+    if (text && !text.querySelector('.update-progress')) {
+      // already showing, just update percentage text
+    }
+  } else if (data.status === 'ready') {
+    banner.style.display = 'block'
+    banner.innerHTML = `
+      <div class="update-banner">
+        <span class="update-icon">✨</span>
+        <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
+        <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
+      </div>
+    `
+  }
+})
 
 // ── Init: check saved config ──
 ;(async () => {

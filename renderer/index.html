@@ -207,6 +207,30 @@
     .toast-btn.deny { background: #F4F3EE; color: #999; }
     .toast-btn.deny:hover { background: #E8E7E2; color: #666; }
 
+    /* ── Update Banner ── */
+    .update-banner {
+      padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #EEF2FF, #FDF4FF);
+      border-bottom: 1px solid rgba(130,141,248,0.15);
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .update-banner .update-icon { font-size: 16px; flex-shrink: 0; }
+    .update-banner .update-text { flex: 1; font-size: 11px; color: #555; font-weight: 600; }
+    .update-banner .update-text strong { color: #828DF8; }
+    .update-banner .update-progress {
+      width: 100%; height: 3px; background: #E5E7EB; border-radius: 2px; margin-top: 4px; overflow: hidden;
+    }
+    .update-banner .update-progress-bar {
+      height: 100%; background: #828DF8; border-radius: 2px; transition: width 0.3s ease;
+    }
+    .btn-update {
+      padding: 6px 14px; background: #828DF8; color: white; border: none;
+      border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .btn-update:hover { background: #7078E8; }
+
     /* scrollbar */
     .file-list::-webkit-scrollbar { width: 4px; }
     .file-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
@@ -313,6 +337,7 @@
     </div>
   </div>
 
+  <div id="update-banner" style="display:none"></div>
   <div id="folder-toasts"></div>
   <script src="app.js"></script>
 </body>
