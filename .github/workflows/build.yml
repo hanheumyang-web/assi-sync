@@ -117,6 +117,9 @@ jobs:
           name: ASSI-Sync-Windows
           path: release-assets
 
+      - name: List release assets
+        run: find release-assets -type f | sort
+
       - name: Get version
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
@@ -144,7 +147,7 @@ jobs:
             1. ZIP 다운로드 → 더블클릭하면 자동 압축 해제
             2. 나온 **ASSI Sync.app** 을 **응용 프로그램(Applications)** 폴더로 드래그
             3. Launchpad 또는 응용 프로그램에서 실행 → 끝
-          files: release-assets/*
+          files: release-assets/**/*
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
