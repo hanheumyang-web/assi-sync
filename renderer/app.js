@@ -735,8 +735,7 @@ window.api.onTrayAction((action) => {
   } else if (action === 'logout') {
     document.getElementById('btn-logout')?.click()
   } else if (action === 'settings') {
-    // 설정 화면으로 이동 (setup 화면 표시)
-    if (syncEngine) document.getElementById('btn-stop')?.click()
+    openSettings()
   }
 })
 
@@ -778,11 +777,10 @@ window.api.onUpdateStatus((data) => {
           <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
         </div>
         <div style="font-size:10px;color:#777;line-height:1.6;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:8px">
+          • UI 크기 조절 슬라이더 (설정에서 50~150%)<br>
+          • 설정 버튼 추가 (트레이 메뉴에서도 접근 가능)<br>
           • 탐색기 크기 슬라이더 (30~200px)<br>
-          • 창 최대화 지원<br>
-          • 업데이트 확인 버튼 + 알림 UI 개선<br>
-          • Windows 앱 아이콘 적용<br>
-          • 챗봇 보안 강화
+          • 창 최대화 지원 + 업데이트 알림 UI 개선
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
@@ -812,9 +810,67 @@ window.api.onUpdateStatus((data) => {
   }
 })
 
+// ── Settings Panel ──
+function openSettings() {
+  document.getElementById('settings-overlay').style.display = 'block'
+  document.getElementById('settings-panel').style.display = 'block'
+  // 현재 스케일 값 반영
+  const config = window._cachedConfig || {}
+  const scale = config.uiScale || 100
+  document.getElementById('ui-scale-slider').value = scale
+  document.getElementById('ui-scale-label').textContent = scale + '%'
+  // 앱 버전 표시
+  window.api.getAppVersion().then(v => {
+    document.getElementById('settings-version').textContent = 'v' + v
+  })
+}
+window.openSettings = openSettings
+
+function closeSettings() {
+  document.getElementById('settings-overlay').style.display = 'none'
+  document.getElementById('settings-panel').style.display = 'none'
+}
+window.closeSettings = closeSettings
+
+function setUiScale(val) {
+  val = parseInt(val)
+  document.getElementById('ui-scale-label').textContent = val + '%'
+  // CSS zoom 적용 (titlebar 제외한 전체)
+  const factor = val / 100
+  document.querySelectorAll('.screen').forEach(s => { s.style.zoom = factor })
+  // 설정 저장
+  window.api.saveConfig({ uiScale: val })
+  if (window._cachedConfig) window._cachedConfig.uiScale = val
+}
+window.setUiScale = setUiScale
+
+function resetUiScale() {
+  setUiScale(100)
+  document.getElementById('ui-scale-slider').value = 100
+}
+window.resetUiScale = resetUiScale
+
+function applyUiScale(val) {
+  if (!val || val === 100) {
+    document.querySelectorAll('.screen').forEach(s => { s.style.zoom = '' })
+    return
+  }
+  const factor = val / 100
+  document.querySelectorAll('.screen').forEach(s => { s.style.zoom = factor })
+}
+
+document.getElementById('btn-settings').addEventListener('click', openSettings)
+
 // ── Init: check saved config ──
 ;(async () => {
   const config = await window.api.getConfig()
+  window._cachedConfig = config
+
+  // 저장된 UI 스케일 적용
+  if (config.uiScale && config.uiScale !== 100) {
+    applyUiScale(config.uiScale)
+  }
+
   if (config.uid) {
     currentUser = { uid: config.uid, name: config.name || '', email: config.email || '' }
     selectedFolder = config.watchDir || null
