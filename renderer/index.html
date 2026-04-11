@@ -21,6 +21,7 @@
       width: 12px; height: 12px; border-radius: 50%; border: none; cursor: pointer;
     }
     .btn-close { background: #FF5F57; }
+    .btn-maximize { background: #28C840; }
     .btn-minimize { background: #FFBD2E; }
 
     /* ── Screens ── */
@@ -208,19 +209,24 @@
     .toast-btn.deny:hover { background: #E8E7E2; color: #666; }
 
     /* ── Explorer: file items, rename, reorder ── */
+    .explorer-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 8px 0 6px;
+      font-size: 10px; color: #999; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 8px;
+    }
+    .explorer-toolbar input[type=range] {
+      width: 80px; height: 3px; accent-color: #828DF8; cursor: pointer;
+    }
+    .explorer-toolbar span { min-width: 28px; text-align: center; }
     .tree-files { padding-left: 32px; }
-    .thumb-size-bar {
-      display: flex; align-items: center; gap: 8px; padding: 6px 12px;
-      margin: 0 0 4px 32px; font-size: 10px; color: #999;
+    .tree-node {
+      font-size: var(--explorer-font, 12px) !important;
+      padding-top: var(--explorer-pad, 6px) !important;
+      padding-bottom: var(--explorer-pad, 6px) !important;
     }
-    .thumb-size-bar input[type=range] {
-      width: 100px; height: 3px; accent-color: #828DF8; cursor: pointer;
-    }
-    .thumb-size-bar span { min-width: 32px; text-align: center; }
     .tree-file {
       display: flex; align-items: center; gap: 10px;
-      padding: 6px 8px; margin: 2px 0; border-radius: 8px;
-      font-size: 11px; color: #555; cursor: grab;
+      padding: var(--explorer-pad, 6px) 8px; margin: 2px 0; border-radius: 8px;
+      font-size: var(--explorer-font, 11px); color: #555; cursor: grab;
       border: 1px solid transparent; transition: all 0.15s;
     }
     .tree-file:hover { background: rgba(0,0,0,0.03); }
@@ -289,6 +295,7 @@
     <span class="titlebar-title">ASSI Sync</span>
     <div class="titlebar-btns">
       <button class="btn-minimize" onclick="window.api.minimize()"></button>
+      <button class="btn-maximize" onclick="window.api.maximize()"></button>
       <button class="btn-close" onclick="window.api.close()"></button>
     </div>
   </div>

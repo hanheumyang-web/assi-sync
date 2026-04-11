@@ -336,7 +336,15 @@ async function refreshExplorer() {
   if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">동기화 폴더가 없습니다</div>'; return }
   explorerRoot = data.root
   expandedProjects.clear()
-  pane.innerHTML = renderTree(data.tree, data.root)
+  const currentSize = parseInt(document.documentElement.style.getPropertyValue('--thumb-size')) || 60
+  const toolbarHtml = `
+    <div class="explorer-toolbar">
+      <span>🔍</span>
+      <input type="range" min="30" max="160" value="${currentSize}" oninput="setThumbSize(this.value)">
+      <span class="thumb-size-label">${currentSize}px</span>
+    </div>
+  `
+  pane.innerHTML = toolbarHtml + renderTree(data.tree, data.root)
   attachExplorerHandlers(data.root)
 }
 
@@ -472,17 +480,7 @@ async function toggleProjectFiles(projectKey, root) {
     return
   }
 
-  // 썸네일 크기 슬라이더
-  const currentSize = parseInt(document.documentElement.style.getPropertyValue('--thumb-size')) || 60
-  const sizeBarHtml = `
-    <div class="thumb-size-bar">
-      <span style="font-size:11px">🖼</span>
-      <input type="range" min="32" max="120" value="${currentSize}" oninput="setThumbSize(this.value)">
-      <span class="thumb-size-label">${currentSize}px</span>
-    </div>
-  `
-
-  container.innerHTML = sizeBarHtml + files.map((f, i) => {
+  container.innerHTML = files.map((f, i) => {
     const thumbSrc = f.isVideo
       ? (f.videoThumbnailUrl || '')
       : (f.url || '')
@@ -634,9 +632,16 @@ function startRenameFile(fileEl) {
   input.addEventListener('blur', () => finish(true))
 }
 
-// ── Thumbnail Size ──
+// ── Explorer View Size ──
 function setThumbSize(val) {
+  val = parseInt(val)
   document.documentElement.style.setProperty('--thumb-size', val + 'px')
+  // 전체 탐색기 폰트/패딩도 비례 조절
+  const scale = val / 60 // 60px 기준
+  const fontSize = Math.max(10, Math.min(16, Math.round(12 * scale)))
+  const nodePad = Math.max(4, Math.round(6 * scale))
+  document.documentElement.style.setProperty('--explorer-font', fontSize + 'px')
+  document.documentElement.style.setProperty('--explorer-pad', nodePad + 'px')
   document.querySelectorAll('.thumb-size-label').forEach(el => el.textContent = val + 'px')
 }
 window.setThumbSize = setThumbSize
