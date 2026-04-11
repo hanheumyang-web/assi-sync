@@ -47,14 +47,56 @@ function createWindow() {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray-icon.png'))
+  // macOS: Template 이미지 사용 (다크/라이트 모드 자동 대응)
+  const isMac = process.platform === 'darwin'
+  const iconName = isMac ? 'tray-iconTemplate.png' : 'tray-icon.png'
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', iconName))
+  if (isMac) icon.setTemplateImage(true)
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon)
   tray.setToolTip('ASSI Sync')
   tray.on('click', () => mainWindow?.show())
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '열기', click: () => mainWindow?.show() },
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'ASSI Sync 열기', click: () => mainWindow?.show() },
+    { type: 'separator' },
+    {
+      label: '동기화 상태',
+      enabled: false,
+      id: 'sync-status',
+    },
+    {
+      label: '동기화 폴더 변경',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.webContents.send('tray-action', 'change-folder')
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '업데이트 확인',
+      click: () => {
+        autoUpdater.checkForUpdatesAndNotify()
+        mainWindow?.show()
+      },
+    },
+    {
+      label: '설정',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.webContents.send('tray-action', 'settings')
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '로그아웃',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.webContents.send('tray-action', 'logout')
+      },
+    },
     { label: '종료', click: () => { app.isQuitting = true; app.quit() } },
-  ]))
+  ])
+  tray.setContextMenu(contextMenu)
 }
 
 app.whenReady().then(() => {

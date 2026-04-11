@@ -701,6 +701,18 @@ function updateSummary() {
   retryBtn.style.display = failed > 0 ? 'block' : 'none'
 }
 
+// ── Tray Menu Actions ──
+window.api.onTrayAction((action) => {
+  if (action === 'change-folder') {
+    document.getElementById('btn-change-folder')?.click()
+  } else if (action === 'logout') {
+    document.getElementById('btn-logout')?.click()
+  } else if (action === 'settings') {
+    // 설정 화면으로 이동 (setup 화면 표시)
+    if (syncEngine) document.getElementById('btn-stop')?.click()
+  }
+})
+
 // ── Auto Update UI ──
 window.api.onUpdateStatus((data) => {
   const banner = document.getElementById('update-banner')

@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.invoke('minimize-window'),
   close: () => ipcRenderer.invoke('close-window'),
 
+  // Tray menu actions
+  onTrayAction: (cb) => ipcRenderer.on('tray-action', (_, action) => cb(action)),
+
   // Auto updater
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
