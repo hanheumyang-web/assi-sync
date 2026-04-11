@@ -210,8 +210,8 @@
     /* ── Explorer: file items, rename, reorder ── */
     .tree-files { padding-left: 32px; }
     .tree-file {
-      display: flex; align-items: center; gap: 8px;
-      padding: 5px 8px; margin: 1px 0; border-radius: 8px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 8px; margin: 2px 0; border-radius: 8px;
       font-size: 11px; color: #555; cursor: grab;
       border: 1px solid transparent; transition: all 0.15s;
     }
@@ -220,8 +220,8 @@
     .tree-file.drag-over { border-color: #828DF8; background: #EEF2FF; }
     .tree-file .file-grip { color: #ccc; cursor: grab; font-size: 10px; flex-shrink: 0; }
     .tree-file .file-thumb {
-      width: 28px; height: 28px; border-radius: 4px; object-fit: cover;
-      background: #F3F4F6; flex-shrink: 0;
+      width: 40px; height: 40px; border-radius: 6px; object-fit: cover;
+      background: #F3F4F6; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08);
     }
     .tree-file .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
     .tree-file .file-order { font-size: 9px; color: #bbb; flex-shrink: 0; }
