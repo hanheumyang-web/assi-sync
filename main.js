@@ -117,8 +117,12 @@ app.whenReady().then(() => {
   autoUpdater.on('update-downloaded', (info) => {
     mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version })
   })
+  autoUpdater.on('update-not-available', () => {
+    mainWindow?.webContents.send('update-status', { status: 'up-to-date' })
+  })
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater]', err.message)
+    mainWindow?.webContents.send('update-status', { status: 'error', message: err.message })
   })
 
   // 앱 시작 5초 후 업데이트 체크

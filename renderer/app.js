@@ -773,6 +773,24 @@ window.api.onUpdateStatus((data) => {
         <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
       </div>
     `
+  } else if (data.status === 'up-to-date') {
+    banner.style.display = 'block'
+    banner.innerHTML = `
+      <div class="update-banner">
+        <span class="update-icon">✅</span>
+        <div class="update-text">최신 버전입니다</div>
+      </div>
+    `
+    setTimeout(() => { banner.style.display = 'none' }, 3000)
+  } else if (data.status === 'error') {
+    banner.style.display = 'block'
+    banner.innerHTML = `
+      <div class="update-banner">
+        <span class="update-icon">⚠️</span>
+        <div class="update-text">업데이트 확인 실패</div>
+      </div>
+    `
+    setTimeout(() => { banner.style.display = 'none' }, 3000)
   }
 })
 
