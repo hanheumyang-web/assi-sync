@@ -741,9 +741,13 @@ window.api.onTrayAction((action) => {
 })
 
 // ── Auto Update UI ──
+let updateReady = false
 window.api.onUpdateStatus((data) => {
   const banner = document.getElementById('update-banner')
   if (!banner) return
+
+  // ready 상태면 다른 상태로 덮어쓰지 않음
+  if (updateReady && data.status !== 'ready') return
 
   if (data.status === 'available') {
     banner.style.display = 'block'
@@ -765,6 +769,7 @@ window.api.onUpdateStatus((data) => {
       // already showing, just update percentage text
     }
   } else if (data.status === 'ready') {
+    updateReady = true
     banner.style.display = 'block'
     banner.innerHTML = `
       <div class="update-banner">
