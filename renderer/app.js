@@ -340,7 +340,7 @@ async function refreshExplorer() {
   const toolbarHtml = `
     <div class="explorer-toolbar">
       <span>🔍</span>
-      <input type="range" min="30" max="160" value="${currentSize}" oninput="setThumbSize(this.value)">
+      <input type="range" min="30" max="200" value="${currentSize}" oninput="setThumbSize(this.value)">
       <span class="thumb-size-label">${currentSize}px</span>
     </div>
   `
