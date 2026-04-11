@@ -20,6 +20,7 @@
       "lib/**/*",
       "assets/**/*"
     ],
+    "icon": "assets/icon.png",
     "extraResources": [],
     "asar": true,
     "publish": {
