@@ -419,6 +419,11 @@ ipcMain.handle('rescan', async () => {
   return true
 })
 
+ipcMain.handle('check-shares', async () => {
+  if (!syncEngine) return { error: 'sync engine not running' }
+  return await syncEngine.checkPendingShares()
+})
+
 ipcMain.handle('get-pending-folders', () => {
   if (!syncEngine) return []
   return syncEngine.getPendingFolders()

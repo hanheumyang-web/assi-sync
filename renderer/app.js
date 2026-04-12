@@ -136,13 +136,18 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
   window.api.retryAllFailed()
 })
 
-// ── Rescan (새로고침) ──
+// ── Rescan (새로고침) + 공유 체크 ──
 document.getElementById('btn-rescan').addEventListener('click', async () => {
   const btn = document.getElementById('btn-rescan')
   btn.disabled = true
   btn.textContent = '⏳'
   try {
     await window.api.rescan()
+    // rescan 후 공유 대기 건도 확인
+    const shareResult = await window.api.checkShares()
+    if (shareResult?.error) {
+      console.error('[Share]', shareResult.error)
+    }
   } catch {}
   btn.disabled = false
   btn.textContent = '🔄'
@@ -163,6 +168,18 @@ window.api.onSyncProgress((data) => {
     statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
     infoEl.textContent = `${data.total}개 파일 동기화 완료`
     refreshSyncedFolders()
+  } else if (data.phase === 'share_uploading') {
+    statusEl.innerHTML = '<span class="dot syncing"></span>무압축 공유 업로드 중'
+    infoEl.textContent = `${data.projectName || '공유'} · ${data.completed} / ${data.total}`
+  } else if (data.phase === 'share_complete') {
+    statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
+    infoEl.textContent = `공유 업로드 완료 (${data.total}개)`
+    setTimeout(() => {
+      infoEl.textContent = `${Object.keys(window._lastSyncTotal || {}).length || data.total}개 파일 동기화 완료`
+    }, 3000)
+  } else if (data.phase === 'share_error') {
+    statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
+    infoEl.textContent = `공유 오류: ${data.message || '알 수 없음'}`
   }
 })
 

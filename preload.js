@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   retryFile: (path) => ipcRenderer.invoke('retry-file', path),
   retryAllFailed: () => ipcRenderer.invoke('retry-all-failed'),
   rescan: () => ipcRenderer.invoke('rescan'),
+  checkShares: () => ipcRenderer.invoke('check-shares'),
 
   // Folder approval
   approveFolder: (id, approved) => ipcRenderer.invoke('approve-folder', { id, approved }),
