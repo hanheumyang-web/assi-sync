@@ -130,23 +130,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: ASSI Sync v${{ steps.version.outputs.version }}
           body: |
-            ## ASSI Sync v${{ steps.version.outputs.version }}
-
-            ### 다운로드
-
-            **🪟 Windows**
-            - `ASSI-Sync-Windows-${{ steps.version.outputs.version }}.exe` 다운로드 → 더블클릭 → 설치
-            - SmartScreen 경고: "추가 정보 → 실행" 클릭
-
-            **🍎 Mac** (Apple Developer ID 서명 완료)
-            - Apple Silicon (M1/M2/M3/M4): `ASSI-Sync-Mac-${{ steps.version.outputs.version }}-arm64.zip`
-            - Intel Mac: `ASSI-Sync-Mac-${{ steps.version.outputs.version }}-x64.zip`
-            - 내 칩 확인: 🍎 → 이 Mac에 관하여 → 칩/프로세서 항목
-
-            **Mac 설치 순서**
-            1. ZIP 다운로드 → 더블클릭하면 자동 압축 해제
-            2. 나온 **ASSI Sync.app** 을 **응용 프로그램(Applications)** 폴더로 드래그
-            3. Launchpad 또는 응용 프로그램에서 실행 → 끝
+            ASSI Sync v${{ steps.version.outputs.version }}
           files: release-assets/**/*
           make_latest: true
         env:
