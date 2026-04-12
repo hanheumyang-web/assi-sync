@@ -118,7 +118,7 @@ app.whenReady().then(() => {
   autoUpdater.on('update-downloaded', (info) => {
     mainWindow?.show()
     mainWindow?.focus()
-    mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version })
+    mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version, releaseNotes: info.releaseNotes || '' })
   })
   autoUpdater.on('update-not-available', () => {
     mainWindow?.webContents.send('update-status', { status: 'up-to-date' })

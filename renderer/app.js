@@ -787,18 +787,22 @@ window.api.onUpdateStatus((data) => {
   } else if (data.status === 'ready') {
     updateReady = true
     banner.style.display = 'block'
+    // releaseNotes: markdown/html → 텍스트 줄로 변환
+    let notesHtml = ''
+    if (data.releaseNotes) {
+      const raw = typeof data.releaseNotes === 'string' ? data.releaseNotes : ''
+      const lines = raw.replace(/<[^>]*>/g, '').split(/\n/).map(l => l.trim()).filter(Boolean).slice(0, 5)
+      if (lines.length > 0) {
+        notesHtml = `<div style="font-size:10px;color:#777;line-height:1.6;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:8px">${lines.map(l => l.startsWith('•') || l.startsWith('-') || l.startsWith('*') ? l : '• ' + l).join('<br>')}</div>`
+      }
+    }
     banner.innerHTML = `
       <div class="update-banner" style="flex-direction:column;align-items:stretch;gap:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <span class="update-icon">✨</span>
           <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
         </div>
-        <div style="font-size:10px;color:#777;line-height:1.6;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:8px">
-          • UI 크기 조절 슬라이더 (설정에서 50~150%)<br>
-          • 설정 버튼 추가 (트레이 메뉴에서도 접근 가능)<br>
-          • 탐색기 크기 슬라이더 (30~200px)<br>
-          • 창 최대화 지원 + 업데이트 알림 UI 개선
-        </div>
+        ${notesHtml}
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
           <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
