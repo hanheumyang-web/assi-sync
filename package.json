@@ -30,7 +30,7 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.png",
+      "icon": "assets/icon.ico",
       "signAndEditExecutable": false,
       "artifactName": "ASSI-Sync-Windows-${version}.${ext}"
     },
