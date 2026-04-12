@@ -1096,12 +1096,12 @@ exports.createProjectShare = onCall(
     const uploadAssets = await Promise.all(allAssets.map(async (asset) => {
       const safeName = sanitizeFileName(asset.fileName)
       const r2Key = `shares/${uid}/${shareId}/${asset.id}_${safeName}`
+      // ContentType을 서명에서 제외 — R2 SignatureDoesNotMatch 방지
       const uploadUrl = await getSignedUrl(
         s3,
         new PutObjectCommand({
           Bucket: bucketName,
           Key: r2Key,
-          ContentType: asset.fileType || 'application/octet-stream',
         }),
         { expiresIn: UPLOAD_URL_TTL }
       )
