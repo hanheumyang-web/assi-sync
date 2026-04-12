@@ -413,6 +413,12 @@ ipcMain.handle('retry-all-failed', async () => {
   return true
 })
 
+ipcMain.handle('rescan', async () => {
+  if (!syncEngine) return false
+  await syncEngine.rescan()
+  return true
+})
+
 ipcMain.handle('get-pending-folders', () => {
   if (!syncEngine) return []
   return syncEngine.getPendingFolders()

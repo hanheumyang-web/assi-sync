@@ -136,6 +136,18 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
   window.api.retryAllFailed()
 })
 
+// ── Rescan (새로고침) ──
+document.getElementById('btn-rescan').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-rescan')
+  btn.disabled = true
+  btn.textContent = '⏳'
+  try {
+    await window.api.rescan()
+  } catch {}
+  btn.disabled = false
+  btn.textContent = '🔄'
+})
+
 // ── Event Handlers ──
 window.api.onSyncProgress((data) => {
   const statusEl = document.getElementById('sync-status')
@@ -677,6 +689,9 @@ function updateFileItem(data) {
   if (data.status === 'uploading') {
     statusHtml = `<span class="file-status uploading">${data.progress}%</span>`
     progressHtml = `<div class="file-progress"><div class="file-progress-bar" style="width:${data.progress}%"></div></div>`
+  } else if (data.status === 'encoding') {
+    statusHtml = `<span class="file-status" style="color:#A78BFA">인코딩</span>`
+    progressHtml = `<div class="file-progress"><div class="file-progress-bar" style="width:${data.progress}%;background:#A78BFA"></div></div>`
   } else if (data.status === 'done') {
     statusHtml = '<span class="file-status done">✓</span>'
   } else if (data.status === 'failed') {
@@ -691,7 +706,7 @@ function updateFileItem(data) {
     <div class="file-icon ${iconClass}">${iconEmoji}</div>
     <div class="file-info">
       <div class="file-name">${data.fileName}</div>
-      <div class="file-meta">${data.size || ''} ${data.error ? '— ' + data.error : ''}</div>
+      <div class="file-meta">${data.size || ''} ${data.phase ? '— ' + data.phase : ''} ${data.error ? '— ' + data.error : ''}</div>
       ${progressHtml}
     </div>
     ${statusHtml}
@@ -709,18 +724,20 @@ function updateSummary() {
   const text = document.getElementById('summary-text')
   const retryBtn = document.getElementById('btn-retry-all')
 
-  let done = 0, failed = 0, uploading = 0
+  let done = 0, failed = 0, uploading = 0, encoding = 0
   for (const [, data] of fileStatuses) {
     if (data.status === 'done') done++
     else if (data.status === 'failed') failed++
     else if (data.status === 'uploading') uploading++
+    else if (data.status === 'encoding') encoding++
   }
 
-  const total = done + failed + uploading
+  const total = done + failed + uploading + encoding
   if (total === 0) { bar.style.display = 'none'; return }
 
   bar.style.display = 'flex'
   let parts = [`<strong>${done}</strong> 완료`]
+  if (encoding > 0) parts.push(`<span style="color:#A78BFA">${encoding} 인코딩 중</span>`)
   if (uploading > 0) parts.push(`${uploading} 업로드 중`)
   if (failed > 0) parts.push(`<span style="color:#EF4444">${failed} 실패</span>`)
   text.innerHTML = parts.join(' · ')
