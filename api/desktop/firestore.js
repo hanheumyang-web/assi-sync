@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       }
 
       case 'updateShareProgress': {
-        const { shareId, assetId, uploadStatus, uploadedCount, status } = req.body
+        const { shareId, assetId, uploadStatus, uploadedCount, status, actualFileSize } = req.body
         const shareDoc = await firestore.collection('shares').doc(shareId).get()
         if (!shareDoc.exists || shareDoc.data().uid !== uid)
           return res.status(403).json({ error: 'Forbidden' })
@@ -163,12 +163,23 @@ export default async function handler(req, res) {
           const idx = assets.findIndex(a => a.id === assetId)
           if (idx >= 0) {
             assets[idx].uploadStatus = uploadStatus
+            // 실제 원본 파일 크기로 보정 (압축된 크기 → 로컬 원본 크기)
+            if (actualFileSize && actualFileSize > 0) {
+              assets[idx].fileSize = actualFileSize
+            }
             updates.assets = assets
           }
         }
 
         if (uploadedCount !== undefined) updates.uploadedCount = uploadedCount
         if (status) updates.status = status
+
+        // totalSize 재계산 (모든 asset 업로드 완료 시)
+        if (status === 'ready') {
+          const assets = updates.assets || shareDoc.data().assets || []
+          const newTotal = assets.reduce((sum, a) => sum + (a.fileSize || 0), 0)
+          if (newTotal > 0) updates.totalSize = newTotal
+        }
 
         if (Object.keys(updates).length > 0) {
           await firestore.collection('shares').doc(shareId).update(updates)

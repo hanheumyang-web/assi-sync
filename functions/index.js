@@ -458,8 +458,9 @@ exports.generateThumbs = functions
  */
 exports.fixBunnyThumbnails = functions
   .region('asia-northeast3')
-  .runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .runWith({ timeoutSeconds: 540, memory: '2GB' })
   .https.onRequest(async (req, res) => {
+    const reupload = req.query.reupload === 'true' // ?reupload=true 로 재업로드 모드
     const snap = await db.collection('assets')
       .where('videoHost', '==', 'bunny')
       .get()
@@ -470,6 +471,65 @@ exports.fixBunnyThumbnails = functions
       const data = assetDoc.data()
       const videoId = data.bunnyVideoId
       if (!videoId) continue
+
+      // Bunny API에서 현재 상태 확인
+      let bunnyInfo
+      try {
+        const infoRes = await fetch(
+          `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${videoId}`,
+          { headers: { 'AccessKey': BUNNY_API_KEY } }
+        )
+        bunnyInfo = await infoRes.json()
+      } catch (e) {
+        results.push({ videoId, status: 'api_error', reason: e.message })
+        continue
+      }
+
+      // status=0: 파일 미업로드 → 재업로드 필요
+      if (bunnyInfo.status === 0 && reupload && data.storagePath) {
+        try {
+          const file = bucket.file(data.storagePath)
+          const [exists] = await file.exists()
+          if (!exists) {
+            results.push({ videoId, status: 'no_file', reason: `Storage 파일 없음: ${data.storagePath}` })
+            continue
+          }
+          const [fileBuffer] = await file.download()
+          const upRes = await fetch(
+            `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${videoId}`,
+            { method: 'PUT', headers: { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, body: fileBuffer }
+          )
+          if (upRes.ok) {
+            await assetDoc.ref.update({ bunnyStatus: 'processing', bunnyUploadedAt: new Date().toISOString() })
+            results.push({ videoId, status: 'reuploaded', size: `${(fileBuffer.length / 1024 / 1024).toFixed(1)}MB` })
+          } else {
+            results.push({ videoId, status: 'reupload_fail', reason: `${upRes.status}` })
+          }
+        } catch (e) {
+          results.push({ videoId, status: 'reupload_error', reason: e.message })
+        }
+        continue
+      } else if (bunnyInfo.status === 0) {
+        results.push({ videoId, status: 'needs_reupload', reason: 'status=0, use ?reupload=true' })
+        continue
+      }
+
+      // bunnyStatus가 processing인데 실제로는 인코딩 완료된 경우 → status 수정
+      if (data.bunnyStatus !== 'ready') {
+        try {
+          const checkRes = await fetch(
+            `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${videoId}`,
+            { headers: { 'AccessKey': BUNNY_API_KEY } }
+          )
+          const checkInfo = await checkRes.json()
+          if (checkInfo.status === 4) {
+            await assetDoc.ref.update({ bunnyStatus: 'ready', bunnyEncodedAt: new Date().toISOString() })
+            results.push({ videoId, status: 'status_fixed', reason: `was ${data.bunnyStatus}, now ready` })
+          }
+        } catch (e) {
+          results.push({ videoId, status: 'status_check_fail', reason: e.message })
+        }
+      }
 
       // 이미 Storage 썸네일 있으면 프로젝트 썸네일만 업데이트
       if (data.videoThumbnailUrl?.includes('storage.googleapis.com')) {
@@ -603,6 +663,7 @@ function makeR2Client() {
   return new S3Client({
     region: 'auto',
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    forcePathStyle: true,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
@@ -979,7 +1040,24 @@ exports.getAssetDownloadUrl = onCall(
 
     const safeName = (asset.fileName || 'download').replace(/"/g, '')
 
-    // R2에 무압축 파일이 있으면 R2에서 다운로드
+    // Firebase Storage 기반 공유 파일 (신규)
+    if (asset.shareStoragePath) {
+      const file = bucket.file(asset.shareStoragePath)
+      const [url] = await file.getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 60 * 60 * 1000,
+        responseDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`,
+      })
+      try {
+        await db.collection('shares').doc(shareId).update({
+          downloadCount: admin.firestore.FieldValue.increment(1),
+        })
+      } catch (e) {}
+      return { url }
+    }
+
+    // R2에 무압축 파일이 있으면 R2에서 다운로드 (레거시)
     if (asset.r2Key) {
       const s3 = makeR2Client()
       const url = await getSignedUrl(
@@ -1036,7 +1114,6 @@ exports.getAssetDownloadUrl = onCall(
 exports.createProjectShare = onCall(
   {
     region: 'asia-northeast3',
-    secrets: [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET],
   },
   async (request) => {
     const uid = request.auth?.uid
@@ -1061,7 +1138,7 @@ exports.createProjectShare = onCall(
 
     // selectedAssetIds가 있으면 선택된 것만, 없으면 전체
     const selectedSet = selectedAssetIds ? new Set(selectedAssetIds) : null
-    const allAssets = assetsSnap.docs
+    const rawAssets = assetsSnap.docs
       .filter((d) => !selectedSet || selectedSet.has(d.id))
       .map((d) => {
         const a = d.data()
@@ -1069,6 +1146,7 @@ exports.createProjectShare = onCall(
           id: d.id,
           fileName: a.fileName || '',
           fileSize: a.fileSize || 0,
+          originalSize: a.originalSize || 0, // 원본 크기 (무압축 공유용)
           fileType: a.fileType || '',
           isVideo: !!a.isVideo,
           url: a.url || '',
@@ -1077,8 +1155,20 @@ exports.createProjectShare = onCall(
           thumbUrl: a.thumbUrl || '',
           bunnyVideoId: a.bunnyVideoId || '',
           storagePath: a.storagePath || '',
+          createdAt: a.createdAt || '',
         }
       })
+
+    // fileName 기준 중복 제거 (동기화가 여러 번 되면 같은 파일의 asset doc이 여러 개 생김)
+    // 가장 최근 문서만 유지
+    const deduped = new Map()
+    for (const a of rawAssets) {
+      const key = a.fileName
+      if (!deduped.has(key) || a.createdAt > deduped.get(key).createdAt) {
+        deduped.set(key, a)
+      }
+    }
+    const allAssets = [...deduped.values()]
 
     if (allAssets.length === 0) {
       throw new HttpsError('failed-precondition', '선택된 파일이 없습니다.')
@@ -1089,29 +1179,17 @@ exports.createProjectShare = onCall(
     const expiresAt = admin.firestore.Timestamp.fromMillis(
       now.toMillis() + SHARE_EXPIRY_DAYS * 24 * 60 * 60 * 1000
     )
-    const bucketName = process.env.R2_BUCKET
-    const s3 = makeR2Client()
 
-    // 각 asset에 R2 presigned upload URL 발급
-    const uploadAssets = await Promise.all(allAssets.map(async (asset) => {
+    // Firebase Storage 경로 기반 업로드 (R2 presigned URL 대신)
+    const uploadAssets = allAssets.map((asset) => {
       const safeName = sanitizeFileName(asset.fileName)
-      const r2Key = `shares/${uid}/${shareId}/${asset.id}_${safeName}`
-      // ContentType을 서명에서 제외 — R2 SignatureDoesNotMatch 방지
-      const uploadUrl = await getSignedUrl(
-        s3,
-        new PutObjectCommand({
-          Bucket: bucketName,
-          Key: r2Key,
-        }),
-        { expiresIn: UPLOAD_URL_TTL }
-      )
+      const shareStoragePath = `shares/${uid}/${shareId}/${asset.id}_${safeName}`
       return {
         ...asset,
-        r2Key,
-        uploadUrl,
+        shareStoragePath,
         uploadStatus: 'pending', // pending | uploaded
       }
-    }))
+    })
 
     const totalSize = allAssets.reduce((sum, a) => sum + (a.fileSize || 0), 0)
 
