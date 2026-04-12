@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
-const VERSION = '1.4.0'
+const VERSION = '1.5.6'
 
 export default function DownloadPage({ showLogin }) {
   const { loginWithGoogle } = useAuth()
@@ -13,7 +13,8 @@ export default function DownloadPage({ showLogin }) {
     setLoginLoading(true)
     setLoginError(null)
     try {
-      await loginWithGoogle()
+      const result = await loginWithGoogle()
+      if (result === null) return // Android redirect
     } catch (err) {
       if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
         // 사용자 취소 — 에러 무시
@@ -43,15 +44,13 @@ export default function DownloadPage({ showLogin }) {
             >
               설명서
             </a>
-            {true && (
-              <button
-                onClick={handleGoogle}
-                disabled={loginLoading}
-                className="px-3.5 md:px-5 py-2 md:py-2.5 bg-[#F4A259] text-white text-xs md:text-sm font-bold rounded-full hover:bg-[#E8923A] transition-colors disabled:opacity-50 whitespace-nowrap"
-              >
-                {loginLoading ? '...' : '로그인 / 가입'}
-              </button>
-            )}
+            <button
+              onClick={handleGoogle}
+              disabled={loginLoading}
+              className="px-3.5 md:px-5 py-2 md:py-2.5 bg-[#F4A259] text-white text-xs md:text-sm font-bold rounded-full hover:bg-[#E8923A] transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {loginLoading ? '...' : '로그인 / 가입'}
+            </button>
             <a
               href={repoUrl}
               target="_blank"
@@ -67,9 +66,9 @@ export default function DownloadPage({ showLogin }) {
       {/* Hero */}
       <section className="pt-32 pb-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          {/* 눈 캐릭터 */}
+          {/* ASSI 로고 */}
           <div className="mb-6">
-            <img src="/logo/eyes.png" alt="ASSI" className="w-28 md:w-36 h-auto mx-auto" />
+            <img src="/logo/logo-full.png" alt="ASSI" className="w-32 md:w-40 h-auto mx-auto" />
           </div>
 
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-xs font-semibold text-gray-600 mb-8 shadow-sm border border-orange-100">
@@ -106,25 +105,23 @@ export default function DownloadPage({ showLogin }) {
             macOS 12+ / Windows 10+ · Apple 공증 완료 · 별도 설정 없이 바로 실행
           </p>
 
-          {true && (
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-400 mb-3">계정이 있거나 새로 시작하시나요?</p>
-              <button
-                onClick={handleGoogle}
-                disabled={loginLoading}
-                className="inline-flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm text-gray-700 hover:bg-gray-50 hover:shadow-lg transition-all shadow-sm disabled:opacity-50"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                {loginLoading ? '로그인 중...' : 'Google로 로그인 / 가입'}
-              </button>
-              {loginError && <p className="text-red-500 text-xs mt-2">{loginError}</p>}
-            </div>
-          )}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-400 mb-3">계정이 있거나 새로 시작하시나요?</p>
+            <button
+              onClick={handleGoogle}
+              disabled={loginLoading}
+              className="inline-flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm text-gray-700 hover:bg-gray-50 hover:shadow-lg transition-all shadow-sm disabled:opacity-50"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              {loginLoading ? '로그인 중...' : 'Google로 로그인 / 가입'}
+            </button>
+            {loginError && <p className="text-red-500 text-xs mt-2">{loginError}</p>}
+          </div>
         </div>
       </section>
 
@@ -157,7 +154,7 @@ export default function DownloadPage({ showLogin }) {
               <div className="w-20 h-20 rounded-[20px] bg-[#F4A259] shadow-xl flex items-center justify-center">
                 <img src="/logo/eyes.png" alt="ASSI" className="w-12 h-12 object-contain" />
               </div>
-              <span className="text-xs font-bold text-gray-700">ASSI</span>
+              <span className="text-xs font-bold text-gray-700">ASSI 데스크톱</span>
             </div>
 
             <div className="hidden md:flex items-center px-3">
@@ -168,137 +165,285 @@ export default function DownloadPage({ showLogin }) {
               <svg className="w-4 h-4 text-[#F4A259] rotate-90" viewBox="0 0 12 12" fill="currentColor"><polygon points="0,0 12,6 0,12" /></svg>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {[
-                { icon: '🗂️', label: '포트폴리오 정리', color: 'bg-orange-50 border-orange-200' },
-                { icon: '🌐', label: '포트폴리오 사이트 제작', color: 'bg-amber-50 border-amber-200' },
-                { icon: '📸', label: '인스타그램 업로드', color: 'bg-rose-50 border-rose-200' },
-              ].map((item) => (
-                <div key={item.label} className={`flex items-center gap-3 px-5 py-3 rounded-[16px] border-2 shadow-sm ${item.color}`}>
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-sm font-bold text-gray-800">{item.label}</span>
-                </div>
-              ))}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-20 h-20 rounded-[20px] bg-white shadow-lg border-2 border-gray-200 flex items-center justify-center">
+                <span className="text-3xl">🌐</span>
+              </div>
+              <span className="text-xs font-bold text-gray-700">웹 포트폴리오</span>
             </div>
           </div>
 
-          {/* Steps */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-[24px] p-6 shadow-md text-center">
+              <div className="text-2xl mb-3">1️⃣</div>
+              <p className="font-bold text-gray-900 text-sm mb-2">폴더 정리</p>
+              <p className="text-xs text-gray-400 leading-relaxed">기존에 쓰던 프로젝트 폴더를 그대로 사용</p>
+            </div>
+            <div className="bg-white rounded-[24px] p-6 shadow-md text-center">
+              <div className="text-2xl mb-3">2️⃣</div>
+              <p className="font-bold text-gray-900 text-sm mb-2">자동 동기화</p>
+              <p className="text-xs text-gray-400 leading-relaxed">데스크톱 앱이 폴더 변경을 감지해 클라우드에 업로드</p>
+            </div>
+            <div className="bg-white rounded-[24px] p-6 shadow-md text-center">
+              <div className="text-2xl mb-3">3️⃣</div>
+              <p className="font-bold text-gray-900 text-sm mb-2">웹에서 확인</p>
+              <p className="text-xs text-gray-400 leading-relaxed">브라우저에서 포트폴리오 편집 · PDF 제작 · 공유</p>
+            </div>
+          </div>
+
+          {/* 폴더 구조 안내 — 4칸 파인더 레이아웃 */}
+          <div className="mt-14 bg-white rounded-[24px] shadow-md overflow-hidden">
+            <div className="p-8 pb-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F4A259] mb-4">FOLDER STRUCTURE</p>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight" style={{ fontFamily: "'GmarketSansMedium'" }}>폴더 구조 = 자동 분류</h3>
+            </div>
+
+            {/* Finder window */}
+            <div className="mx-6 mb-6 border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              {/* Finder bar */}
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border-b border-gray-200">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+                <span className="ml-2 text-[11px] text-gray-400 font-medium">📂 내 포트폴리오</span>
+              </div>
+
+              {/* Column headers */}
+              <div className="grid grid-cols-4 border-b border-gray-100">
+                <div className="px-3 py-2 text-center text-[9px] font-bold tracking-wider uppercase bg-blue-50 text-blue-600 border-r border-gray-100">연결 폴더</div>
+                <div className="px-3 py-2 text-center text-[9px] font-bold tracking-wider uppercase bg-amber-50 text-amber-600 border-r border-gray-100">1차 — 분류</div>
+                <div className="px-3 py-2 text-center text-[9px] font-bold tracking-wider uppercase bg-purple-50 text-purple-600 border-r border-gray-100">중간 — _로 연결</div>
+                <div className="px-3 py-2 text-center text-[9px] font-bold tracking-wider uppercase bg-green-50 text-green-600">마지막 — 프로젝트</div>
+              </div>
+
+              {/* Finder items */}
+              <div className="grid grid-cols-4 border-b border-gray-100" style={{ minHeight: 110 }}>
+                <div className="border-r border-gray-100 py-1.5">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📂 내 포트폴리오</div>
+                </div>
+                <div className="border-r border-gray-100 py-1.5">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📂 FASHION</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📂 BEAUTY</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📂 VIDEO</div>
+                </div>
+                <div className="border-r border-gray-100 py-1.5">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📁 202603</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 pl-5 text-[11px] text-gray-600">📁 클리오</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 pl-8 text-[11px] text-gray-600">📁 모델촬영</div>
+                </div>
+                <div className="py-1.5">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📁 스틸이미지</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📁 비디오</div>
+                </div>
+              </div>
+
+              {/* Chart cells */}
+              <div className="grid grid-cols-4 border-b border-gray-100">
+                <div className="border-r border-gray-100 p-4 text-center">
+                  <div className="text-lg font-black text-blue-600 mb-1">연결 폴더</div>
+                  <div className="text-[10px] font-bold text-gray-400 mb-2">동기화 루트</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">ASSI Sync<br/>프로그램과<br/>연결되는 폴더</div>
+                </div>
+                <div className="border-r border-gray-100 p-4 text-center">
+                  <div className="text-lg font-black text-amber-600 mb-1">1차 폴더</div>
+                  <div className="text-[10px] font-bold text-gray-400 mb-2">분류</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">연결 폴더 바로 아래<br/>1차 폴더는<br/><strong className="text-gray-700">자동으로 분류</strong>로<br/>인식됨</div>
+                  <div className="mt-2 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] font-bold text-amber-600" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>FASHION<br/>BEAUTY<br/>VIDEO</div>
+                  </div>
+                </div>
+                <div className="border-r border-gray-100 p-4 text-center">
+                  <div className="text-lg font-black text-purple-600 mb-1">중간 폴더</div>
+                  <div className="text-[10px] font-bold text-gray-400 mb-2">_로 연결</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">1차 폴더와<br/>마지막 폴더 사이의<br/>폴더 이름은<br/><strong className="text-purple-600">_</strong>로 연결</div>
+                  <div className="mt-2 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] font-bold" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>202603 / 클리오 / 모델촬영</div>
+                    <div className="mt-1 text-[9px] font-bold text-purple-600">→ 202603_클리오_모델촬영_</div>
+                  </div>
+                </div>
+                <div className="p-4 text-center">
+                  <div className="text-lg font-black text-green-600 mb-1">마지막 폴더</div>
+                  <div className="text-[10px] font-bold text-gray-400 mb-2">프로젝트명</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">파일이 있는<br/>마지막 폴더가<br/>프로젝트명이 됨</div>
+                  <div className="mt-2 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[8px] font-bold text-gray-300 tracking-wider uppercase mb-1">최종 프로젝트 명</div>
+                    <div className="text-[10px] font-bold text-green-600" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>202603_클리오_모델촬영_스틸이미지</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Result */}
+              <div className="p-4 bg-green-50 border-t-2 border-dashed border-green-200">
+                <div className="text-[9px] font-bold text-green-600 tracking-wider uppercase mb-1">결과</div>
+                <p className="text-[11px] leading-relaxed">
+                  📂 내 포트폴리오 / <strong className="text-amber-600">FASHION</strong> / 202603 / 클리오 / 모델촬영 / <strong>스틸이미지</strong> / photo.jpg
+                </p>
+                <p className="text-[11px]">
+                  → 분류: <strong>FASHION</strong> | 프로젝트: <strong>202603_클리오_모델촬영_스틸이미지</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F4A259] mb-3">FEATURES</p>
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight" style={{ fontFamily: "'GmarketSansMedium'" }}>
+              포트폴리오의 모든 것,<br className="md:hidden" /> 하나의 서비스로
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* 포트폴리오 편집 */}
+            <div className="bg-[#FAFAFA] rounded-[28px] p-8 group hover:shadow-lg transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-[#F4A259]/10 flex items-center justify-center mb-5">
+                <span className="text-2xl">🎨</span>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">드래그 앤 드롭 편집</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                프로젝트를 드래그해서 배치하고, 크기를 조절해 나만의 그리드 레이아웃을 만드세요. 모바일에서도 터치로 편집 가능.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">타일 크기 조절</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">드래그 이동</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">자동 정렬</span>
+              </div>
+            </div>
+
+            {/* PDF 제작 */}
+            <div className="bg-[#FAFAFA] rounded-[28px] p-8 group hover:shadow-lg transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+                <span className="text-2xl">📄</span>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">PDF 포트폴리오</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                클릭 한 번으로 포트폴리오를 PDF로 변환. 클라이언트에게 바로 보낼 수 있는 깔끔한 결과물.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">원클릭 생성</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">고해상도</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">커스텀 레이아웃</span>
+              </div>
+            </div>
+
+            {/* 링크 공유 */}
+            <div className="bg-[#FAFAFA] rounded-[28px] p-8 group hover:shadow-lg transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
+                <span className="text-2xl">🔗</span>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">포트폴리오 공유</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                나만의 포트폴리오 링크를 생성해 클라이언트, 에이전시에 바로 공유. 항상 최신 작업물이 반영됩니다.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">고유 URL</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">실시간 반영</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">비밀번호 설정</span>
+              </div>
+            </div>
+
+            {/* 무압축 전송 */}
+            <div className="bg-[#FAFAFA] rounded-[28px] p-8 group hover:shadow-lg transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-5">
+                <span className="text-2xl">📦</span>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">무압축 파일 전송</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                대용량 원본 파일을 압축 없이 그대로 전송. 클라이언트가 다운로드 링크로 바로 받을 수 있습니다.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">원본 화질</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">대용량 지원</span>
+                <span className="px-3 py-1 bg-white rounded-full text-[11px] font-bold text-gray-500 shadow-sm">7일 자동 만료</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 영상 지원 */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[32px] p-10 md:p-14 text-center text-white shadow-2xl">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 rounded-full text-xs font-bold mb-6 backdrop-blur">
+              <span className="text-sm">🎬</span> VIDEO SUPPORT
+            </div>
+            <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-4" style={{ fontFamily: "'GmarketSansMedium'" }}>
+              영상도 그대로 업로드
+            </h3>
+            <p className="text-sm md:text-base text-gray-400 max-w-lg mx-auto leading-relaxed mb-8">
+              수 GB 영상도 원본 그대로 업로드. 자동 인코딩으로 웹에서 바로 재생되고,<br className="hidden md:block" />
+              썸네일도 자동 생성됩니다.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <span className="px-4 py-2 bg-white/10 rounded-full text-xs font-bold backdrop-blur">MP4 · MOV · AVI</span>
+              <span className="px-4 py-2 bg-white/10 rounded-full text-xs font-bold backdrop-blur">자동 인코딩</span>
+              <span className="px-4 py-2 bg-white/10 rounded-full text-xs font-bold backdrop-blur">썸네일 자동 생성</span>
+              <span className="px-4 py-2 bg-white/10 rounded-full text-xs font-bold backdrop-blur">스트리밍 재생</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 타겟 사용자 */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F4A259] mb-3">WHO IS IT FOR</p>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-12" style={{ fontFamily: "'GmarketSansMedium'" }}>
+            이런 분들을 위해 만들었어요
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '01', title: '폴더 동기화', desc: '기존 포트폴리오 폴더 그대로\nASSI가 정리해드릴게요' },
-              { step: '02', title: '포트폴리오,\n인스타그램 관리', desc: '폴더만 관리하면\n포트폴리오 제작/공유부터\n인스타그램 업로드까지 한번에' },
-              { step: '03', title: '자동 업데이트', desc: '기존 폴더에만 업데이트하시면\n자동으로 동기화' },
-            ].map((item) => (
-              <div key={item.step} className="bg-white rounded-[24px] p-7 shadow-sm border border-orange-100">
-                <span className="text-xs font-black tracking-[0.15em] text-[#F4A259] uppercase">STEP {item.step}</span>
-                <h3 className="text-xl font-black text-gray-900 mt-3 mb-2 tracking-tight whitespace-pre-line" style={{ fontFamily: "'GmarketSansMedium'" }}>{item.title}</h3>
-                <p className="text-sm text-gray-500 whitespace-pre-line">{item.desc}</p>
+              { emoji: '📸', title: '사진작가', desc: '촬영 결과물 정리 · 공유' },
+              { emoji: '🎥', title: '영상 크리에이터', desc: '대용량 영상 포트폴리오' },
+              { emoji: '🎨', title: '디자이너', desc: '프로젝트별 작업물 관리' },
+              { emoji: '💼', title: '프리랜서', desc: '클라이언트 제안용 PDF' },
+            ].map((item, i) => (
+              <div key={i} className="bg-[#FAFAFA] rounded-[20px] p-6 text-center">
+                <div className="text-3xl mb-3">{item.emoji}</div>
+                <p className="font-bold text-gray-900 text-sm mb-1">{item.title}</p>
+                <p className="text-xs text-gray-400">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F4A259] mb-3">FEATURES</p>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight" style={{ fontFamily: "'GmarketSansMedium'" }}>모든 기능</h2>
-          </div>
-
-          {/* 폴더링 → 자동 분류 → 웹사이트 */}
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-orange-100 mb-6">
-            <div className="p-8 md:p-12 pb-0 md:pb-0">
-              <span className="text-xs font-black uppercase tracking-[0.15em] text-[#F4A259]">FOLDER → PORTFOLIO</span>
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mt-3 mb-3" style={{ fontFamily: "'GmarketSansMedium'" }}>
-                내 컴퓨터 폴더 관리만 하면<br />업로드부터 분류, 웹사이트 제작까지 한번에
-              </h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                1단계 폴더는 카테고리, 2단계 폴더는 프로젝트가 됩니다.<br />데스크톱 앱이 자동으로 분류·업로드·썸네일까지 처리해요.
-              </p>
-            </div>
-            <div className="mt-8 px-4 md:px-8 grid md:grid-cols-2 gap-4">
-              <img src="/landing-folders.png" alt="폴더 구조" className="w-full rounded-t-2xl border border-b-0 border-gray-200 shadow-lg" />
-              <img src="/landing-projects.png" alt="웹 프로젝트 화면" className="w-full rounded-t-2xl border border-b-0 border-gray-200 shadow-lg" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-orange-100 mb-6">
-            <div className="p-8 md:p-12 pb-0 md:pb-0">
-              <span className="text-xs font-black uppercase tracking-[0.15em] text-[#F4A259]">WEB PORTFOLIO</span>
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mt-3 mb-3" style={{ fontFamily: "'GmarketSansMedium'" }}>나만의 포트폴리오 웹사이트</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">에디터에서 설정하면 실시간 프리뷰로 바로 확인.<br />링크 하나로 클라이언트에게 공유하세요.</p>
-            </div>
-            <div className="mt-8 px-4 md:px-8 grid md:grid-cols-2 gap-4">
-              <img src="/screenshots/editor.png" alt="포트폴리오 에디터" className="w-full rounded-t-2xl md:rounded-2xl border border-gray-200 shadow-lg" />
-              <img src="/screenshots/portfolio.png" alt="포트폴리오 공개 페이지" className="w-full rounded-t-2xl md:rounded-2xl border border-gray-200 shadow-lg" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-orange-100 mb-6">
-            <div className="p-8 md:p-12 pb-0 md:pb-0">
-              <span className="text-xs font-black uppercase tracking-[0.15em] text-[#F4A259]">PROJECTS</span>
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mt-3 mb-3" style={{ fontFamily: "'GmarketSansMedium'" }}>프로젝트 관리</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">폴더가 곧 프로젝트. 카테고리, 검색, 일괄 편집.</p>
-            </div>
-            <div className="mt-8 px-4 md:px-8">
-              <img src="/screenshots/projects.png" alt="프로젝트 관리" className="w-full rounded-t-2xl border border-b-0 border-gray-200 shadow-lg" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-orange-100">
-            <div className="p-8 md:p-12 pb-0 md:pb-0">
-              <span className="text-xs font-black uppercase tracking-[0.15em] text-[#F4A259]">PDF EXPORT</span>
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mt-3 mb-3" style={{ fontFamily: "'GmarketSansMedium'" }}>PDF 포트폴리오</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">템플릿 선택, 프로젝트 선택, 브랜딩 설정.<br />클릭 한 번으로 인쇄용 포트폴리오 PDF를 생성합니다.</p>
-            </div>
-            <div className="mt-8 px-4 md:px-8">
-              <img src="/screenshots/pdf.png" alt="PDF 포트폴리오 빌더" className="w-full rounded-t-2xl border border-b-0 border-gray-200 shadow-lg" />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="py-20 px-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="bg-[#F4A259] rounded-[32px] p-12 md:p-16 shadow-2xl relative overflow-hidden">
-            {/* 배경 눈 장식 */}
-            <div className="absolute top-6 right-8 opacity-15">
-              <img src="/logo/eyes.png" alt="" className="w-28 h-auto" />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4 relative" style={{ fontFamily: "'GmarketSansMedium'" }}>
-              지금 시작하세요
-            </h2>
-            <p className="text-white/70 mb-10 text-base relative">
-              무료로 다운로드하고, 작업물을 한곳에서 관리하세요.
-            </p>
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-4" style={{ fontFamily: "'GmarketSansMedium'" }}>
+            지금 바로 시작하세요
+          </h2>
+          <p className="text-sm text-gray-500 mb-8">무료로 시작 · 설치 후 바로 사용</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href={repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative inline-flex items-center gap-2 px-10 py-4 bg-white text-gray-900 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg"
             >
-              무료 다운로드
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
+              다운로드 <span className="text-xs opacity-60 font-normal">v{VERSION}</span>
             </a>
+            <button
+              onClick={handleGoogle}
+              disabled={loginLoading}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#F4A259] text-white rounded-2xl font-bold hover:bg-[#E8923A] transition-all shadow-lg disabled:opacity-50"
+            >
+              {loginLoading ? '...' : '웹에서 시작하기'}
+            </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 border-t border-orange-100">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img src="/logo/eyes.png" alt="ASSI" className="w-6 h-6 object-contain" />
-            <span className="text-sm font-bold text-gray-900">ASSI</span>
-          </div>
-          <span className="text-xs text-gray-400">© 2025 ASSI. All rights reserved.</span>
-        </div>
-      </footer>
+      <div className="text-center pb-8">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-gray-300 font-semibold">ASSI &copy; {new Date().getFullYear()}</p>
+      </div>
     </div>
   )
 }
