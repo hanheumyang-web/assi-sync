@@ -350,9 +350,8 @@ function switchTab(tab) {
   document.getElementById('tab-explorer').style.background = isExp ? '#111' : '#fff'
   document.getElementById('tab-explorer').style.color = isExp ? '#fff' : '#666'
   document.getElementById('explorer-pane').style.display = isExp ? 'block' : 'none'
-  document.getElementById('file-list').style.display = isExp ? 'none' : 'flex'
-  document.getElementById('synced-section').style.display = isExp ? 'none' : ''
-  document.getElementById('pending-section').style.display = isExp ? 'none' : ''
+  document.getElementById('activity-pane').style.display = isExp ? 'none' : 'flex'
+  document.getElementById('activity-pane').style.flexDirection = 'column'
   if (isExp) refreshExplorer()
 }
 

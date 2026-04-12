@@ -96,8 +96,11 @@
 
     /* ── File List (Google Drive style) ── */
     .file-list {
-      flex: 1; overflow-y: auto; padding: 8px 0;
+      padding: 8px 0;
     }
+    #activity-pane { flex: 1; overflow-y: auto; min-height: 0; }
+    #activity-pane::-webkit-scrollbar { width: 4px; }
+    #activity-pane::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
     .file-item {
       display: flex; align-items: center; gap: 12px;
       padding: 10px 24px; transition: background 0.15s;
@@ -408,18 +411,20 @@
       <button id="tab-explorer" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">탐색기</button>
     </div>
     <div id="explorer-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
-    <div id="synced-section" class="pending-section" style="display:none">
-      <div class="pending-header">업로드 완료</div>
-      <div id="synced-list"></div>
-    </div>
-    <div id="pending-section" class="pending-section" style="display:none">
-      <div class="pending-header">대기 중인 폴더</div>
-      <div id="pending-list"></div>
-    </div>
-    <div class="file-list" id="file-list">
-      <div class="empty-state">
-        <span>📂</span>
-        <p>파일을 감지하는 중...</p>
+    <div id="activity-pane" style="flex:1;overflow-y:auto;min-height:0">
+      <div id="synced-section" class="pending-section" style="display:none">
+        <div class="pending-header">업로드 완료</div>
+        <div id="synced-list"></div>
+      </div>
+      <div id="pending-section" class="pending-section" style="display:none">
+        <div class="pending-header">대기 중인 폴더</div>
+        <div id="pending-list"></div>
+      </div>
+      <div class="file-list" id="file-list">
+        <div class="empty-state">
+          <span>📂</span>
+          <p>파일을 감지하는 중...</p>
+        </div>
       </div>
     </div>
     <div class="summary-bar" id="summary-bar" style="display:none">
