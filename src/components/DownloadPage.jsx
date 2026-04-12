@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
-const VERSION = '1.5.6'
+const VERSION = '1.5.7'
 
 export default function DownloadPage({ showLogin }) {
   const { loginWithGoogle } = useAuth()

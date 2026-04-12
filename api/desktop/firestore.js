@@ -139,12 +139,13 @@ export default async function handler(req, res) {
       // ── Share Upload (무압축 공유) ──
 
       case 'getPendingShares': {
+        // uid 단일 조건만 사용 (복합 인덱스 불필요)
         const snap = await firestore.collection('shares')
           .where('uid', '==', uid)
-          .where('status', '==', 'pending_upload')
-          .limit(10)
           .get()
-        const shares = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        const shares = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(s => s.status === 'pending_upload')
         return res.json({ shares })
       }
 
