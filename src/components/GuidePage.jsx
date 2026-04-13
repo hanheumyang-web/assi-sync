@@ -325,15 +325,15 @@ export default function GuidePage() {
           <Accordion title="다운로드 & 설치" icon="💻">
             <p>Mac과 Windows 모두 지원합니다.</p>
             <div className="flex flex-wrap gap-2">
-              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Windows-1.4.0.exe" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-gray-700 transition-colors">
+              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Windows-1.5.5.exe" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-gray-700 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
                 Windows 다운로드
               </a>
-              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Mac-1.4.0-arm64.zip" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-gray-700 transition-colors">
+              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Mac-1.5.5-arm64.zip" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-gray-700 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
                 Mac (Apple Silicon)
               </a>
-              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Mac-1.4.0-x64.zip" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-700 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition-colors">
+              <a href="https://github.com/hanheumyang-web/assi-sync/releases/latest/download/ASSI-Sync-Mac-1.5.5-x64.zip" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-700 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
                 Mac (Intel)
               </a>
@@ -441,27 +441,102 @@ export default function GuidePage() {
 
           <Accordion title="폴더 구조 = 자동 분류" icon="🗂️">
             <p>ASSI Sync는 폴더 구조를 자동으로 인식합니다.</p>
-            <MockupWindow title="폴더 구조 예시">
-              <div className="p-4 bg-white font-mono text-xs leading-loose relative">
-                <div className="absolute top-3 right-3 flex flex-col gap-1">
-                  <span className="flex items-center gap-1 text-[8px] text-[#F4A259] font-bold"><R n="1" /> 카테고리</span>
-                  <span className="flex items-center gap-1 text-[8px] text-blue-600 font-bold"><R n="2" /> 프로젝트</span>
-                </div>
-                <p>📁 포트폴리오/</p>
-                <p className="pl-5">📁 <span className="text-[#F4A259] font-bold bg-orange-50 px-1 rounded">FASHION</span>/</p>
-                <p className="pl-10">📁 <span className="text-blue-600 font-bold bg-blue-50 px-1 rounded">브랜드A 룩북</span>/</p>
-                <p className="pl-14 text-gray-400">photo_001.jpg, photo_002.jpg ...</p>
-                <p className="pl-10">📁 <span className="text-blue-600 font-bold bg-blue-50 px-1 rounded">매거진 화보</span>/</p>
-                <p className="pl-14 text-gray-400">img_01.jpg, video_01.mp4 ...</p>
-                <p className="pl-5">📁 <span className="text-[#F4A259] font-bold bg-orange-50 px-1 rounded">BEAUTY</span>/</p>
-                <p className="pl-10">📁 <span className="text-blue-600 font-bold bg-blue-50 px-1 rounded">뷰티 캠페인</span>/</p>
-                <p className="pl-14 text-gray-400">...</p>
+
+            {/* 4-column finder view */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+              {/* Finder bar */}
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border-b border-gray-200">
+                <div className="w-2 h-2 rounded-full bg-[#FF5F57]" />
+                <div className="w-2 h-2 rounded-full bg-[#FFBD2E]" />
+                <div className="w-2 h-2 rounded-full bg-[#28C840]" />
+                <span className="ml-2 text-[10px] text-gray-400 font-medium">📂 내 포트폴리오</span>
               </div>
-            </MockupWindow>
-            <Step number="1"><p><strong className="text-[#F4A259]">1단계 폴더</strong> = 카테고리 (FASHION, BEAUTY 등)</p></Step>
-            <Step number="2"><p><strong className="text-blue-600">2단계 폴더</strong> = 프로젝트 (브랜드A 룩북, 매거진 화보 등)</p></Step>
+
+              {/* Column headers */}
+              <div className="grid grid-cols-4 border-b border-gray-100">
+                <div className="px-2 py-1.5 text-center text-[9px] font-bold tracking-wider uppercase bg-blue-50 text-blue-600 border-r border-gray-100">연결 폴더</div>
+                <div className="px-2 py-1.5 text-center text-[9px] font-bold tracking-wider uppercase bg-amber-50 text-amber-600 border-r border-gray-100">1차 — 분류</div>
+                <div className="px-2 py-1.5 text-center text-[9px] font-bold tracking-wider uppercase bg-purple-50 text-purple-600 border-r border-gray-100">중간 — _로 연결</div>
+                <div className="px-2 py-1.5 text-center text-[9px] font-bold tracking-wider uppercase bg-green-50 text-green-600">마지막 — 프로젝트</div>
+              </div>
+
+              {/* Finder items */}
+              <div className="grid grid-cols-4 border-b border-gray-100" style={{ minHeight: 120 }}>
+                <div className="border-r border-gray-100 py-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📂 내 포트폴리오</div>
+                </div>
+                <div className="border-r border-gray-100 py-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📂 FASHION</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📂 BEAUTY</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📂 VIDEO</div>
+                </div>
+                <div className="border-r border-gray-100 py-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📁 202603</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 pl-5 text-[11px] text-gray-600">📁 클리오</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 pl-8 text-[11px] text-gray-600">📁 모델촬영</div>
+                </div>
+                <div className="py-1">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 bg-blue-500 text-white rounded text-[11px] font-medium">📁 스틸이미지</div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 mx-1 text-[11px] text-gray-600">📁 비디오</div>
+                </div>
+              </div>
+
+              {/* Chart cells */}
+              <div className="grid grid-cols-4 border-b border-gray-100">
+                <div className="border-r border-gray-100 p-3 text-center">
+                  <div className="text-base font-black text-blue-600 mb-1">연결 폴더</div>
+                  <div className="text-[11px] font-bold text-gray-400 mb-2">동기화 루트</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">ASSI Sync<br/>프로그램과<br/>연결되는 폴더</div>
+                  <div className="mt-3 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[8px] font-bold text-gray-300 tracking-wider uppercase mb-1">설정</div>
+                    <div className="text-[11px] font-bold">📂 내 포트폴리오</div>
+                  </div>
+                </div>
+                <div className="border-r border-gray-100 p-3 text-center">
+                  <div className="text-base font-black text-amber-600 mb-1">1차 폴더</div>
+                  <div className="text-[11px] font-bold text-gray-400 mb-2">분류</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">연결 폴더 바로 아래<br/>1차 폴더는<br/><strong className="text-gray-700">자동으로 분류</strong>로<br/>인식됨</div>
+                  <div className="mt-3 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[8px] font-bold text-gray-300 tracking-wider uppercase mb-1">ex)</div>
+                    <div className="text-[11px] font-bold text-amber-600" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>FASHION<br/>BEAUTY<br/>VIDEO</div>
+                  </div>
+                </div>
+                <div className="border-r border-gray-100 p-3 text-center">
+                  <div className="text-base font-black text-purple-600 mb-1">중간 폴더</div>
+                  <div className="text-[11px] font-bold text-gray-400 mb-2">_로 연결</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">1차 폴더와<br/>마지막 폴더 사이의<br/>폴더 이름은<br/><strong className="text-purple-600">_</strong>로 연결</div>
+                  <div className="mt-3 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[8px] font-bold text-gray-300 tracking-wider uppercase mb-1">ex) FASHION 안의</div>
+                    <div className="text-[11px] font-bold" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>202603 / 클리오 / 모델촬영</div>
+                    <div className="mt-1 text-[10px] font-bold text-purple-600">→ 202603_클리오_모델촬영_</div>
+                  </div>
+                </div>
+                <div className="p-3 text-center">
+                  <div className="text-base font-black text-green-600 mb-1">마지막 폴더</div>
+                  <div className="text-[11px] font-bold text-gray-400 mb-2">프로젝트명</div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">파일이 있는<br/>마지막 폴더가<br/>프로젝트명이 됨</div>
+                  <div className="mt-3 bg-gray-50 rounded-lg p-2">
+                    <div className="text-[8px] font-bold text-gray-300 tracking-wider uppercase mb-1">최종 프로젝트 명</div>
+                    <div className="text-[10px] font-bold text-green-600" style={{ fontFamily: "'SF Mono','Consolas',monospace" }}>202603_클리오_모델촬영_스틸이미지</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Result */}
+              <div className="p-3 bg-green-50 border-t-2 border-dashed border-green-200">
+                <div className="text-[9px] font-bold text-green-600 tracking-wider uppercase mb-1">결과</div>
+                <p className="text-[11px] leading-relaxed">
+                  📂 내 포트폴리오 / <strong className="text-amber-600">FASHION</strong> / 202603 / 클리오 / 모델촬영 / <strong>스틸이미지</strong> / photo.jpg
+                </p>
+                <p className="text-[11px]">
+                  → 분류: <strong>FASHION</strong> | 프로젝트: <strong>202603_클리오_모델촬영_스틸이미지</strong>
+                </p>
+              </div>
+            </div>
+
             <p className="text-xs text-gray-400">기본 카테고리: <Kbd>FASHION</Kbd> <Kbd>BEAUTY</Kbd> <Kbd>CELEBRITY</Kbd> <Kbd>AD</Kbd> <Kbd>PORTRAIT</Kbd> <Kbd>PERSONAL WORK</Kbd></p>
             <p className="text-xs text-gray-400">위에 없는 폴더명은 커스텀 카테고리로 자동 등록됩니다.</p>
+            <p className="text-xs text-gray-400">폴더가 2단계뿐이면 (분류/프로젝트/파일) 그대로 프로젝트명으로 인식됩니다.</p>
           </Accordion>
 
           <Accordion title="자동 업데이트" icon="🔄">
@@ -469,7 +544,7 @@ export default function GuidePage() {
               <div className="p-3 bg-gray-900 text-white flex items-center gap-3 relative">
                 <CheckLabel top={4} left={4} />
                 <div className="flex-1 pl-6">
-                  <div className="text-[9px] font-bold">새 버전이 있습니다 (v1.4.0)</div>
+                  <div className="text-[9px] font-bold">새 버전이 있습니다 (v1.5.5)</div>
                   <div className="mt-1 w-full bg-gray-700 rounded-full h-1.5">
                     <div className="bg-green-400 h-1.5 rounded-full" style={{ width: '100%' }} />
                   </div>

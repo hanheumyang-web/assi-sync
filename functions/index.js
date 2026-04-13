@@ -309,7 +309,7 @@ exports.bunnyWebhook = functions
         // Bunny CDN에서 썸네일 다운로드 (Referer 필수 — Hotlink Protection)
         const thumbUrl = `https://vz-cd1dda72-832.b-cdn.net/${VideoGuid}/${thumbFileName}`
         const thumbRes = await fetch(thumbUrl, {
-          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
+          headers: { 'Referer': 'https://assifolio.com' },
         })
 
         if (thumbRes.ok) {
@@ -453,6 +453,297 @@ exports.generateThumbs = functions
   })
 
 /**
+ * 영상 asset의 url 필드 복구 + bunnyStatus 일괄 확인/수정
+ * GET https://asia-northeast3-assi-app-6ea04.cloudfunctions.net/fixVideoUrls
+ */
+exports.fixVideoUrls = functions
+  .region('asia-northeast3')
+  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .https.onRequest(async (req, res) => {
+    const BUCKET_NAME = bucket.name
+    const diagnose = req.query.diagnose === 'true'
+    const projectName = req.query.project || null
+    const deleteIds = req.query.deleteIds || null   // 쉼표 구분 에셋 ID → Firestore 삭제
+
+    // deleteIds 모드: 지정된 에셋 문서 삭제 (onAssetDelete 트리거가 Bunny 정리)
+    if (deleteIds) {
+      const ids = deleteIds.split(',').map(s => s.trim()).filter(Boolean)
+      const deleted = []
+      for (const id of ids) {
+        try {
+          const ref = db.collection('assets').doc(id)
+          const snap = await ref.get()
+          if (snap.exists) {
+            await ref.delete()
+            deleted.push({ id, status: 'deleted', fileName: snap.data().fileName })
+          } else {
+            deleted.push({ id, status: 'not_found' })
+          }
+        } catch (e) {
+          deleted.push({ id, status: 'error', message: e.message })
+        }
+      }
+      return res.json({ action: 'delete', total: ids.length, deleted })
+    }
+
+    const projectId = req.query.projectId || null
+
+    let snap
+    if (projectId) {
+      // projectId로 직접 조회
+      snap = await db.collection('assets').where('projectId', '==', projectId).get()
+    } else if (projectName) {
+      // 특정 프로젝트의 영상만 확인
+      const projSnap = await db.collection('projects').where('name', '==', projectName).limit(1).get()
+      if (projSnap.empty) return res.json({ error: 'project not found' })
+      snap = await db.collection('assets').where('projectId', '==', projSnap.docs[0].id).get()
+    } else {
+      // isVideo=true 또는 videoHost='bunny'인 에셋 모두 조회
+      const [snap1, snap2] = await Promise.all([
+        db.collection('assets').where('isVideo', '==', true).get(),
+        db.collection('assets').where('videoHost', '==', 'bunny').get(),
+      ])
+      const merged = new Map()
+      snap1.docs.forEach(d => merged.set(d.id, d))
+      snap2.docs.forEach(d => merged.set(d.id, d))
+      snap = { docs: [...merged.values()], size: merged.size }
+    }
+
+    const results = []
+    for (const d of snap.docs) {
+      const data = d.data()
+      const isVideo = data.isVideo || (data.fileType && data.fileType.startsWith('video/')) || data.videoHost === 'bunny' || !!data.embedUrl
+
+      // diagnose 모드: 모든 에셋 정보 출력
+      if (diagnose) {
+        const info = {
+          id: d.id,
+          fileName: data.fileName,
+          isVideo,
+          fileType: data.fileType || null,
+          videoHost: data.videoHost || null,
+          bunnyVideoId: data.bunnyVideoId || null,
+          bunnyStatus: data.bunnyStatus || null,
+          url: data.url ? data.url.substring(0, 120) + '...' : null,
+          embedUrl: data.embedUrl || null,
+          storagePath: data.storagePath || null,
+        }
+        results.push(info)
+        continue
+      }
+
+      // 영상 에셋만 처리
+      if (!isVideo) continue
+
+      const updates = {}
+
+      // 1) url 복구: Storage 파일 메타데이터에서 download token 추출 → 영구 URL 생성
+      if (data.storagePath) {
+        try {
+          const file = bucket.file(data.storagePath)
+          const [exists] = await file.exists()
+          if (exists) {
+            const [metadata] = await file.getMetadata()
+            let token = metadata.metadata && metadata.metadata.firebaseStorageDownloadTokens
+            if (!token) {
+              // download token이 없으면 새로 생성
+              token = require('crypto').randomUUID()
+              await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } })
+            }
+            const encodedPath = encodeURIComponent(data.storagePath)
+            updates.url = `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodedPath}?alt=media&token=${token}`
+          } else {
+            results.push({ id: d.id, warning: 'storage file not found', storagePath: data.storagePath })
+          }
+        } catch (e) {
+          results.push({ id: d.id, error: 'url fix failed: ' + e.message })
+        }
+      }
+
+      // 2) bunnyStatus 확인/수정
+      if (data.bunnyVideoId && data.bunnyStatus !== 'ready') {
+        try {
+          const infoRes = await fetch(
+            `${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${data.bunnyVideoId}`,
+            { headers: { 'AccessKey': BUNNY_API_KEY } }
+          )
+          const info = await infoRes.json()
+          if (info.status === 4) {
+            updates.bunnyStatus = 'ready'
+            updates.bunnyEncodedAt = new Date().toISOString()
+          } else if (info.status === 5) {
+            updates.bunnyStatus = 'error'
+          }
+          results.push({ id: d.id, videoId: data.bunnyVideoId, bunnyApiStatus: info.status, updates: Object.keys(updates) })
+        } catch (e) {
+          results.push({ id: d.id, error: e.message })
+        }
+      } else if (Object.keys(updates).length > 0) {
+        results.push({ id: d.id, updates: Object.keys(updates) })
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await d.ref.update(updates)
+      }
+    }
+
+    res.json({ total: snap.size, fixed: results.length, results })
+  })
+
+/**
+ * Bunny 에셋 문서 수동 생성/업데이트 (1회용)
+ * 호출: POST .../createBunnyAsset  body: { uid, projectId, fileName, bunnyVideoId, storagePath?, url? }
+ */
+exports.createBunnyAsset = functions
+  .region('asia-northeast3')
+  .runWith({ timeoutSeconds: 30, memory: '128MB' })
+  .https.onRequest(async (req, res) => {
+    const items = req.body.items || [req.body]
+    const results = []
+    for (const item of items) {
+      const { uid, projectId, fileName, bunnyVideoId, storagePath, url } = item
+      if (!uid || !projectId || !bunnyVideoId) {
+        results.push({ error: 'missing uid/projectId/bunnyVideoId' })
+        continue
+      }
+      const ref = await db.collection('assets').add({
+        uid, projectId, fileName: fileName || 'video.mp4',
+        fileType: 'video/mp4', isVideo: true,
+        videoHost: 'bunny', bunnyVideoId,
+        embedUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${bunnyVideoId}`,
+        bunnyStatus: 'processing',
+        bunnyUploadedAt: new Date().toISOString(),
+        storagePath: storagePath || null,
+        url: url || null,
+        createdAt: new Date().toISOString(),
+      })
+      results.push({ id: ref.id, bunnyVideoId, fileName })
+    }
+    res.json({ created: results })
+  })
+
+/**
+ * Bunny 인코딩 실패 영상 재업로드 (Bunny fetch API 사용 — 메모리 무관)
+ * 호출: GET .../reuploadToBunny?assetIds=id1,id2  (쉼표 구분)
+ *       GET .../reuploadToBunny?all=true           (bunnyStatus=error 전체)
+ *
+ * 1) 기존 Bunny 영상 삭제 (있으면)
+ * 2) Bunny에 새 영상 생성
+ * 3) Bunny fetch API로 Storage URL에서 직접 다운로드 → 인코딩
+ * 4) Asset 문서 업데이트 (새 bunnyVideoId, status=processing)
+ * 5) 인코딩 완료 시 bunnyWebhook이 status=ready로 업데이트
+ */
+exports.reuploadToBunny = functions
+  .region('asia-northeast3')
+  .runWith({ timeoutSeconds: 300, memory: '256MB' })
+  .https.onRequest(async (req, res) => {
+    const assetIds = req.query.assetIds ? req.query.assetIds.split(',').map(s => s.trim()).filter(Boolean) : []
+    const all = req.query.all === 'true'
+
+    let docs = []
+    if (all) {
+      const snap = await db.collection('assets').where('bunnyStatus', '==', 'error').get()
+      docs = snap.docs
+    } else if (assetIds.length > 0) {
+      for (const id of assetIds) {
+        const snap = await db.collection('assets').doc(id).get()
+        if (snap.exists) docs.push(snap)
+      }
+    } else {
+      return res.json({ error: 'assetIds 또는 all=true 필요' })
+    }
+
+    const results = []
+    for (const d of docs) {
+      const data = d.data()
+      const BUCKET_NAME = bucket.name
+
+      // Storage URL 필요
+      if (!data.storagePath) {
+        results.push({ id: d.id, error: 'no storagePath' })
+        continue
+      }
+
+      // Storage URL 생성 (download token 사용)
+      let downloadUrl = data.url
+      if (!downloadUrl) {
+        try {
+          const file = bucket.file(data.storagePath)
+          const [exists] = await file.exists()
+          if (!exists) { results.push({ id: d.id, error: 'storage file not found' }); continue }
+          const [metadata] = await file.getMetadata()
+          let token = metadata.metadata && metadata.metadata.firebaseStorageDownloadTokens
+          if (!token) {
+            token = require('crypto').randomUUID()
+            await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } })
+          }
+          downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodeURIComponent(data.storagePath)}?alt=media&token=${token}`
+        } catch (e) {
+          results.push({ id: d.id, error: 'url generation failed: ' + e.message })
+          continue
+        }
+      }
+
+      try {
+        // 1) 기존 Bunny 영상 삭제 (있으면)
+        if (data.bunnyVideoId) {
+          try {
+            await fetch(`${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${data.bunnyVideoId}`, {
+              method: 'DELETE',
+              headers: { 'AccessKey': BUNNY_API_KEY },
+            })
+          } catch (_) { /* 삭제 실패해도 진행 */ }
+        }
+
+        // 2) Bunny에 새 영상 생성
+        const createRes = await fetch(`${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos`, {
+          method: 'POST',
+          headers: { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: data.fileName || d.id }),
+        })
+        const createData = await createRes.json()
+        const newVideoId = createData.guid
+        if (!newVideoId) {
+          results.push({ id: d.id, error: 'bunny create failed', response: createData })
+          continue
+        }
+
+        // 3) Bunny fetch API — Bunny가 Storage URL에서 직접 다운로드
+        const fetchRes = await fetch(`${BUNNY_API_BASE}/${BUNNY_LIBRARY_ID}/videos/${newVideoId}/fetch`, {
+          method: 'POST',
+          headers: { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: downloadUrl }),
+        })
+        const fetchStatus = fetchRes.status
+
+        // 4) Asset 문서 업데이트
+        await d.ref.update({
+          videoHost: 'bunny',
+          bunnyVideoId: newVideoId,
+          embedUrl: `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${newVideoId}`,
+          bunnyStatus: 'processing',
+          bunnyUploadedAt: new Date().toISOString(),
+          bunnyError: null,
+          url: downloadUrl,  // URL도 최신으로 업데이트
+        })
+
+        results.push({
+          id: d.id,
+          fileName: data.fileName,
+          oldBunnyId: data.bunnyVideoId || null,
+          newBunnyId: newVideoId,
+          fetchStatus,
+          status: 'reupload started',
+        })
+      } catch (e) {
+        results.push({ id: d.id, error: e.message })
+      }
+    }
+
+    res.json({ total: docs.length, results })
+  })
+
+/**
  * 기존 Bunny 영상 썸네일 마이그레이션 (1회용 HTTP 트리거)
  * 호출: GET https://asia-northeast3-assi-app-6ea04.cloudfunctions.net/fixBunnyThumbnails
  */
@@ -461,9 +752,19 @@ exports.fixBunnyThumbnails = functions
   .runWith({ timeoutSeconds: 540, memory: '2GB' })
   .https.onRequest(async (req, res) => {
     const reupload = req.query.reupload === 'true' // ?reupload=true 로 재업로드 모드
-    const snap = await db.collection('assets')
-      .where('videoHost', '==', 'bunny')
-      .get()
+    const targetVideoId = req.query.videoId || null // ?videoId=xxx 로 특정 영상만 처리
+
+    let snap
+    if (targetVideoId) {
+      snap = await db.collection('assets')
+        .where('bunnyVideoId', '==', targetVideoId)
+        .limit(1)
+        .get()
+    } else {
+      snap = await db.collection('assets')
+        .where('videoHost', '==', 'bunny')
+        .get()
+    }
 
     const results = []
 
@@ -485,8 +786,8 @@ exports.fixBunnyThumbnails = functions
         continue
       }
 
-      // status=0: 파일 미업로드 → 재업로드 필요
-      if (bunnyInfo.status === 0 && reupload && data.storagePath) {
+      // status=0(미업로드) 또는 status=5(인코딩 에러) → 재업로드 필요
+      if ((bunnyInfo.status === 0 || bunnyInfo.status === 5) && reupload && data.storagePath) {
         try {
           const file = bucket.file(data.storagePath)
           const [exists] = await file.exists()
@@ -509,8 +810,8 @@ exports.fixBunnyThumbnails = functions
           results.push({ videoId, status: 'reupload_error', reason: e.message })
         }
         continue
-      } else if (bunnyInfo.status === 0) {
-        results.push({ videoId, status: 'needs_reupload', reason: 'status=0, use ?reupload=true' })
+      } else if (bunnyInfo.status === 0 || bunnyInfo.status === 5) {
+        results.push({ videoId, status: 'needs_reupload', reason: `status=${bunnyInfo.status}, use ?reupload=true` })
         continue
       }
 
@@ -562,7 +863,7 @@ exports.fixBunnyThumbnails = functions
         // Bunny CDN에서 썸네일 다운로드 (Referer 필수 — Hotlink Protection)
         const thumbUrl = `https://vz-cd1dda72-832.b-cdn.net/${videoId}/${thumbFileName}`
         const thumbRes = await fetch(thumbUrl, {
-          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
+          headers: { 'Referer': 'https://assifolio.com' },
         })
 
         if (!thumbRes.ok) {

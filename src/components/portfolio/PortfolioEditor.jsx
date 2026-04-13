@@ -7,6 +7,7 @@ import { usePortfolio } from '../../hooks/usePortfolio'
 import PortfolioGrid from './PortfolioGrid'
 import PortfolioHeader from './PortfolioHeader'
 import PortfolioCategoryFilter from './PortfolioCategoryFilter'
+import { PORTFOLIO_TEMPLATES } from './portfolioTemplates'
 
 const ASPECT_OPTIONS = [
   { label: '3:2', value: 0.667 },
@@ -53,6 +54,55 @@ function RangeSlider({ label, value, min, max, step, unit, onChange }) {
   )
 }
 
+/* 레이아웃 리팩: 겹침/빈칸 제거, 큰 타일 우선 배치 */
+function repackLayout(rawLayout, cols) {
+  if (!rawLayout || typeof rawLayout !== 'object') return {}
+  const entries = Object.entries(rawLayout).filter(([, p]) => p && typeof p === 'object')
+  // 큰 타일(colSpan>1) 먼저 배치 → 작은 타일이 빈자리 채움
+  const large = entries.filter(([, p]) => (p.colSpan || 1) > 1)
+    .sort(([, a], [, b]) => ((a?.row ?? 0) - (b?.row ?? 0)) || ((a?.col ?? 0) - (b?.col ?? 0)))
+  const small = entries.filter(([, p]) => (p.colSpan || 1) <= 1)
+    .sort(([, a], [, b]) => ((a?.row ?? 0) - (b?.row ?? 0)) || ((a?.col ?? 0) - (b?.col ?? 0)))
+  const repacked = {}
+  const occupied = new Set()
+  for (const [pid, pos] of [...large, ...small]) {
+    const colSpan = Math.min(cols, pos.colSpan || 1)
+    const rowSpan = pos.rowSpan || 2
+    const origRow = pos.row ?? 0
+    const origCol = Math.min(pos.col ?? 0, cols - colSpan)
+    let ok = true
+    for (let dr = 0; dr < rowSpan && ok; dr++)
+      for (let dc = 0; dc < colSpan && ok; dc++)
+        if (occupied.has(`${origRow + dr}-${origCol + dc}`)) ok = false
+    if (ok) {
+      repacked[pid] = { row: origRow, col: origCol, colSpan, rowSpan }
+      for (let dr = 0; dr < rowSpan; dr++)
+        for (let dc = 0; dc < colSpan; dc++)
+          occupied.add(`${origRow + dr}-${origCol + dc}`)
+      continue
+    }
+    for (let r = 0; ; r++) {
+      let placed = false
+      for (let c = 0; c <= cols - colSpan; c++) {
+        ok = true
+        for (let dr = 0; dr < rowSpan && ok; dr++)
+          for (let dc = 0; dc < colSpan && ok; dc++)
+            if (occupied.has(`${r + dr}-${c + dc}`)) ok = false
+        if (ok) {
+          repacked[pid] = { row: r, col: c, colSpan, rowSpan }
+          for (let dr = 0; dr < rowSpan; dr++)
+            for (let dc = 0; dc < colSpan; dc++)
+              occupied.add(`${r + dr}-${c + dc}`)
+          placed = true
+          break
+        }
+      }
+      if (placed) break
+    }
+  }
+  return repacked
+}
+
 export default function PortfolioEditor({ isMobile }) {
   const { user, userDoc } = useAuth()
   const { projects } = useProjects()
@@ -82,8 +132,9 @@ export default function PortfolioEditor({ isMobile }) {
   const [pagePadding, setPagePadding] = useState(48)
   const [borderRadius, setBorderRadius] = useState(12)
   const [fontFamily, setFontFamily] = useState('pretendard')
+  const [template, setTemplate] = useState('default')
   // 섹션 열기/닫기 (기본: 슬러그+프로젝트 열림)
-  const [openSections, setOpenSections] = useState({ slug: true, projects: true })
+  const [openSections, setOpenSections] = useState({ slug: true, projects: true, available: true })
 
   const [saving, setSaving] = useState(false)
   const [autoSaved, setAutoSaved] = useState(false)
@@ -114,13 +165,36 @@ export default function PortfolioEditor({ isMobile }) {
     // 마이그레이션: flat 구조면 _all로 wrap
     const rawLayout = portfolio.projectLayout || {}
     const isLegacy = Object.values(rawLayout).some(v => v && typeof v === 'object' && 'row' in v)
-    setProjectLayout(isLegacy ? { _all: rawLayout } : rawLayout)
+    const parsedLayout = isLegacy ? { _all: rawLayout } : rawLayout
+    // 데이터 정리: undefined 값 제거 + featured 아닌데 colSpan=2인 항목 복원
+    const feat = portfolio.featuredProjects || []
+    const cols = portfolio.columns || 3
+    const ar = portfolio.rowAspectRatio || 0.667
+    const defaultRS = Math.max(1, Math.ceil(1 / ar - 0.1))
+    for (const key of Object.keys(parsedLayout)) {
+      const section = parsedLayout[key]
+      if (section && typeof section === 'object') {
+        for (const pid of Object.keys(section)) {
+          const entry = section[pid]
+          if (!entry || typeof entry !== 'object') { delete section[pid]; continue }
+          // undefined 값 제거
+          if (entry.row === undefined || entry.row === null) entry.row = 0
+          if (entry.col === undefined || entry.col === null) entry.col = 0
+          if (entry.rowSpan === undefined || entry.rowSpan === null) entry.rowSpan = defaultRS
+          if (entry.colSpan === undefined || entry.colSpan === null) entry.colSpan = 1
+        }
+        // 겹침/빈칸 제거
+        parsedLayout[key] = repackLayout(section, cols)
+      }
+    }
+    setProjectLayout(parsedLayout)
     setEnabledCategories(portfolio.enabledCategories || [])
     setPhotoGap(portfolio.photoGap ?? 8)
     setFontSize(portfolio.fontSize ?? 100)
     setPagePadding(portfolio.pagePadding ?? 48)
     setBorderRadius(portfolio.borderRadius ?? 12)
     setFontFamily(portfolio.fontFamily || 'pretendard')
+    setTemplate(portfolio.template || 'default')
     initialLoad.current = true
   }, [portfolio, userDoc, user])
 
@@ -149,13 +223,30 @@ export default function PortfolioEditor({ isMobile }) {
     return () => clearTimeout(timer)
   }, [slug, checkSlugAvailable])
 
-  const getPayload = useCallback(() => ({
-    slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'),
-    columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
-    businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
-    projectOrder, featuredProjects, projectLayout, enabledCategories,
-    photoGap, fontSize, pagePadding, borderRadius, fontFamily,
-  }), [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily])
+  const getPayload = useCallback(() => {
+    // Firestore 저장 전 projectLayout에서 undefined 값 제거
+    const cleanLayout = {}
+    for (const [key, section] of Object.entries(projectLayout)) {
+      if (!section || typeof section !== 'object') continue
+      cleanLayout[key] = {}
+      for (const [pid, entry] of Object.entries(section)) {
+        if (!entry || typeof entry !== 'object') continue
+        cleanLayout[key][pid] = {
+          row: entry.row ?? 0,
+          col: entry.col ?? 0,
+          colSpan: entry.colSpan ?? 1,
+          rowSpan: entry.rowSpan ?? 2,
+        }
+      }
+    }
+    return {
+      slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'),
+      columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
+      businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
+      projectOrder, featuredProjects, projectLayout: cleanLayout, enabledCategories,
+      photoGap, fontSize, pagePadding, borderRadius, fontFamily, template,
+    }
+  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily, template])
 
   // 임시저장 (3초 디바운스)
   useEffect(() => {
@@ -172,7 +263,7 @@ export default function PortfolioEditor({ isMobile }) {
       }
     }, 3000)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily, getPayload, savePortfolio])
+  }, [slug, columns, bgColor, textColor, accentColor, rowAspectRatio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite, projectOrder, featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily, template, getPayload, savePortfolio])
 
   const handleSave = async () => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
@@ -314,10 +405,11 @@ export default function PortfolioEditor({ isMobile }) {
   }
 
   const handleLayoutChange = (newLayout) => {
-    setProjectLayout(prev => ({ ...prev, [layoutKey]: newLayout }))
+    const repacked = repackLayout(newLayout, columns)
+    setProjectLayout(prev => ({ ...prev, [layoutKey]: repacked }))
     // _all 뷰에서 편집한 순서를 좌측 프로젝트 리스트에도 반영
     if (layoutKey === '_all') {
-      const sorted = Object.entries(newLayout)
+      const sorted = Object.entries(repacked)
         .sort(([, a], [, b]) => (a.row - b.row) || (a.col - b.col))
         .map(([id]) => id)
       setProjectOrder(prev => {
@@ -327,18 +419,38 @@ export default function PortfolioEditor({ isMobile }) {
     }
   }
 
-  // 자동 정렬: 위에서부터 빈틈없이 재배치 (각 타일의 현재 크기 유지)
+  // 자동 정렬: 큰 타일 자리 유지, 작은 타일이 빈칸 채움
   const autoAlign = () => {
-    // 실제 존재하는 프로젝트만 대상
     const validOrder = projectOrder.filter(pid => projects.some(p => p.id === pid))
-    console.log('[autoAlign]', validOrder.length, '개 프로젝트,', columns, '열')
+    setProjectOrder(validOrder)
     const newLayout = {}
     const occupied = new Set()
-    // projectOrder도 정리
-    setProjectOrder(validOrder)
-    for (const pid of validOrder) {
+
+    // 1) 큰 타일(colSpan>1) 먼저 원래 자리에 고정
+    const largePids = validOrder.filter(pid => {
       const existing = currentLayout[pid]
-      const colSpan = existing?.colSpan || (featuredProjects.includes(pid) ? Math.min(2, columns) : 1)
+      return existing && (existing.colSpan || 1) > 1
+    })
+    for (const pid of largePids) {
+      const existing = currentLayout[pid]
+      const colSpan = Math.min(columns, existing.colSpan)
+      const rowSpan = existing.rowSpan || 2
+      const row = existing.row ?? 0
+      const col = Math.min(existing.col ?? 0, columns - colSpan)
+      newLayout[pid] = { row, col, colSpan, rowSpan }
+      for (let dr = 0; dr < rowSpan; dr++)
+        for (let dc = 0; dc < colSpan; dc++)
+          occupied.add(`${row + dr}-${col + dc}`)
+    }
+
+    // 2) 작은 타일(colSpan=1) 빈자리에 채움
+    const smallPids = validOrder.filter(pid => {
+      const existing = currentLayout[pid]
+      return !existing || (existing.colSpan || 1) <= 1
+    })
+    for (const pid of smallPids) {
+      const existing = currentLayout[pid]
+      const colSpan = 1
       const rowSpan = existing?.rowSpan || 2
       let placed = false
       for (let r = 0; !placed; r++) {
@@ -403,12 +515,28 @@ export default function PortfolioEditor({ isMobile }) {
     setBgColor(preset.bg); setTextColor(preset.text); setAccentColor(preset.accent)
   }
 
+  const applyTemplate = (templateId) => {
+    const tpl = PORTFOLIO_TEMPLATES.find(t => t.id === templateId)
+    if (!tpl) return
+    setTemplate(templateId)
+    setBgColor(tpl.defaults.backgroundColor)
+    setTextColor(tpl.defaults.textColor)
+    setAccentColor(tpl.defaults.accentColor)
+    setColumns(tpl.defaults.columns)
+    setPhotoGap(tpl.defaults.photoGap)
+    setPagePadding(tpl.defaults.pagePadding)
+    setBorderRadius(tpl.defaults.borderRadius)
+    setFontFamily(tpl.defaults.fontFamily)
+  }
+
+  const currentTemplate = PORTFOLIO_TEMPLATES.find(t => t.id === template) || PORTFOLIO_TEMPLATES[0]
+
   const previewProjects = projectOrder.map(pid => projects.find(p => p.id === pid)).filter(Boolean)
   const theme = { bg: bgColor, text: textColor, accent: accentColor }
   const previewPortfolio = {
     ...portfolio, businessName, tagline, contactEmail, contactPhone, showInstagram, showWebsite,
     columns, backgroundColor: bgColor, textColor, accentColor, rowAspectRatio,
-    featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily,
+    featuredProjects, projectLayout, enabledCategories, photoGap, fontSize, pagePadding, borderRadius, fontFamily, template,
   }
 
   if (loading) {
@@ -419,10 +547,23 @@ export default function PortfolioEditor({ isMobile }) {
     )
   }
 
-  /* ─────────────── 모바일: 미리보기 위, 설정 아래 ─────────────── */
-  if (isMobile) {
+  /* ─────────────── 모바일/태블릿: 세로 스택 ─────────────── */
+  /* 사이드바 포함 1100px 미만이면 세로 레이아웃 (갤럭시 폴드 등 폴더블 대응) */
+  const useStackLayout = isMobile || window.innerWidth < 1100
+
+  if (useStackLayout) {
     return (
       <div className="space-y-4">
+        {/* 정렬 버튼 */}
+        {previewProjects.length > 0 && (
+          <div className="flex justify-end">
+            <button onClick={autoAlign}
+              className="px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow"
+              style={{ backgroundColor: accentColor, color: '#fff' }}>
+              정렬
+            </button>
+          </div>
+        )}
         {/* 미리보기 먼저 */}
         <div className="rounded-[12px] overflow-hidden border border-[#2a2a2a] shadow-sm" style={{ backgroundColor: bgColor }}>
           {renderPreview()}
@@ -433,26 +574,49 @@ export default function PortfolioEditor({ isMobile }) {
     )
   }
 
-  /* ─────────────── 데스크탑: 좌우 분할 ─────────────── */
+  /* ─────────────── 와이드 데스크탑: 좌우 분할 (1100px+) ─────────────── */
   return (
     <div className="flex gap-6 h-[calc(100vh-64px)]">
-      {/* 좌: 설정 패널 — 고정 너비, 독립 스크롤 */}
+      {/* 좌: 설정 패널 — 독립 스크롤 */}
       <div className="w-[400px] flex-shrink-0 overflow-y-auto space-y-4 pr-1">
         {renderSettings()}
       </div>
 
       {/* 우: 라이브 프리뷰 */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* 정렬 버튼 — 프리뷰 스크롤 영역 밖 */}
-        {previewProjects.length > 0 && (
-          <div className="flex justify-end px-3 pb-2">
+        {/* 상단 바: 포트폴리오 주소 + 저장/공유/정렬 */}
+        <div className="flex items-center gap-2 px-3 pb-2">
+          {/* 포트폴리오 주소 — 왼쪽 */}
+          <div className="flex items-center gap-2 mr-auto">
+            <span className="text-xs text-[#8a8a8a] flex-shrink-0 font-medium">포트폴리오 주소</span>
+            <div className="flex items-center gap-1 bg-[#252525] rounded-[10px] px-3 py-2">
+              <span className="text-xs text-[#8a8a8a] flex-shrink-0">/p/</span>
+              <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="my-portfolio" className="bg-transparent text-sm font-bold text-white outline-none w-[120px]" />
+              {slugStatus === 'ok' && <span className="text-emerald-500 text-xs">✓</span>}
+              {slugStatus === 'taken' && <span className="text-red-500 text-xs">사용중</span>}
+              {slugStatus === 'checking' && <span className="text-[#8a8a8a] text-xs">...</span>}
+            </div>
+          </div>
+          {/* 저장 */}
+          <button onClick={handleSave} disabled={saving}
+            className="px-4 py-2 bg-[#181818] border border-[#2a2a2a] text-[#cbcbcb] text-sm font-bold rounded-[10px] hover:bg-[#1f1f1f] transition-all disabled:opacity-50">
+            {saving ? '저장 중...' : '저장'}
+          </button>
+          {/* 포트폴리오 공유 */}
+          <button onClick={copyLink}
+            className="px-4 py-2 bg-[#F4A259] text-white text-sm font-bold rounded-[10px] hover:bg-[#7078E8] transition-all shadow-md">
+            {copied ? '복사됨!' : '포트폴리오 공유'}
+          </button>
+          {/* 정렬 */}
+          {previewProjects.length > 0 && (
             <button onClick={autoAlign}
-              className="px-4 py-2 rounded-full text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow"
+              className="px-4 py-2 rounded-[10px] text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow"
               style={{ backgroundColor: accentColor, color: '#fff' }}>
               정렬
             </button>
-          </div>
-        )}
+          )}
+        </div>
         <div className="flex-1 min-h-0 rounded-[12px] overflow-y-auto overflow-x-hidden border border-[#2a2a2a] shadow-sm"
           style={{ backgroundColor: bgColor, padding: `0 ${Math.max(24 - pagePadding, 0)}px` }}>
           {renderPreview()}
@@ -470,11 +634,12 @@ export default function PortfolioEditor({ isMobile }) {
           portfolio={previewPortfolio} profile={userDoc}
           onContact={() => {}} theme={theme}
           fontSize={fontSize} pagePadding={pagePadding}
+          template={currentTemplate}
         />
         <PortfolioCategoryFilter
           categories={enabledCategories} activeCategory={previewCategory}
           onSelect={setPreviewCategory} theme={theme}
-          variant="horizontal"
+          variant={currentTemplate?.filterVariant === 'floating' ? 'horizontal' : (currentTemplate?.filterVariant || 'horizontal')}
         />
         <PortfolioGrid
           projects={previewProjects} projectAssets={projectAssets}
@@ -531,8 +696,30 @@ export default function PortfolioEditor({ isMobile }) {
           )}
         </div>
 
-        {/* ── 포트폴리오 주소 ── */}
+        {/* ── 템플릿 ── */}
         <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
+          <SectionHeader id="template" label="템플릿"
+            badge={<span className="text-xs text-[#8a8a8a]">{currentTemplate.nameEn}</span>}
+          />
+          {openSections.template && (
+            <div className="space-y-1.5 max-h-[360px] overflow-y-auto">
+              {PORTFOLIO_TEMPLATES.map(t => (
+                <button key={t.id} onClick={() => applyTemplate(t.id)}
+                  className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                    template === t.id
+                      ? 'bg-[#F4A259] text-white'
+                      : 'bg-[#252525] text-[#b3b3b3] hover:bg-[#2a2a2a]'
+                  }`}>
+                  <div className="text-sm font-bold">{t.name}</div>
+                  <div className="text-xs opacity-60">{t.description}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── 포트폴리오 주소 (모바일에서만 표시, 데스크탑은 프리뷰 상단 바로 이동) ── */}
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3 lg:hidden">
           <SectionHeader id="slug" label="포트폴리오 주소" />
           {openSections.slug && (
             <div className="flex items-center gap-1 bg-[#252525] rounded-[12px] px-3 py-2.5">
@@ -676,40 +863,48 @@ export default function PortfolioEditor({ isMobile }) {
           )}
         </div>
 
-        {/* ── 프로젝트 선택 ── */}
+        {/* ── 선택된 프로젝트 ── */}
         <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <SectionHeader id="projects" label={`프로젝트 선택 (${projectOrder.length}개)`} />
-            {projectOrder.length > 0 && (
-              <button onClick={(e) => { e.stopPropagation(); autoAlign() }}
-                className="text-xs text-[#F4A259] font-bold tracking-wide hover:underline flex-shrink-0 ml-2">
-                정렬
-              </button>
-            )}
+            <SectionHeader id="projects" label={`선택된 프로젝트 (${projectOrder.length})`} />
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+              {projectOrder.length > 0 && (
+                <button onClick={(e) => {
+                  e.stopPropagation()
+                  setProjectOrder([])
+                  setFeaturedProjects([])
+                  setProjectLayout(prev => ({ ...prev, [layoutKey]: {} }))
+                }}
+                  className="text-xs text-[#8a8a8a] font-bold tracking-wide hover:text-red-400 transition-colors">
+                  전체해제
+                </button>
+              )}
+              {projectOrder.length > 0 && (
+                <button onClick={(e) => { e.stopPropagation(); autoAlign() }}
+                  className="text-xs text-[#F4A259] font-bold tracking-wide hover:underline">
+                  정렬
+                </button>
+              )}
+            </div>
           </div>
-          {openSections.projects && (
-            <div className="max-h-[28rem] overflow-y-auto space-y-1 px-1 py-1">
-              {(() => {
-                const selectedSet = new Set(projectOrder)
-                const selectedList = projectOrder.map(id => projects.find(p => p.id === id)).filter(Boolean)
-                const unselected = projects.filter(p => !selectedSet.has(p.id))
-                return [...selectedList, ...unselected]
-              })().map(p => {
-                const included = projectOrder.includes(p.id)
-                return (
+          {openSections.projects && (() => {
+            const selectedList = projectOrder.map(id => projects.find(p => p.id === id)).filter(Boolean)
+            if (!selectedList.length) return (
+              <p className="text-xs text-[#6a6a6a] text-center py-4">아래에서 프로젝트를 추가하세요</p>
+            )
+            return (
+              <div className="max-h-[24rem] overflow-y-auto space-y-1 px-1 py-1">
+                {selectedList.map(p => (
                   <div key={p.id}
-                    draggable={included}
-                    onDragStart={(e) => { if (included) { setDragProjId(p.id); e.dataTransfer.effectAllowed = 'move' } }}
-                    onDragOver={(e) => { if (included && dragProjId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
-                    onDrop={(e) => { e.preventDefault(); if (included) reorderProjectInList(p.id) }}
+                    draggable
+                    onDragStart={(e) => { setDragProjId(p.id); e.dataTransfer.effectAllowed = 'move' }}
+                    onDragOver={(e) => { if (dragProjId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
+                    onDrop={(e) => { e.preventDefault(); reorderProjectInList(p.id) }}
                     onDragEnd={() => setDragProjId(null)}
-                    onClick={() => toggleProject(p.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left cursor-pointer
-                      ${included ? 'bg-[#181818] ring-2 ring-[#F4A259]' : 'hover:bg-[#1f1f1f]'}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left
+                      bg-[#181818] ring-2 ring-[#F4A259]
                       ${dragProjId === p.id ? 'opacity-40' : ''}`}>
-                    {included && (
-                      <span className="text-[#6a6a6a] text-xs cursor-grab active:cursor-grabbing flex-shrink-0" onClick={(e) => e.stopPropagation()}>⋮⋮</span>
-                    )}
+                    <span className="text-[#6a6a6a] text-xs cursor-grab active:cursor-grabbing flex-shrink-0">⋮⋮</span>
                     {p.thumbnailUrl ? (
                       <img src={p.thumbnailUrl} alt="" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
                     ) : (
@@ -719,34 +914,95 @@ export default function PortfolioEditor({ isMobile }) {
                       <p className="text-xs font-bold text-white truncate">{p.name}</p>
                       <p className="text-xs text-[#8a8a8a]">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
                     </div>
-                    {included && (
-                      <button onClick={(e) => {
-                        e.stopPropagation()
-                        const wasFeatured = featuredProjects.includes(p.id)
-                        setFeaturedProjects(prev => wasFeatured ? prev.filter(id => id !== p.id) : [...prev, p.id])
-                        // colSpan 업데이트
-                        setProjectLayout(pl => {
-                          if (!pl[p.id]) return pl
-                          const newColSpan = wasFeatured ? 1 : Math.min(2, columns)
-                          return { ...pl, [p.id]: { ...pl[p.id], colSpan: newColSpan } }
-                        })
-                      }}
-                        className={`w-6 h-6 flex items-center justify-center rounded-full transition-all flex-shrink-0
-                          ${featuredProjects.includes(p.id) ? 'bg-amber-400 text-white' : 'bg-[#252525] text-[#6a6a6a] hover:text-amber-400'}`}>
-                        <span className="text-xs">★</span>
-                      </button>
+                    <button onClick={(e) => {
+                      e.stopPropagation()
+                      const wasFeatured = featuredProjects.includes(p.id)
+                      setFeaturedProjects(prev => wasFeatured ? prev.filter(id => id !== p.id) : [...prev, p.id])
+                      const defaultRS = Math.max(1, Math.ceil(1 / rowAspectRatio - 0.1))
+                      const newColSpan = wasFeatured ? 1 : Math.min(2, columns)
+                      const newRowSpan = wasFeatured ? defaultRS : (rowAspectRatio >= 1.0 ? 2 : 1)
+                      setProjectLayout(prev => {
+                        const layout = { ...(prev[layoutKey] || {}) }
+                        const existing = layout[p.id] || { row: 0, col: 0, rowSpan: defaultRS }
+                        layout[p.id] = {
+                          row: existing.row ?? 0,
+                          col: Math.min(existing.col ?? 0, columns - newColSpan),
+                          colSpan: newColSpan,
+                          rowSpan: newRowSpan,
+                        }
+                        return { ...prev, [layoutKey]: repackLayout(layout, columns) }
+                      })
+                    }}
+                      className={`w-6 h-6 flex items-center justify-center rounded-full transition-all flex-shrink-0
+                        ${featuredProjects.includes(p.id) ? 'bg-amber-400 text-white' : 'bg-[#252525] text-[#6a6a6a] hover:text-amber-400'}`}>
+                      <span className="text-xs">★</span>
+                    </button>
+                    <button onClick={() => toggleProject(p.id)}
+                      className="w-5 h-5 rounded-full bg-[#F4A259] border-2 border-[#F4A259] flex items-center justify-center flex-shrink-0 hover:bg-red-500 hover:border-red-500 transition-colors">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* ── 프로젝트 추가 ── */}
+        <div className="bg-[#181818] rounded-[20px] shadow-lg p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <SectionHeader id="available" label={`프로젝트 추가 (${projects.length - projectOrder.length})`} />
+            {projects.length - projectOrder.length > 0 && (
+              <button onClick={(e) => {
+                e.stopPropagation()
+                const allIds = projects.map(p => p.id)
+                const newIds = allIds.filter(id => !projectOrder.includes(id))
+                setProjectOrder([...projectOrder, ...newIds])
+                setProjectLayout(prev => {
+                  const layout = { ...(prev[layoutKey] || {}) }
+                  for (const id of newIds) {
+                    if (!layout[id]) {
+                      const defaultRS = Math.max(1, Math.ceil(1 / rowAspectRatio - 0.1))
+                      layout[id] = { row: 0, col: 0, colSpan: 1, rowSpan: defaultRS }
+                    }
+                  }
+                  return { ...prev, [layoutKey]: repackLayout(layout, columns) }
+                })
+              }}
+                className="text-xs text-[#8a8a8a] font-bold tracking-wide hover:text-white transition-colors flex-shrink-0 ml-2">
+                전체선택
+              </button>
+            )}
+          </div>
+          {openSections.available && (() => {
+            const selectedSet = new Set(projectOrder)
+            const unselected = projects.filter(p => !selectedSet.has(p.id))
+            if (!unselected.length) return (
+              <p className="text-xs text-[#6a6a6a] text-center py-4">모든 프로젝트가 선택됨</p>
+            )
+            return (
+              <div className="max-h-[24rem] overflow-y-auto space-y-1 px-1 py-1">
+                {unselected.map(p => (
+                  <div key={p.id}
+                    onClick={() => toggleProject(p.id)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left cursor-pointer hover:bg-[#1f1f1f]">
+                    {p.thumbnailUrl ? (
+                      <img src={p.thumbnailUrl} alt="" className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-[6px] bg-[#2a2a2a] flex-shrink-0" />
                     )}
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0
-                      ${included ? 'bg-[#F4A259] border-[#F4A259]' : 'border-[#6a6a6a]'}`}>
-                      {included && (
-                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      )}
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                      <p className="text-xs text-[#8a8a8a]">{p.category} · {(p.imageCount || 0) + (p.videoCount || 0)}개</p>
+                    </div>
+                    <div className="w-5 h-5 rounded-full border-2 border-[#6a6a6a] flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-[#6a6a6a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            )
+          })()}
         </div>
 
         {/* ── 필터 카테고리 ── */}
@@ -790,15 +1046,15 @@ export default function PortfolioEditor({ isMobile }) {
           })()}
         </div>
 
-        {/* ── 액션 ── */}
-        <div className="space-y-2 pb-4">
+        {/* 액션 버튼은 데스크탑에서 프리뷰 상단 바로 이동, 모바일에서만 여기 표시 */}
+        <div className="space-y-2 pb-4 lg:hidden">
           <button onClick={handleSave} disabled={saving}
             className="w-full py-3 bg-[#181818] border border-[#2a2a2a] text-[#cbcbcb] text-sm font-bold rounded-[16px] hover:bg-[#1f1f1f] transition-all disabled:opacity-50">
             {saving ? '저장 중...' : '저장'}
           </button>
           <button onClick={copyLink}
             className="w-full py-3 bg-[#F4A259] text-white text-sm font-bold rounded-[16px] hover:bg-[#7078E8] transition-all shadow-lg">
-            {copied ? '복사됨!' : '링크 복사'}
+            {copied ? '복사됨!' : '포트폴리오 공유'}
           </button>
         </div>
       </>

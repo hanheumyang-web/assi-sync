@@ -1,10 +1,52 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import Hls from 'hls.js'
 import { usePortfolioPublic } from '../../hooks/usePortfolioPublic'
 import PortfolioHeader from './PortfolioHeader'
 import PortfolioCategoryFilter from './PortfolioCategoryFilter'
 import PortfolioGrid from './PortfolioGrid'
 import PortfolioContactModal from './PortfolioContactModal'
+import { PORTFOLIO_TEMPLATES } from './portfolioTemplates'
+
+const BUNNY_CDN = 'https://vz-cd1dda72-832.b-cdn.net'
+
+/** Bunny HLS 직접 재생 컴포넌트 — iframe 없이 hls.js로 스트리밍 */
+function BunnyVideoPlayer({ bunnyVideoId }) {
+  const videoRef = useRef(null)
+  const hlsRef = useRef(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !bunnyVideoId) return
+
+    const hlsUrl = `${BUNNY_CDN}/${bunnyVideoId}/playlist.m3u8`
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        startLevel: -1,
+        enableWorker: true,
+      })
+      hlsRef.current = hls
+      hls.loadSource(hlsUrl)
+      hls.attachMedia(video)
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}) })
+      return () => { hls.destroy(); hlsRef.current = null }
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari 네이티브 HLS
+      video.src = hlsUrl
+      video.play().catch(() => {})
+    }
+  }, [bunnyVideoId])
+
+  return (
+    <div className="w-full max-w-4xl" style={{ aspectRatio: '16/9' }}>
+      <video ref={videoRef} controls playsInline
+        className="w-full h-full object-contain rounded-lg bg-black" />
+    </div>
+  )
+}
 
 const FONT_MAP = {
   'pretendard': "'Pretendard Variable', 'Pretendard', sans-serif",
@@ -53,6 +95,15 @@ export default function PortfolioPublicPage() {
 
   const closeLightbox = useCallback(() => { setLightbox(null); setPreloaded(new Set()) }, [])
 
+  // 라이트박스 열릴 때 히스토리 push → 뒤로가기로 닫기
+  useEffect(() => {
+    if (!lightbox) return
+    window.history.pushState({ lightbox: true }, '')
+    const onPop = () => { setLightbox(null); setPreloaded(new Set()) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [lightbox !== null]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const goToSlide = useCallback((dir) => {
     setLightbox(prev => {
       if (!prev) return prev
@@ -99,6 +150,9 @@ export default function PortfolioPublicPage() {
     )
   }
 
+  const templateId = portfolio?.template || 'default'
+  const template = PORTFOLIO_TEMPLATES.find(t => t.id === templateId) || PORTFOLIO_TEMPLATES[0]
+
   const bg = portfolio?.backgroundColor || '#FFFFFF'
   const text = portfolio?.textColor || '#1A1A1A'
   const accent = portfolio?.accentColor || '#F4A259'
@@ -111,7 +165,9 @@ export default function PortfolioPublicPage() {
   const fontFamily = portfolio?.fontFamily || 'pretendard'
 
   const openLightbox = (project) => {
-    const assets = projectAssets[project.id] || []
+    const raw = projectAssets[project.id] || []
+    // 재생 불가능한 에셋 필터 (url, embedUrl, storagePath 모두 없는 것 제외)
+    const assets = raw.filter(a => a.url || a.embedUrl || a.storagePath)
     if (assets.length) {
       setLightbox({ project, assets, idx: 0 })
       preloadAround(assets, 0)
@@ -128,12 +184,15 @@ export default function PortfolioPublicPage() {
         theme={theme}
         fontSize={fontSize}
         pagePadding={pagePadding}
+        template={template}
       />
 
       {/* Divider */}
-      <div className="w-full mx-auto" style={{ padding: `0 ${pagePadding}px`, margin: `${16 * fontSize / 100}px 0 ${24 * fontSize / 100}px` }}>
-        <div className="h-px" style={{ backgroundColor: text + '10' }} />
-      </div>
+      {template.headerVariant !== 'sidebar' && (
+        <div className="w-full mx-auto" style={{ padding: `0 ${pagePadding}px`, margin: `${16 * fontSize / 100}px 0 ${24 * fontSize / 100}px` }}>
+          <div className="h-px" style={{ backgroundColor: text + '10' }} />
+        </div>
+      )}
 
       {/* Category Filter */}
       <PortfolioCategoryFilter
@@ -141,7 +200,7 @@ export default function PortfolioPublicPage() {
         activeCategory={activeCategory}
         onSelect={setActiveCategory}
         theme={theme}
-        variant="horizontal"
+        variant={template.filterVariant || 'floating'}
       />
 
       {/* Grid */}
@@ -166,6 +225,7 @@ export default function PortfolioPublicPage() {
         categoryFilter={activeCategory}
         onProjectClick={openLightbox}
         theme={theme}
+        template={template}
       />
 
       {/* Footer */}
@@ -200,21 +260,45 @@ export default function PortfolioPublicPage() {
 
           {/* Image area */}
           <div className="flex-1 flex items-center justify-center relative px-16 md:px-24">
-            {lightbox.assets[lightbox.idx]?.embedUrl && lightbox.assets[lightbox.idx]?.bunnyStatus === 'ready' ? (
-              /* Bunny Stream / YouTube 임베드 */
-              <div className="w-full max-w-4xl" style={{ aspectRatio: '16/9' }}>
-                <iframe
-                  src={lightbox.assets[lightbox.idx].embedUrl + '?autoplay=false&responsive=true'}
-                  className="w-full h-full rounded-lg"
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : lightbox.assets[lightbox.idx]?.isVideo ? (
-              <video src={lightbox.assets[lightbox.idx]?.url} controls className="max-w-full max-h-[75vh] object-contain" />
-            ) : (
-              <img src={lightbox.assets[lightbox.idx]?.url} alt="" className="max-w-full max-h-[75vh] object-contain" />
-            )}
+            {(() => {
+              const asset = lightbox.assets[lightbox.idx]
+              if (!asset) return null
+              const isVideo = asset.isVideo || asset.fileType?.startsWith('video/') || asset.videoHost === 'bunny' || asset.embedUrl
+              const bunnyReady = asset.bunnyVideoId && asset.bunnyStatus !== 'error'
+
+              /* 1순위: Bunny HLS 직접 재생 (hls.js, iframe 없음) */
+              if (bunnyReady) {
+                return <BunnyVideoPlayer key={asset.bunnyVideoId} bunnyVideoId={asset.bunnyVideoId} />
+              }
+              /* 2순위: Storage URL 직접 재생 */
+              if (isVideo && asset.url) {
+                return (
+                  <div className="w-full max-w-4xl" style={{ aspectRatio: '16/9' }}>
+                    <video src={asset.url} controls autoPlay playsInline className="w-full h-full object-contain rounded-lg bg-black" />
+                  </div>
+                )
+              }
+              /* 3순위: storagePath fallback */
+              if (isVideo) {
+                const storageBucket = 'assi-app-6ea04.firebasestorage.app'
+                const fallbackUrl = asset.storagePath
+                  ? `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodeURIComponent(asset.storagePath)}?alt=media`
+                  : null
+                if (fallbackUrl) {
+                  return (
+                    <div className="w-full max-w-4xl" style={{ aspectRatio: '16/9' }}>
+                      <video src={fallbackUrl} controls autoPlay playsInline className="w-full h-full object-contain rounded-lg bg-black" />
+                    </div>
+                  )
+                }
+                return (
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-sm" style={{ color: text + '60' }}>영상을 불러올 수 없습니다</p>
+                  </div>
+                )
+              }
+              return <img src={asset.url} alt="" className="max-w-full max-h-[75vh] object-contain" />
+            })()}
 
             {lightbox.assets.length > 1 && (
               <>
@@ -251,7 +335,7 @@ export default function PortfolioPublicPage() {
               <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
                 {lightbox.assets.map((asset, i) => {
                   const isVideo = asset.isVideo || asset.fileType?.startsWith('video/') || asset.videoHost === 'bunny'
-                  const thumbSrc = isVideo ? (asset.videoThumbnailUrl || null) : asset.url
+                  const thumbSrc = isVideo ? (asset.videoThumbnailUrl || (asset.bunnyVideoId ? `https://vz-cd1dda72-832.b-cdn.net/${asset.bunnyVideoId}/thumbnail.jpg` : null)) : asset.url
                   return (
                     <button key={asset.id} onClick={() => { setLightbox(prev => { preloadAround(prev.assets, i); return { ...prev, idx: i } }) }}
                       className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden transition-all

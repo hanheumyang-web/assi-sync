@@ -64,7 +64,7 @@ export default function ChatBot() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-white rounded-full shadow-lg shadow-gray-300/50 border border-orange-200 flex items-center justify-center hover:shadow-xl hover:border-[#F4A259] transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-12 h-12 md:w-14 md:h-14 bg-white rounded-full shadow-lg shadow-gray-300/50 border border-orange-200 flex items-center justify-center hover:shadow-xl hover:border-[#F4A259] transition-all hover:scale-105 active:scale-95"
         aria-label="챗봇 열기"
       >
         <img src="/logo/eyes.png" alt="ASSI 도우미" className="w-8 h-8 object-contain" />
@@ -73,7 +73,7 @@ export default function ChatBot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl shadow-gray-300/50 border border-gray-200 flex flex-col overflow-hidden" style={{ height: '500px', maxHeight: 'calc(100vh - 100px)' }}>
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-[360px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl shadow-gray-300/50 border border-gray-200 flex flex-col overflow-hidden" style={{ height: '500px', maxHeight: 'calc(100vh - 160px)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#F4A259] text-white flex-shrink-0">
         <img src="/logo/eyes.png" alt="" className="w-7 h-7 object-contain" />

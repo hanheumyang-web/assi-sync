@@ -61,22 +61,29 @@ export function usePortfolio() {
         await updateDoc(ref, data)
       }
 
-      // projectOrder의 프로젝트에 portfolioPublic 플래그 동기화
+      // projectOrder의 프로젝트에 portfolioPublic 플래그 동기화 (실패해도 포트폴리오 저장에 영향 없음)
       const projectOrder = updates.projectOrder || []
       if (projectOrder.length > 0) {
-        const batch = writeBatch(db)
-        const oldQ = query(collection(db, 'projects'), where('uid', '==', user.uid), where('portfolioPublic', '==', true))
-        const oldSnap = await getDocs(oldQ)
-        oldSnap.docs.forEach(d => batch.update(d.ref, { portfolioPublic: false }))
-        // 존재하는 프로젝트만 업데이트
-        for (const pid of projectOrder) {
-          const pRef = doc(db, 'projects', pid)
-          const pSnap = await getDoc(pRef)
-          if (pSnap.exists()) {
-            batch.update(pRef, { portfolioPublic: true })
+        try {
+          const batch = writeBatch(db)
+          const oldQ = query(collection(db, 'projects'), where('uid', '==', user.uid), where('portfolioPublic', '==', true))
+          const oldSnap = await getDocs(oldQ)
+          oldSnap.docs.forEach(d => {
+            if (d.data()?.uid === user.uid) batch.update(d.ref, { portfolioPublic: false })
+          })
+          // 존재하고 소유한 프로젝트만 업데이트
+          for (const pid of projectOrder) {
+            if (!pid) continue
+            const pRef = doc(db, 'projects', pid)
+            const pSnap = await getDoc(pRef)
+            if (pSnap.exists() && pSnap.data()?.uid === user.uid) {
+              batch.update(pRef, { portfolioPublic: true })
+            }
           }
+          await batch.commit()
+        } catch (batchErr) {
+          console.warn('[Portfolio] portfolioPublic 동기화 실패 (포트폴리오 저장은 완료됨):', batchErr.message)
         }
-        await batch.commit()
       }
 
       setPortfolio(prev => ({ ...prev, ...data }))
@@ -103,13 +110,16 @@ export function usePortfolio() {
     // 기존 portfolioPublic 프로젝트 해제
     const oldQ = query(collection(db, 'projects'), where('uid', '==', user.uid), where('portfolioPublic', '==', true))
     const oldSnap = await getDocs(oldQ)
-    oldSnap.docs.forEach(d => batch.update(d.ref, { portfolioPublic: false }))
+    oldSnap.docs.forEach(d => {
+      if (d.data()?.uid === user.uid) batch.update(d.ref, { portfolioPublic: false })
+    })
 
-    // 새로 포함된 프로젝트에 portfolioPublic 설정 (존재하는 것만)
+    // 새로 포함된 프로젝트에 portfolioPublic 설정 (존재하고 소유한 것만)
     for (const pid of projectOrder) {
+      if (!pid) continue
       const pRef = doc(db, 'projects', pid)
       const pSnap = await getDoc(pRef)
-      if (pSnap.exists()) {
+      if (pSnap.exists() && pSnap.data()?.uid === user.uid) {
         batch.update(pRef, { portfolioPublic: true })
       }
     }

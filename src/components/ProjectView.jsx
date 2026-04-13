@@ -162,7 +162,29 @@ function ExplorerView({ projects, categories, onMove, onSelect }) {
 export default function ProjectView({ isMobile }) {
   const { user } = useAuth()
   const { projects, loading, addProject, deleteProject, updateProject } = useProjects()
-  const [selectedId, setSelectedId] = useState(null)
+  const [selectedId, setSelectedIdRaw] = useState(null)
+
+  // 프로젝트 상세 진입/이탈 시 브라우저 히스토리 관리
+  const setSelectedId = (id) => {
+    if (id && !selectedId) {
+      // 프로젝트 상세로 진입 → 히스토리 push
+      window.history.pushState({ page: 'projects', projectId: id }, '', '#projects')
+    }
+    setSelectedIdRaw(id)
+  }
+
+  useEffect(() => {
+    const onPop = (e) => {
+      // 브라우저 뒤로가기 시 프로젝트 상세에서 목록으로 복귀
+      if (selectedId && (!e.state?.projectId)) {
+        setSelectedIdRaw(null)
+        // 이 이벤트를 소비해서 App.jsx의 popstate가 페이지를 바꾸지 않게 함
+        window.history.pushState({ page: 'projects' }, '', '#projects')
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [selectedId])
   const [filter, setFilter] = useState('전체')
   const [viewMode, setViewMode] = useState('grid') // 'grid' | 'explorer'
   const [searchQuery, setSearchQuery] = useState('')
@@ -734,7 +756,21 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
   const { assets, uploading, uploadProgress, uploadFiles, deleteAsset, reorderAssets } = useAssets(project.id)
   const [dragAssetId, setDragAssetId] = useState(null)
   const fileInputRef = useRef(null)
-  const [lightboxIdx, setLightboxIdx] = useState(null)
+  const [lightboxIdx, setLightboxIdxRaw] = useState(null)
+  const setLightboxIdx = (idx) => {
+    if (idx !== null && lightboxIdx === null) {
+      // 라이트박스 열릴 때 히스토리 push
+      window.history.pushState({ page: 'projects', lightbox: true }, '', '#projects')
+    }
+    setLightboxIdxRaw(idx)
+  }
+  useEffect(() => {
+    const onPop = () => {
+      if (lightboxIdx !== null) { setLightboxIdxRaw(null) }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [lightboxIdx])
   const [assetFilter, setAssetFilter] = useState('all') // all | image | video
   const [sortBy, setSortBy] = useState('manual') // manual | newest | oldest | name
   const [showShareModal, setShowShareModal] = useState(false)
@@ -775,6 +811,18 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
 
   // 라이트박스용 이미지만
   const imageAssets = filteredAssets.filter(a => !a.isVideo)
+
+  // 라이트박스 키보드 네비게이션 (←→ 화살표, ESC 닫기)
+  useEffect(() => {
+    if (lightboxIdx == null) return
+    const handleKey = (e) => {
+      if (e.key === 'ArrowLeft' && lightboxIdx > 0) setLightboxIdx(lightboxIdx - 1)
+      else if (e.key === 'ArrowRight' && lightboxIdx < imageAssets.length - 1) setLightboxIdx(lightboxIdx + 1)
+      else if (e.key === 'Escape') setLightboxIdx(null)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lightboxIdx, imageAssets.length])
 
   return (
     <div className="space-y-6">
@@ -925,7 +973,18 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
                     </div>
                   )}
                   {asset.isVideo ? (
-                    <video src={asset.url} className="w-full h-full object-cover" muted preload="metadata" />
+                    (asset.videoThumbnailUrl || asset.bunnyVideoId) ? (
+                      <img
+                        src={asset.videoThumbnailUrl || `https://vz-cd1dda72-832.b-cdn.net/${asset.bunnyVideoId}/thumbnail.jpg`}
+                        alt={asset.fileName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    ) : (
+                      <video src={asset.url} className="w-full h-full object-cover" muted preload="metadata" />
+                    )
                   ) : (
                     <img
                       src={asset.thumbUrl || asset.url}
@@ -990,7 +1049,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
           {lightboxIdx > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1) }}
-              className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#f5f5f5] dark:bg-[#181818]/10 hover:bg-[#f5f5f5] dark:hover:bg-[#181818]/20 rounded-full flex items-center justify-center text-[#181818] dark:text-white text-xl transition-all"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white text-3xl transition-all"
             >
               ‹
             </button>
@@ -1010,7 +1069,7 @@ function ProjectDetail({ project, projects, getColor, onBack, onEdit, onDelete, 
           {lightboxIdx < imageAssets.length - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1) }}
-              className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#f5f5f5] dark:bg-[#181818]/10 hover:bg-[#f5f5f5] dark:hover:bg-[#181818]/20 rounded-full flex items-center justify-center text-[#181818] dark:text-white text-xl transition-all"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white text-3xl transition-all"
             >
               ›
             </button>

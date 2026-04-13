@@ -211,7 +211,7 @@ export default function ProfileSettings() {
       <div className="flex gap-3">
         <button
           onClick={() => {
-            navigator.clipboard.writeText('https://assi-portfolio.vercel.app')
+            navigator.clipboard.writeText('https://assifolio.com')
             setShareCopied(true)
             setTimeout(() => setShareCopied(false), 2000)
           }}

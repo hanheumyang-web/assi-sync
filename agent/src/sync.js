@@ -68,7 +68,7 @@ async function pollBunnyEncoding(bunnyVideoId, assetId, projectId, fileName) {
       if (info.status === 4) {
         const thumbFile = info.thumbnailFileName || 'thumbnail.jpg'
         const thumbRes = await fetch(`https://vz-cd1dda72-832.b-cdn.net/${bunnyVideoId}/${thumbFile}`, {
-          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
+          headers: { 'Referer': 'https://assifolio.com' },
         })
         if (thumbRes.ok) {
           const thumbBuffer = Buffer.from(await thumbRes.arrayBuffer())

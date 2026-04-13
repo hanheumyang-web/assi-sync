@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '../firebase'
+import JSZip from 'jszip'
 
 function formatBytes(n) {
   if (!n && n !== 0) return '—'
@@ -25,6 +26,7 @@ export default function ShareDownloadPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [downloadAllProgress, setDownloadAllProgress] = useState(null) // { current, total }
 
   useEffect(() => {
     let cancelled = false
@@ -56,6 +58,38 @@ export default function ShareDownloadPage() {
     } catch (err) {
       alert('다운로드 링크 발급 실패: ' + (err.message || ''))
     }
+  }
+
+  const handleDownloadAll = async () => {
+    const assets = data?.assets || []
+    if (assets.length === 0) return
+    setDownloadAllProgress({ current: 0, total: assets.length, phase: 'fetching' })
+
+    const zip = new JSZip()
+    const fn = httpsCallable(functions, 'getAssetDownloadUrl')
+
+    for (let i = 0; i < assets.length; i++) {
+      try {
+        setDownloadAllProgress({ current: i, total: assets.length, phase: 'fetching' })
+        const res = await fn({ shareId, assetId: assets[i].id })
+        const blob = await fetch(res.data.url).then(r => r.blob())
+        zip.file(assets[i].fileName, blob)
+      } catch (err) {
+        console.error(`Failed to fetch ${assets[i].fileName}:`, err)
+      }
+    }
+
+    setDownloadAllProgress({ current: assets.length, total: assets.length, phase: 'zipping' })
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const zipName = `${data.projectName || 'ASSI-Share'}.zip`
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(zipBlob)
+    link.download = zipName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
+    setTimeout(() => setDownloadAllProgress(null), 1500)
   }
 
   const fileExt = (name) => {
@@ -168,6 +202,29 @@ export default function ShareDownloadPage() {
               )}
             </div>
           )}
+
+          {/* 전체 다운로드 */}
+          <button
+            onClick={handleDownloadAll}
+            disabled={downloadAllProgress !== null}
+            className="w-full bg-[#F4A259] hover:brightness-110 disabled:opacity-60 text-black font-black text-base tracking-tight py-5 rounded-[8px] transition-all flex items-center justify-center gap-3 mb-8"
+          >
+            {downloadAllProgress ? (
+              <>
+                <div className="w-5 h-5 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
+                {downloadAllProgress.phase === 'zipping'
+                  ? 'ZIP 생성 중...'
+                  : `${downloadAllProgress.current + 1}/${downloadAllProgress.total} 파일 준비 중...`}
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                전체 다운로드 · {data.assetCount}개 파일 · {formatBytes(data.totalSize)}
+              </>
+            )}
+          </button>
 
           {/* 파일 그리드 */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">

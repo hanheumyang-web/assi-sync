@@ -31,3 +31,5 @@ functions/.env
 **/*.pem
 .env
 .env.*
+
+.env*.local

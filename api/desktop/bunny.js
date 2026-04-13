@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
         // 2. Download thumbnail from Bunny CDN
         const thumbRes = await fetch(`${BUNNY_CDN}/${videoId}/${thumbFile}`, {
-          headers: { 'Referer': 'https://assi-portfolio.vercel.app' },
+          headers: { 'Referer': 'https://assifolio.com' },
         })
         if (!thumbRes.ok) return res.status(404).json({ error: 'Thumbnail not found' })
 

@@ -158,7 +158,7 @@ function buildCover(tpl, title, subtitle, contact, pw, ph) {
   return {
     id: uid(), bg: tpl.bg, isCover: true, elements: [
       // 좌하단 큰 타이틀
-      mkText((title || 'PORTFOLIO').toUpperCase(), m, ph * 0.58, pw * 0.65, 30, { fontSize: 36, fontWeight: 'bold', color: tpl.text, align: 'left' }),
+      mkText((title || 'PORTFOLIO').toUpperCase(), m, ph * 0.58, pw - m * 2, 30, { fontSize: 36, fontWeight: 'bold', color: tpl.text, align: 'left' }),
       // 악센트 라인
       mkShape(m, ph * 0.58 - 4, 30, 0.8, tpl.accent, 1),
       // 서브타이틀 (직군)
@@ -905,8 +905,9 @@ export default function PdfBuilder({ isMobile }) {
             let tx = el.x
             if (el.align === 'center') tx = el.x + el.w / 2
             else if (el.align === 'right') tx = el.x + el.w
-            const lines = pdf.splitTextToSize(el.text || '', el.w)
-            pdf.text(lines, tx, el.y + el.fontSize * 0.353 * 0.8, { align: el.align || 'left' })
+            const rawText = (el.text || '').replace(/_/g, ' ')
+            const lines = pdf.splitTextToSize(rawText, el.w)
+            pdf.text(lines, tx, el.y + (el.fontSize || 12) * 0.353 * 0.8, { align: el.align || 'left' })
           } else if (el.type === 'shape') {
             pdf.setFillColor(...hex(el.color))
             pdf.setGState(new pdf.GState({ opacity: el.opacity ?? 0.2 }))
@@ -999,7 +1000,7 @@ export default function PdfBuilder({ isMobile }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-4 gap-5">
           <div className="col-span-2 space-y-4">
             {/* 템플릿 */}
             <div className="bg-[#181818] rounded-[12px] p-6 shadow-sm">
@@ -1114,7 +1115,7 @@ export default function PdfBuilder({ isMobile }) {
               </div>
             </div>
 
-          {/* 우측: 저장 목록 + 프로젝트 선택 */}
+          {/* 3열: 저장 목록 + 로컬 불러오기 */}
           <div className="space-y-4">
             {/* 저장된 작업 목록 */}
             {drafts.length > 0 && (

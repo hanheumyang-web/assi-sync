@@ -24,8 +24,8 @@ export default async function handler(req, res) {
 
       case 'getUploadUrl': {
         const { storagePath, contentType } = req.body
-        // Security: path must start with users/{uid}/
-        if (!storagePath.startsWith(`users/${uid}/`) && !storagePath.startsWith(`thumbnails/${uid}/`)) {
+        // Security: path must start with users/{uid}/ or thumbnails/{uid}/ or shares/{uid}/
+        if (!storagePath.startsWith(`users/${uid}/`) && !storagePath.startsWith(`thumbnails/${uid}/`) && !storagePath.startsWith(`shares/${uid}/`)) {
           return res.status(403).json({ error: 'Forbidden: invalid storage path' })
         }
 

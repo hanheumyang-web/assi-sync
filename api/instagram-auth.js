@@ -5,7 +5,7 @@
 
 const APP_ID = process.env.IG_APP_ID || '1346006907350596'
 const APP_SECRET = process.env.IG_APP_SECRET
-const REDIRECT_URI = process.env.IG_REDIRECT_URI || 'https://assi-portfolio.vercel.app/auth/instagram/callback'
+const REDIRECT_URI = process.env.IG_REDIRECT_URI || 'https://assifolio.com/auth/instagram/callback'
 
 export default async function handler(req, res) {
   // CORS

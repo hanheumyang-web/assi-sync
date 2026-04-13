@@ -43,6 +43,7 @@ export default function PortfolioGrid({
   categoryFilter,
   onProjectClick,
   theme,
+  template,
 }) {
   const [dragId, setDragId] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)  // { row, col, colSpan, rowSpan }
@@ -52,6 +53,8 @@ export default function PortfolioGrid({
   const dragRef = useRef(null)
   const containerRef = useRef(null)
   const resizeRef = useRef(null)
+  const dropTargetRef = useRef(null)
+  const hasDraggedRef = useRef(false)
 
   const text = theme?.text || '#1A1A1A'
   const accent = theme?.accent || '#F4A259'
@@ -80,7 +83,7 @@ export default function PortfolioGrid({
   // rowAspectRatio 기반으로 적절한 기본 rowSpan 계산
   // 목표: 타일의 시각적 세로/가로 비율이 항상 0.8~1.5 사이에 있도록
   // tileRatio = rowAspectRatio * rowSpan (타일 높이/너비)
-  const defaultRowSpan = Math.max(1, Math.round(1 / rowAspectRatio))
+  const defaultRowSpan = Math.max(1, Math.ceil(1 / rowAspectRatio - 0.1))
 
   // 저장된 rowSpan도 현재 비율에 맞게 clamp
   const clampRowSpan = useCallback((saved) => {
@@ -228,69 +231,127 @@ export default function PortfolioGrid({
     return { row, col }
   }, [colWidth, rowHeight, gap, columns])
 
-  // ─── 드래그 핸들러 (그리드 레벨) ───
-  const handleDragStart = (e, projectId) => {
+  // ─── 드래그 핸들러 (Pointer Events — 터치+마우스 모두 지원) ───
+  const handleDragPointerDown = (e, projectId) => {
     if (mode !== 'owner' || resizing) return
-    setDragId(projectId)
-    dragRef.current = projectId
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', projectId)
-  }
-
-  const handleGridDragOver = (e) => {
-    if (mode !== 'owner' || !dragRef.current) return
+    e.stopPropagation()
     e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
 
-    const cell = getCellFromEvent(e)
-    if (!cell) return
-
-    const pos = activeLayout[dragRef.current]
+    const pos = layout[projectId]
     if (!pos) return
 
-    // 타일 크기에 맞게 col 조정 (오른쪽 넘침 방지)
-    const adjustedCol = Math.min(cell.col, columns - pos.colSpan)
-    setDropTarget({ row: cell.row, col: adjustedCol, colSpan: pos.colSpan, rowSpan: pos.rowSpan })
-  }
+    setDragId(projectId)
+    const layoutSnap = { ...layout }
+    const cellMapSnap = { ...cellMap }
+    dragRef.current = projectId
+    dropTargetRef.current = null
+    hasDraggedRef.current = false
+    const startX = e.clientX, startY = e.clientY
 
-  const handleGridDrop = (e) => {
-    if (mode !== 'owner' || !dragRef.current || !dropTarget) return
-    e.preventDefault()
+    const handleMove = (me) => {
+      if (!dragRef.current || !containerRef.current) return
 
-    const pid = dragRef.current
-    const pos = layout[pid]
-    if (!pos) { resetDrag(); return }
-
-    const { row, col } = dropTarget
-    const { colSpan, rowSpan } = pos
-
-    // 충돌 체크
-    const conflicting = new Set()
-    for (let r = 0; r < rowSpan; r++)
-      for (let c = 0; c < colSpan; c++) {
-        const occ = cellMap[`${row + r}-${col + c}`]
-        if (occ && occ !== pid) conflicting.add(occ)
+      // 5px 이상 움직여야 드래그 시작
+      if (!hasDraggedRef.current) {
+        if (Math.abs(me.clientX - startX) > 5 || Math.abs(me.clientY - startY) > 5)
+          hasDraggedRef.current = true
+        else return
       }
 
-    const newLayout = { ...layout }
-    if (conflicting.size === 1) {
-      const otherId = [...conflicting][0]
-      newLayout[otherId] = { ...layout[otherId], row: pos.row, col: pos.col }
-      newLayout[pid] = { ...pos, row, col }
-    } else if (conflicting.size === 0) {
-      newLayout[pid] = { ...pos, row, col }
-    } else {
-      resetDrag(); return
+      const cell = getCellFromEvent(me)
+      if (!cell) return
+
+      const dragPos = layoutSnap[dragRef.current]
+      if (!dragPos) return
+
+      const adjustedCol = Math.min(cell.col, columns - dragPos.colSpan)
+      const target = { row: cell.row, col: adjustedCol, colSpan: dragPos.colSpan, rowSpan: dragPos.rowSpan }
+      dropTargetRef.current = target
+      setDropTarget(target)
     }
 
-    onLayoutChange?.(newLayout)
-    resetDrag()
-  }
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
 
-  const resetDrag = () => {
-    setDragId(null)
-    setDropTarget(null)
-    dragRef.current = null
+      const target = dropTargetRef.current
+
+      if (dragRef.current && target && hasDraggedRef.current) {
+        const pid = dragRef.current
+        const snapPos = layoutSnap[pid]
+        if (snapPos) {
+          const { row, col } = target
+          const { colSpan, rowSpan } = snapPos
+
+          // 드래그한 타일 우선 배치 → 나머지 리팩
+          const newLayout = {}
+          const occ = new Set()
+
+          // 1) 드래그 타일을 목표 위치에 먼저 배치
+          newLayout[pid] = { row, col, colSpan, rowSpan }
+          for (let dr = 0; dr < rowSpan; dr++)
+            for (let dc = 0; dc < colSpan; dc++)
+              occ.add(`${row + dr}-${col + dc}`)
+
+          // 2) 나머지 타일: 큰 타일 먼저 배치 → 작은 타일이 빈자리 채움
+          const rest = Object.entries(layoutSnap).filter(([id]) => id !== pid)
+          const largeTiles = rest.filter(([, p]) => (p.colSpan || 1) > 1)
+            .sort(([, a], [, b]) => (a.row - b.row) || (a.col - b.col))
+          const smallTiles = rest.filter(([, p]) => (p.colSpan || 1) <= 1)
+            .sort(([, a], [, b]) => (a.row - b.row) || (a.col - b.col))
+          const others = [...largeTiles, ...smallTiles]
+
+          for (const [id, pos] of others) {
+            const cs = pos.colSpan || 1, rs = pos.rowSpan || 2
+            let placed = false
+            const oR = pos.row ?? 0, oC = Math.min(pos.col ?? 0, columns - cs)
+            let ok = true
+            for (let dr = 0; dr < rs && ok; dr++)
+              for (let dc = 0; dc < cs && ok; dc++)
+                if (occ.has(`${oR + dr}-${oC + dc}`)) ok = false
+            if (ok) {
+              newLayout[id] = { row: oR, col: oC, colSpan: cs, rowSpan: rs }
+              for (let dr = 0; dr < rs; dr++)
+                for (let dc = 0; dc < cs; dc++)
+                  occ.add(`${oR + dr}-${oC + dc}`)
+              placed = true
+            }
+            if (!placed) {
+              for (let r2 = 0; !placed; r2++)
+                for (let c2 = 0; c2 <= columns - cs; c2++) {
+                  ok = true
+                  for (let dr = 0; dr < rs && ok; dr++)
+                    for (let dc = 0; dc < cs && ok; dc++)
+                      if (occ.has(`${r2 + dr}-${c2 + dc}`)) ok = false
+                  if (ok) {
+                    newLayout[id] = { row: r2, col: c2, colSpan: cs, rowSpan: rs }
+                    for (let dr = 0; dr < rs; dr++)
+                      for (let dc = 0; dc < cs; dc++)
+                        occ.add(`${r2 + dr}-${c2 + dc}`)
+                    placed = true
+                    break
+                  }
+                }
+            }
+          }
+
+          onLayoutChange?.(newLayout)
+        }
+      }
+
+      setDragId(null)
+      setDropTarget(null)
+      dragRef.current = null
+      dropTargetRef.current = null
+
+      // click 이벤트가 pointerup 직후 발생하므로 잠시 유지
+      if (hasDraggedRef.current) {
+        setTimeout(() => { hasDraggedRef.current = false }, 100)
+      }
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
   }
 
   // ─── 리사이즈 ───
@@ -348,7 +409,7 @@ export default function PortfolioGrid({
     const firstImage = assets.find(a => !isVideoAsset(a) && (a.url || a.thumbnailUrl))
     const firstVideo = assets.find(a => isVideoAsset(a))
     // 썸네일: 프로젝트 기본 썸네일(가장 빨리 로드됨) > 작은 thumbUrl > 원본 url > Bunny 썸네일
-    const rawThumb = firstVideo?.videoThumbnailUrl || null
+    const rawThumb = firstVideo?.videoThumbnailUrl || (firstVideo?.bunnyVideoId ? `https://vz-cd1dda72-832.b-cdn.net/${firstVideo.bunnyVideoId}/thumbnail.jpg` : null)
     const bunnyThumb = rawThumb?.replace('vz-631122.b-cdn.net', 'vz-cd1dda72-832.b-cdn.net') || null
     const thumb = project.thumbnailUrl || firstImage?.thumbUrl || firstImage?.url || bunnyThumb || null
     const embedUrl = firstVideo?.embedUrl || null
@@ -358,10 +419,7 @@ export default function PortfolioGrid({
     return (
       <div
         key={project.id}
-        draggable={mode === 'owner' && !resizing}
-        onDragStart={e => handleDragStart(e, project.id)}
-        onDragEnd={resetDrag}
-        onClick={() => !resizing && onProjectClick?.(project)}
+        onClick={() => !resizing && !hasDraggedRef.current && onProjectClick?.(project)}
         className={`relative group cursor-pointer transition-all overflow-hidden
           ${isDragging ? 'opacity-20 scale-95' : ''}
           ${isResizing ? 'ring-2 ring-[#F4A259] z-20' : ''}
@@ -397,23 +455,36 @@ export default function PortfolioGrid({
         {thumb && (
           <FadeImage src={thumb} alt="" draggable={false}
             eager={pos.row === 0}
-            className="absolute inset-0 w-full h-full object-cover" />
+            className={`absolute inset-0 w-full h-full object-cover ${
+              mode === 'viewer' ? `${getImageEffectClass()} ${getHoverEffectClass()}` : ''
+            }`} />
         )}
 
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end opacity-0 group-hover:opacity-100">
-          <div className="w-full p-4">
-            <p className="text-white text-sm font-medium tracking-wide uppercase">{project.name}</p>
-            <div className="flex items-center gap-3 mt-1">
+        {/* Hover overlay — variant based */}
+        {mode === 'viewer' && hoverEffect === 'gradient-overlay' ? (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end">
+            <div className="w-full p-4">
+              <p className="text-white text-sm font-medium tracking-wide uppercase truncate">{project.name}</p>
               {project.category && (
                 <span className="text-white/60 text-[10px] tracking-[0.15em] uppercase">{project.category}</span>
               )}
-              {imageCount > 0 && (
-                <span className="text-white/40 text-[10px]">{imageCount} items</span>
-              )}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end opacity-0 group-hover:opacity-100">
+            <div className="w-full p-4">
+              <p className="text-white text-sm font-medium tracking-wide uppercase truncate">{project.name}</p>
+              <div className="flex items-center gap-3 mt-1">
+                {project.category && (
+                  <span className="text-white/60 text-[10px] tracking-[0.15em] uppercase">{project.category}</span>
+                )}
+                {imageCount > 0 && (
+                  <span className="text-white/40 text-[10px]">{imageCount} items</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Video icon */}
         {firstVideo && (
@@ -426,9 +497,14 @@ export default function PortfolioGrid({
 
         {/* Owner: drag handle */}
         {mode === 'owner' && (
-          <div className="absolute top-2 left-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
-            <div className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center shadow">
-              <svg className="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
+          <div
+            className="absolute top-2 left-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing"
+            style={{ touchAction: 'none' }}
+            onPointerDown={e => handleDragPointerDown(e, project.id)}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
                 <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
                 <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
@@ -441,9 +517,10 @@ export default function PortfolioGrid({
         {mode === 'owner' && (
           <div className="absolute bottom-1 right-1 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 cursor-nwse-resize"
             style={{ touchAction: 'none' }}
-            onPointerDown={e => handleResizeStart(e, project.id)}>
-            <div className="w-6 h-6 bg-white/80 rounded-full flex items-center justify-center shadow">
-              <svg className="w-3 h-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            onPointerDown={e => handleResizeStart(e, project.id)}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+              <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="18" y1="12" x2="12" y2="18" />
               </svg>
@@ -495,17 +572,159 @@ export default function PortfolioGrid({
     return compact
   }, [activeLayout, mode])
 
+  // ── Template-based viewer rendering ──
+  const gridVariant = template?.gridVariant || 'masonry'
+  const imageEffect = template?.imageEffect || 'none'
+  const hoverEffect = template?.hoverEffect || 'overlay'
+
+  // Image effect classes
+  const getImageEffectClass = () => {
+    if (imageEffect === 'grayscale') return 'grayscale group-hover:grayscale-0 transition-all duration-500'
+    return ''
+  }
+
+  // Hover effect classes for viewer cards
+  const getHoverEffectClass = () => {
+    switch (hoverEffect) {
+      case 'zoom': return 'group-hover:scale-105 transition-transform duration-700'
+      case 'brightness': return 'group-hover:brightness-110 transition-all duration-500'
+      case 'color-reveal': return 'grayscale group-hover:grayscale-0 transition-all duration-500'
+      default: return ''
+    }
+  }
+
+  // Viewer mode with special grid variants (casestudy, single, editorial)
+  if (mode === 'viewer' && gridVariant !== 'masonry' && gridVariant !== 'bento') {
+    const visibleProjects = filtered
+
+    if (!visibleProjects.length) {
+      return (
+        <div className="text-center py-20">
+          <p className="text-sm font-light tracking-widest uppercase" style={{ color: text + '30' }}>
+            {categoryFilter ? 'No projects in this category' : 'No works yet'}
+          </p>
+        </div>
+      )
+    }
+
+    // ── Case Study: alternating left/right cards ──
+    if (gridVariant === 'casestudy') {
+      return (
+        <div style={{ padding: `0 ${pad}px` }} className="space-y-24 max-w-6xl mx-auto">
+          {visibleProjects.map((project, idx) => {
+            const assets = projectAssets[project.id] || []
+            const thumb = project.thumbnailUrl || assets.find(a => !a.isVideo && a.url)?.url || null
+            const isReverse = idx % 2 === 1
+            return (
+              <article key={project.id} onClick={() => onProjectClick?.(project)}
+                className={`flex flex-col md:flex-row ${isReverse ? 'md:flex-row-reverse' : ''} gap-8 md:gap-12 items-center cursor-pointer group`}>
+                <div className="w-full md:w-3/5 overflow-hidden" style={{ borderRadius: `${borderRadius}px` }}>
+                  {thumb ? (
+                    <FadeImage src={thumb} alt="" className={`w-full aspect-[4/3] object-cover ${getImageEffectClass()} ${getHoverEffectClass()}`} />
+                  ) : (
+                    <div className="w-full aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: text + '08' }}>
+                      <span className="text-xs font-light tracking-widest uppercase" style={{ color: text + '30' }}>{project.name}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="w-full md:w-2/5">
+                  {project.category && (
+                    <p className="text-xs tracking-[0.2em] uppercase mb-3" style={{ color: accent }}>{project.category}</p>
+                  )}
+                  <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-4 break-words" style={{ color: text }}>{project.name}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: text + '60' }}>{assets.length} images</p>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )
+    }
+
+    // ── Single: cinematography style ──
+    if (gridVariant === 'single') {
+      return (
+        <div style={{ padding: `0 ${pad}px` }} className="max-w-5xl mx-auto space-y-16">
+          {visibleProjects.map((project, idx) => {
+            const assets = projectAssets[project.id] || []
+            const thumb = project.thumbnailUrl || assets.find(a => !a.isVideo && a.url)?.url || null
+            return (
+              <div key={project.id} onClick={() => onProjectClick?.(project)} className="cursor-pointer group">
+                <div className="overflow-hidden shadow-2xl" style={{ borderRadius: `${borderRadius}px` }}>
+                  {thumb ? (
+                    <FadeImage src={thumb} alt=""
+                      className={`w-full aspect-video object-cover ${getImageEffectClass()} group-hover:scale-105 group-hover:brightness-110 transition-all duration-1000`} />
+                  ) : (
+                    <div className="w-full aspect-video flex items-center justify-center" style={{ backgroundColor: text + '08' }}>
+                      <span className="text-xs font-light tracking-widest uppercase" style={{ color: text + '30' }}>{project.name}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-6">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xl font-bold truncate" style={{ color: text }}>{project.name}</h3>
+                    <p className="text-sm mt-1 truncate" style={{ color: text + '60' }}>{project.category || ''}</p>
+                  </div>
+                  <span className="text-4xl font-light flex-shrink-0 ml-4" style={{ color: text + '15' }}>{String(idx + 1).padStart(2, '0')}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    // ── Editorial: 2-column no-gap border grid ──
+    if (gridVariant === 'editorial') {
+      return (
+        <div className="w-full mx-auto" style={{ padding: `0 ${pad}px` }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ borderTop: `1px solid ${text}10` }}>
+            {visibleProjects.map(project => {
+              const assets = projectAssets[project.id] || []
+              const thumb = project.thumbnailUrl || assets.find(a => !a.isVideo && a.url)?.url || null
+              return (
+                <div key={project.id} onClick={() => onProjectClick?.(project)}
+                  className="cursor-pointer group"
+                  style={{ borderBottom: `1px solid ${text}10`, borderRight: `1px solid ${text}10`, padding: 0 }}>
+                  <div className="overflow-hidden">
+                    {thumb ? (
+                      <FadeImage src={thumb} alt=""
+                        className="w-full aspect-[4/3] object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                    ) : (
+                      <div className="w-full aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: text + '08' }}>
+                        <span className="text-xs font-light tracking-widest uppercase" style={{ color: text + '30' }}>{project.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {!visibleProjects.length && (
+            <div className="text-center py-20">
+              <p className="text-sm font-light tracking-widest uppercase" style={{ color: text + '30' }}>
+                {categoryFilter ? 'No projects in this category' : 'No works yet'}
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    }
+  }
+
+  // ── Bento grid variant in viewer mode ──
+  // Uses CSS grid with larger auto-rows for a bento-box effect
+  const isBentoViewer = mode === 'viewer' && gridVariant === 'bento'
+  const bentoRowHeight = isBentoViewer ? Math.max(rowHeight, 200) : rowHeight
+
   return (
     <div className="w-full mx-auto" style={{ padding: `0 ${pad}px` }}>
       <div
         ref={containerRef}
-        onDragOver={handleGridDragOver}
-        onDrop={handleGridDrop}
-        onDragLeave={() => setDropTarget(null)}
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${columns}, 1fr)`,
-          gridAutoRows: `${rowHeight}px`,
+          gridAutoRows: `${isBentoViewer ? bentoRowHeight : rowHeight}px`,
           gap: `${gap}px`,
         }}
       >

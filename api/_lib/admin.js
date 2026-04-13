@@ -29,7 +29,7 @@ export function bucket() { ensureInit(); return getStorage().bucket() }
 export { FieldValue }
 
 // CORS helper
-const ALLOWED_ORIGINS = ['https://assi-portfolio.vercel.app', 'http://localhost:5173']
+const ALLOWED_ORIGINS = ['https://assifolio.com', 'http://localhost:5173']
 
 export function cors(reqOrRes, res) {
   // cors(res) 또는 cors(req, res) 둘 다 지원

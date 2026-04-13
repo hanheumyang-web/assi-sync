@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASSI 폴더 인식 구조</title>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard Variable', -apple-system, sans-serif;
+      background: #F8F8F6;
+      color: #1A1A1A;
+      min-height: 100vh;
+      padding: 48px 24px 80px;
+    }
+    .page-title { text-align: center; margin-bottom: 56px; }
+    .page-title h1 { font-size: 32px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .page-title p { font-size: 15px; color: #999; }
+    .section { max-width: 1100px; margin: 0 auto 64px; }
+
+    /* ── 통합 블록: 탐색기 + 도표를 하나의 그리드로 ── */
+    .unified {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }
+
+    /* 탐색기 바 */
+    .finder-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px; background: #F3F4F6; border-bottom: 1px solid #E5E7EB;
+    }
+    .finder-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .finder-dot.r { background: #EF4444; }
+    .finder-dot.y { background: #F59E0B; }
+    .finder-dot.g { background: #22C55E; }
+    .finder-path { margin-left: 12px; font-size: 13px; font-weight: 600; color: #666; }
+
+    /* 그리드 행 */
+    .grid-row {
+      display: grid;
+      border-bottom: 1px solid #F0F0F0;
+    }
+    .grid-row:last-child { border-bottom: none; }
+    .grid-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    .grid-cell {
+      border-right: 1px solid #F0F0F0;
+      position: relative;
+    }
+    .grid-cell:last-child { border-right: none; }
+
+    /* 셀 내 화살표 */
+    .grid-cell::after {
+      content: '▶';
+      position: absolute; right: -7px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: #D1D5DB; z-index: 2;
+    }
+    .grid-cell:last-child::after { content: none; }
+
+    /* 칸 헤더 */
+    .col-header {
+      padding: 8px 14px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      text-align: center; border-bottom: 1px solid #F0F0F0;
+    }
+    .col-header.blue { background: #EFF6FF; color: #2563EB; }
+    .col-header.orange { background: #FFFBEB; color: #D97706; }
+    .col-header.green { background: #F0FDF4; color: #16A34A; }
+    .col-header.purple { background: #F5F3FF; color: #7C3AED; }
+
+    /* 탐색기 아이템 */
+    .finder-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; font-size: 14px; font-weight: 500; color: #333;
+      border-bottom: 1px solid #FAFAFA;
+    }
+    .finder-item.selected {
+      background: #3B82F6; color: #fff; border-radius: 4px; margin: 2px 4px; border-bottom: none;
+    }
+    .finder-item .icon { font-size: 16px; flex-shrink: 0; }
+    .finder-item .fname { flex: 1; }
+
+    /* 구분선: 탐색기 → 도표 */
+    .section-divider {
+      border-top: 2px dashed #E5E7EB;
+    }
+
+    /* 도표 셀 */
+    .chart-cell {
+      text-align: center;
+      padding: 28px 18px 32px;
+    }
+    .chart-cell .ct {
+      font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 6px;
+    }
+    .ct.blue { color: #2563EB; }
+    .ct.orange { color: #D97706; }
+    .ct.green { color: #16A34A; }
+    .ct.purple { color: #7C3AED; }
+    .chart-cell .cs {
+      font-size: 18px; font-weight: 700; color: #888; margin-bottom: 20px;
+    }
+    .chart-cell .cd {
+      font-size: 15px; color: #888; line-height: 1.8; margin-bottom: 24px;
+    }
+    .chart-cell .cd strong { color: #333; }
+    .chart-cell .ce {
+      background: #F8F8F6; border-radius: 10px; padding: 16px 14px;
+      font-size: 16px; font-weight: 700; color: #333; line-height: 1.8;
+    }
+    .chart-cell .ce .label {
+      font-size: 11px; font-weight: 700; color: #bbb; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+    .chart-cell .ce .mono {
+      font-family: 'SF Mono', 'Consolas', monospace; font-size: 15px; font-weight: 600;
+    }
+
+    /* 결과 */
+    .result {
+      max-width: 1100px; margin: -20px auto 64px;
+      padding: 24px 32px; border-radius: 0 0 16px 16px;
+      font-size: 17px; line-height: 1.7;
+      background: #F0FDF4; border: 1px solid #BBF7D0; border-top: 2px dashed #BBF7D0;
+    }
+    .result strong { font-weight: 800; }
+    .result .rl { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; color: #16A34A; }
+
+    /* 규칙 요약 */
+    .rules {
+      max-width: 1100px; margin: 0 auto 40px;
+      background: white; border-radius: 16px; padding: 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }
+    .rules h3 { font-size: 18px; font-weight: 900; margin-bottom: 20px; }
+    .rule-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid #F0F0F0;
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-num {
+      width: 28px; height: 28px; border-radius: 50%; background: #F4A259; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; flex-shrink: 0;
+    }
+    .rule-text { font-size: 15px; color: #555; line-height: 1.7; }
+    .rule-text strong { color: #1A1A1A; }
+
+    @media (max-width: 800px) {
+      .grid-row { display: flex; flex-direction: column; }
+      .grid-cell { border-right: none; border-bottom: 1px solid #F0F0F0; }
+      .grid-cell::after { content: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>ASSI 폴더 인식 구조</h1>
+  <p>폴더 구조만으로 프로젝트가 자동 분류됩니다</p>
+</div>
+
+<!-- ══════════ 규칙 요약 ══════════ -->
+<div class="rules">
+  <h3>인식 규칙</h3>
+  <div class="rule-item">
+    <div class="rule-num">1</div>
+    <div class="rule-text"><strong>1차 폴더</strong>는 <strong>분류(카테고리)</strong>로 자동 인식됩니다.<br>예: FASHION, BEAUTY, VIDEO, PERSONAL WORK 등</div>
+  </div>
+  <div class="rule-item">
+    <div class="rule-num">2</div>
+    <div class="rule-text"><strong>중간 폴더</strong>들은 <strong style="color:#7C3AED">_</strong>로 연결되어 프로젝트 이름의 앞부분이 됩니다.</div>
+  </div>
+  <div class="rule-item">
+    <div class="rule-num">3</div>
+    <div class="rule-text">파일이 들어있는 <strong>마지막 폴더</strong>가 프로젝트 이름이 됩니다.<br>(중간 폴더 + 마지막 폴더가 합쳐져 최종 프로젝트명)</div>
+  </div>
+</div>
+
+<!-- ══════════ 시각 설명 ══════════ -->
+<div class="section">
+  <div class="unified">
+    <div class="finder-bar">
+      <div class="finder-dot r"></div><div class="finder-dot y"></div><div class="finder-dot g"></div>
+      <span class="finder-path">📂 내 포트폴리오</span>
+    </div>
+
+    <!-- 탐색기 헤더 -->
+    <div class="grid-row cols-4">
+      <div class="grid-cell"><div class="col-header blue">연결 폴더</div></div>
+      <div class="grid-cell"><div class="col-header orange">1차 — 분류</div></div>
+      <div class="grid-cell"><div class="col-header purple">중간 — _로 연결</div></div>
+      <div class="grid-cell"><div class="col-header green">마지막 — 프로젝트</div></div>
+    </div>
+
+    <!-- 탐색기 내용 -->
+    <div class="grid-row cols-4" style="min-height:160px">
+      <div class="grid-cell" style="padding:4px 0">
+        <div class="finder-item selected"><span class="icon">📂</span><span class="fname">내 포트폴리오</span></div>
+      </div>
+      <div class="grid-cell" style="padding:4px 0">
+        <div class="finder-item selected"><span class="icon">📂</span><span class="fname">FASHION</span></div>
+        <div class="finder-item"><span class="icon">📂</span><span class="fname">BEAUTY</span></div>
+        <div class="finder-item"><span class="icon">📂</span><span class="fname">VIDEO</span></div>
+      </div>
+      <div class="grid-cell" style="padding:4px 0">
+        <div class="finder-item selected"><span class="icon">📁</span><span class="fname">202603</span></div>
+        <div class="finder-item" style="padding-left:28px"><span class="icon">📁</span><span class="fname">클리오</span></div>
+        <div class="finder-item" style="padding-left:42px"><span class="icon">📁</span><span class="fname">모델촬영</span></div>
+      </div>
+      <div class="grid-cell" style="padding:4px 0">
+        <div class="finder-item selected"><span class="icon">📁</span><span class="fname">스틸이미지</span></div>
+        <div class="finder-item"><span class="icon">📁</span><span class="fname">비디오</span></div>
+      </div>
+    </div>
+
+    <!-- 구분선 -->
+    <div class="section-divider"></div>
+
+    <!-- 도표 -->
+    <div class="grid-row cols-4">
+      <div class="grid-cell">
+        <div class="chart-cell">
+          <div class="ct blue">연결 폴더</div>
+          <div class="cs">동기화 루트</div>
+          <div class="cd">ASSI Sync<br>프로그램과<br>연결되는 폴더</div>
+          <div class="ce"><div class="label">설정</div>📂 내 포트폴리오</div>
+        </div>
+      </div>
+      <div class="grid-cell">
+        <div class="chart-cell">
+          <div class="ct orange">1차 폴더</div>
+          <div class="cs">분류</div>
+          <div class="cd">연결 폴더 바로 아래<br>1차 폴더는<br><strong>자동으로 분류</strong>로<br>인식됨</div>
+          <div class="ce"><div class="label">ex)</div><div class="mono" style="color:#D97706">FASHION<br>BEAUTY<br>VIDEO</div></div>
+        </div>
+      </div>
+      <div class="grid-cell">
+        <div class="chart-cell">
+          <div class="ct purple">중간 폴더</div>
+          <div class="cs">_로 연결</div>
+          <div class="cd">1차 폴더와<br>마지막 폴더 사이의<br>폴더 이름은<br><strong style="color:#7C3AED">_</strong>로 연결</div>
+          <div class="ce">
+            <div class="label">ex) FASHION 안의</div>
+            <div class="mono">202603 / 클리오 / 모델촬영</div>
+            <div style="margin-top:6px;font-size:13px;color:#7C3AED;font-weight:700">→ 202603_클리오_모델촬영_</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-cell">
+        <div class="chart-cell">
+          <div class="ct green">마지막 폴더</div>
+          <div class="cs">프로젝트명</div>
+          <div class="cd">파일이 있는<br>마지막 폴더가<br>프로젝트명이 됨</div>
+          <div class="ce">
+            <div class="label">최종 프로젝트 명</div>
+            <div class="mono" style="font-size:14px;color:#16A34A">202603_클리오_모델촬영_스틸이미지</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="rl">결과</div>
+    📂 내 포트폴리오 / <strong style="color:#D97706">FASHION</strong> / 202603 / 클리오 / 모델촬영 / <strong>스틸이미지</strong> / photo.jpg<br>
+    → 분류: <strong>FASHION</strong> &nbsp;|&nbsp; 프로젝트: <strong>202603_클리오_모델촬영_스틸이미지</strong>
+  </div>
+</div>
+
+</body>
+</html>

@@ -32,6 +32,14 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
     }
 
+    // ── Shares ──
+    // 본인: 읽기 (onSnapshot으로 업로드 진행률 구독)
+    // 공유 링크 접근자: 읽기 허용 (다운로드 페이지)
+    match /shares/{shareId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
     // ── Portfolios ──
     // 본인: 읽기/쓰기 (doc ID = uid)
     // 비인증: published == true인 포트폴리오만 읽기

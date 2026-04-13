@@ -5,7 +5,7 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
-const SITE_URL = 'https://assi-portfolio.vercel.app'
+const SITE_URL = 'https://assifolio.com'
 
 let cachedBaseHtml = null
 
@@ -38,9 +38,9 @@ export default async function handler(req, res) {
     ensureInit()
     const db = getFirestore()
 
+    // published 조건 없이 slug로만 검색 (비공개여도 OG는 표시)
     const portSnap = await db.collection('portfolios')
       .where('slug', '==', slug)
-      .where('published', '==', true)
       .limit(1).get()
 
     if (!portSnap.empty) {
@@ -57,9 +57,9 @@ export default async function handler(req, res) {
       description = profile.bio || `${name}의 포트폴리오`
       if (profile.logoUrl) image = profile.logoUrl
 
+      // 썸네일용 프로젝트 — portfolioPublic 조건 없이 최신 프로젝트
       const projSnap = await db.collection('projects')
         .where('uid', '==', uid)
-        .where('portfolioPublic', '==', true)
         .limit(1).get()
 
       if (!projSnap.empty && projSnap.docs[0].data().thumbnailUrl) {

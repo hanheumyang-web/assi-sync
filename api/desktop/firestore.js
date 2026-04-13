@@ -96,6 +96,22 @@ export default async function handler(req, res) {
       case 'createAsset': {
         const { data } = req.body
         if (data.uid !== uid) return res.status(403).json({ error: 'Forbidden' })
+
+        // 중복 방지: 같은 projectId + fileName이 이미 있으면 업데이트
+        if (data.projectId && data.fileName) {
+          const existing = await firestore.collection('assets')
+            .where('projectId', '==', data.projectId)
+            .where('fileName', '==', data.fileName)
+            .where('uid', '==', uid)
+            .limit(1)
+            .get()
+          if (!existing.empty) {
+            const existingDoc = existing.docs[0]
+            await firestore.collection('assets').doc(existingDoc.id).update(data)
+            return res.json({ assetId: existingDoc.id, deduplicated: true })
+          }
+        }
+
         const assetRef = await firestore.collection('assets').add(data)
         return res.json({ assetId: assetRef.id })
       }

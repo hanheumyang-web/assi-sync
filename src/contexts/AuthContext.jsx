@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../firebase'
 
@@ -9,17 +9,36 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
+const GOOGLE_CLIENT_ID = '757456971987-29ujju69cskatfiea8c4kn4upbtv71d8.apps.googleusercontent.com'
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [userDoc, setUserDoc] = useState(null)
   const [docLoadError, setDocLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // Android Google OAuth 콜백 처리 (페이지 로드 시 URL hash에서 id_token 확인)
   useEffect(() => {
-    // 모바일 리다이렉트 로그인 결과 처리
-    getRedirectResult(auth).catch(err => {
-      console.error('Redirect login error:', err)
-    })
+    const hash = window.location.hash
+    if (hash && hash.includes('id_token=')) {
+      const params = new URLSearchParams(hash.substring(1))
+      const idToken = params.get('id_token')
+      if (idToken) {
+        const credential = GoogleAuthProvider.credential(idToken)
+        signInWithCredential(auth, credential)
+          .then(() => {
+            // URL 정리 → 메인 페이지로
+            window.history.replaceState(null, '', '/')
+          })
+          .catch((err) => {
+            console.error('Google credential 로그인 실패:', err)
+            window.history.replaceState(null, '', '/')
+          })
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
@@ -31,13 +50,13 @@ export function AuthProvider({ children }) {
               setUserDoc(snap.data())
               setDocLoadError(false)
             } else {
-              setUserDoc(null) // 신규 유저 → 온보딩
+              setUserDoc(null)
               setDocLoadError(false)
             }
           } catch (err) {
             console.error('userDoc 로드 실패:', err)
             setUserDoc(null)
-            setDocLoadError(true) // 네트워크 에러 — 온보딩 표시 금지
+            setDocLoadError(true)
           }
         } else {
           setUser(null)
@@ -52,21 +71,25 @@ export function AuthProvider({ children }) {
   }, [])
 
   const loginWithGoogle = async () => {
-    // iOS Safari의 ITP는 cross-domain redirect(firebaseapp.com↔vercel.app) 쿠키를 차단하므로
-    // popup을 기본으로 쓰고, popup이 완전히 막힌 환경(인앱 브라우저 등)에서만 redirect 폴백.
-    try {
-      const result = await signInWithPopup(auth, googleProvider)
-      return result.user
-    } catch (err) {
-      if (
-        err.code === 'auth/popup-blocked' ||
-        err.code === 'auth/operation-not-supported-in-this-environment'
-      ) {
-        await signInWithRedirect(auth, googleProvider)
-        return null
-      }
-      throw err
+    const isAndroid = /Android/i.test(navigator.userAgent)
+    if (isAndroid) {
+      // Android: Firebase 핸들러 완전 우회
+      // 이미 Google Cloud Console에 등록된 redirect URI 사용
+      const nonce = crypto.randomUUID()
+      const params = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: 'https://assifolio.com/__/auth/handler',
+        response_type: 'id_token',
+        scope: 'openid email profile',
+        nonce: nonce,
+        prompt: 'select_account',
+      })
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+      return null
     }
+    // iOS / 데스크톱: Firebase popup (authDomain=firebaseapp.com → Firebase 서버 직접)
+    const result = await signInWithPopup(auth, googleProvider)
+    return result.user
   }
 
   const logout = async () => {
@@ -76,7 +99,6 @@ export function AuthProvider({ children }) {
   const createUserDoc = async (profileData) => {
     if (!user) return
     const ref = doc(db, 'users', user.uid)
-    // 기존 문서 덮어쓰기 방지 — 이미 있으면 로드만 하고 반환
     const existing = await getDoc(ref)
     if (existing.exists()) {
       const data = existing.data()

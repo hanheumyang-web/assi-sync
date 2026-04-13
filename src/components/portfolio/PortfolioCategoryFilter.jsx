@@ -1,6 +1,10 @@
 /**
- * Agency Teo-style category filter — vertical left-side floating labels
- * On mobile: horizontal scroll bar above grid
+ * Portfolio category filter — supports multiple variants:
+ * - floating: Fixed left vertical (desktop), horizontal (mobile)
+ * - horizontal: Simple horizontal bar (editor preview)
+ * - underline: Horizontal with bottom border accent
+ * - underline-center: Same but centered
+ * - pill: Rounded pill buttons with filled active state
  */
 export default function PortfolioCategoryFilter({ categories, activeCategory, onSelect, theme, variant = 'floating' }) {
   if (!categories?.length) return null
@@ -10,7 +14,7 @@ export default function PortfolioCategoryFilter({ categories, activeCategory, on
 
   const all = ['All', ...categories]
 
-  // Floating variant (used in public page — overlays left side of grid)
+  // ── Floating variant (overlays left side of grid) ──
   if (variant === 'floating') {
     return (
       <>
@@ -60,7 +64,80 @@ export default function PortfolioCategoryFilter({ categories, activeCategory, on
     )
   }
 
-  // Horizontal variant (used in editor preview)
+  // ── Underline variant ──
+  if (variant === 'underline') {
+    return (
+      <div className="w-full px-6 md:px-12 pb-6">
+        <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+          {all.map(cat => {
+            const active = cat === 'All' ? !activeCategory : activeCategory === cat
+            return (
+              <button key={cat} onClick={() => onSelect(cat === 'All' ? null : cat)}
+                className="text-[11px] tracking-[0.15em] uppercase whitespace-nowrap transition-all pb-2 border-b-2 hover:opacity-70"
+                style={{
+                  color: active ? text : text + '40',
+                  borderColor: active ? accent : 'transparent',
+                  fontWeight: active ? 700 : 400,
+                }}>
+                {cat}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Underline-center variant ──
+  if (variant === 'underline-center') {
+    return (
+      <div className="w-full px-6 md:px-12 pb-6">
+        <div className="flex items-center justify-center gap-6 overflow-x-auto scrollbar-hide">
+          {all.map(cat => {
+            const active = cat === 'All' ? !activeCategory : activeCategory === cat
+            return (
+              <button key={cat} onClick={() => onSelect(cat === 'All' ? null : cat)}
+                className="text-[11px] tracking-[0.15em] uppercase whitespace-nowrap transition-all pb-2 border-b-2 hover:opacity-70"
+                style={{
+                  color: active ? text : text + '40',
+                  borderColor: active ? accent : 'transparent',
+                  fontWeight: active ? 700 : 400,
+                }}>
+                {cat}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pill variant ──
+  if (variant === 'pill') {
+    return (
+      <div className="w-full px-6 md:px-12 pb-6">
+        <div className="flex items-center gap-2 flex-wrap">
+          {all.map(cat => {
+            const active = cat === 'All' ? !activeCategory : activeCategory === cat
+            return (
+              <button key={cat} onClick={() => onSelect(cat === 'All' ? null : cat)}
+                className="text-[11px] tracking-[0.1em] uppercase whitespace-nowrap transition-all px-4 py-1.5 rounded-full hover:opacity-70"
+                style={{
+                  backgroundColor: active ? accent : 'transparent',
+                  color: active ? '#fff' : text + '50',
+                  border: `1px solid ${active ? accent : text + '20'}`,
+                  fontWeight: active ? 700 : 500,
+                }}>
+                {cat}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Horizontal variant (default, used in editor preview) ──
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-12 pb-6">
       <div className="flex items-center gap-5 overflow-x-auto scrollbar-hide">
