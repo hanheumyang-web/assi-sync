@@ -585,37 +585,39 @@ export default function PortfolioEditor({ isMobile }) {
       {/* 우: 라이브 프리뷰 */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* 상단 바: 포트폴리오 주소 + 저장/공유/정렬 */}
-        <div className="flex items-center gap-2 px-3 pb-2">
+        <div className="flex items-center gap-2 px-3 pb-2 flex-wrap">
           {/* 포트폴리오 주소 — 왼쪽 */}
-          <div className="flex items-center gap-2 mr-auto">
+          <div className="flex items-center gap-1 min-w-0">
             <span className="text-xs text-[#8a8a8a] flex-shrink-0 font-medium">포트폴리오 주소</span>
             <div className="flex items-center gap-1 bg-[#252525] rounded-[10px] px-3 py-2">
               <span className="text-xs text-[#8a8a8a] flex-shrink-0">/p/</span>
               <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="my-portfolio" className="bg-transparent text-sm font-bold text-white outline-none w-[120px]" />
+                placeholder="my-portfolio" className="bg-transparent text-sm font-bold text-white outline-none w-[100px]" />
               {slugStatus === 'ok' && <span className="text-emerald-500 text-xs">✓</span>}
               {slugStatus === 'taken' && <span className="text-red-500 text-xs">사용중</span>}
               {slugStatus === 'checking' && <span className="text-[#8a8a8a] text-xs">...</span>}
             </div>
           </div>
-          {/* 저장 */}
-          <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 bg-[#181818] border border-[#2a2a2a] text-[#cbcbcb] text-sm font-bold rounded-[10px] hover:bg-[#1f1f1f] transition-all disabled:opacity-50">
-            {saving ? '저장 중...' : '저장'}
-          </button>
-          {/* 포트폴리오 공유 */}
-          <button onClick={copyLink}
-            className="px-4 py-2 bg-[#F4A259] text-white text-sm font-bold rounded-[10px] hover:bg-[#7078E8] transition-all shadow-md">
-            {copied ? '복사됨!' : '포트폴리오 공유'}
-          </button>
-          {/* 정렬 */}
-          {previewProjects.length > 0 && (
-            <button onClick={autoAlign}
-              className="px-4 py-2 rounded-[10px] text-sm font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow"
-              style={{ backgroundColor: accentColor, color: '#fff' }}>
-              정렬
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            {/* 저장 */}
+            <button onClick={handleSave} disabled={saving}
+              className="px-3 py-2 bg-[#181818] border border-[#2a2a2a] text-[#cbcbcb] text-xs font-bold rounded-[10px] hover:bg-[#1f1f1f] transition-all disabled:opacity-50 whitespace-nowrap">
+              {saving ? '저장 중...' : '저장'}
             </button>
-          )}
+            {/* 공유 */}
+            <button onClick={copyLink}
+              className="px-3 py-2 bg-[#F4A259] text-white text-xs font-bold rounded-[10px] hover:bg-[#7078E8] transition-all shadow-md whitespace-nowrap">
+              {copied ? '복사됨!' : '공유'}
+            </button>
+            {/* 정렬 */}
+            {previewProjects.length > 0 && (
+              <button onClick={autoAlign}
+                className="px-3 py-2 rounded-[10px] text-xs font-bold tracking-wide transition-all cursor-pointer shadow-md hover:shadow whitespace-nowrap"
+                style={{ backgroundColor: accentColor, color: '#fff' }}>
+                정렬
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 min-h-0 rounded-[12px] overflow-y-auto overflow-x-hidden border border-[#2a2a2a] shadow-sm"
           style={{ backgroundColor: bgColor, padding: `0 ${Math.max(24 - pagePadding, 0)}px` }}>
