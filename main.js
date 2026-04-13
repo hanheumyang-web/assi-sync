@@ -474,7 +474,7 @@ ipcMain.handle('scan-folder-tree', async () => {
   const synced = new Set(Object.keys(syncEngine.state.syncedFiles).map(k => k.split('/').slice(0, -1).join('/')))
 
   async function readDir(dir, depth) {
-    if (depth > 2) return []
+    if (depth > 5) return []
     let entries
     try { entries = await fsPromises.readdir(dir, { withFileTypes: true }) } catch { return [] }
     const out = []
@@ -492,19 +492,26 @@ ipcMain.handle('scan-folder-tree', async () => {
   }
 
   const tree = await readDir(root, 0)
-  // 뱃지 계산: depth 0 = 카테고리(파란), depth 1 = 프로젝트(초록=업로드됨/회색=대기/주황=잘못된위치)
-  function annotate(nodes, parentCat) {
+  // 뱃지 계산:
+  // depth 0 = 카테고리 (1차), 직속 파일 무시
+  // depth 1+ = 하위 폴더 없는 리프 폴더 → 프로젝트 (업로드됨/대기/비어있음)
+  //            하위 폴더 있는 폴더 → 중간 그루핑 폴더
+  function annotate(nodes) {
     for (const n of nodes) {
       if (n.depth === 0) {
         const norm = n.name.trim().toUpperCase()
         n.badge = DEFAULT_CATS.includes(norm) ? 'category' : 'category-custom'
-        // 1단계(카테고리) 폴더의 직접 파일은 무시 — 프로젝트 폴더 안 파일만 동기화 대상
-        n.fileCount = 0
-      } else if (n.depth === 1) {
-        const rel = require('path').relative(root, n.path).split(require('path').sep).join('/')
-        n.badge = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
+        n.fileCount = 0  // 카테고리 직속 파일은 무시
+      } else {
+        const isLeaf = !n.children || n.children.length === 0
+        if (isLeaf) {
+          // 리프 폴더 = 프로젝트
+          const rel = require('path').relative(root, n.path).split(require('path').sep).join('/')
+          n.badge = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
+        }
+        // 중간 폴더(자식 있음)는 뱃지 없이 그대로 표시
       }
-      if (n.children?.length) annotate(n.children, n.name)
+      if (n.children?.length) annotate(n.children)
     }
   }
   annotate(tree)
