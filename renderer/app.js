@@ -118,7 +118,7 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
 
 // ── Open Web ──
 document.getElementById('btn-open-web').addEventListener('click', () => {
-  window.api.openExternal('https://assi-portfolio.vercel.app')
+  window.api.openExternal('https://assifolio.com')
 })
 
 // ── Logout ──
@@ -297,8 +297,14 @@ function renderSyncedFolders(folders) {
   }
 
   section.style.display = 'block'
+  // 전체선택 체크박스 리셋
+  const cbAll = document.getElementById('cb-select-all')
+  if (cbAll) cbAll.checked = false
+  updateBatchButtons()
+
   list.innerHTML = folders.map(f => `
-    <div class="pending-item" id="synced-${f.key.replace(/[^a-zA-Z0-9]/g, '_')}">
+    <div class="pending-item" id="synced-${f.key.replace(/[^a-zA-Z0-9]/g, '_')}" data-folder-key="${f.key}">
+      <input type="checkbox" class="item-cb" data-key="${f.key}" onchange="onItemCheckChange()">
       <div class="pending-icon">📁</div>
       <div class="pending-info">
         <div class="pending-name">${f.name}</div>
@@ -312,6 +318,77 @@ function renderSyncedFolders(folders) {
   `).join('')
 }
 
+// ── 체크박스 전체선택/해제 ──
+function toggleSelectAll(cb) {
+  const checkboxes = document.querySelectorAll('#synced-list .item-cb')
+  checkboxes.forEach(c => c.checked = cb.checked)
+  updateBatchButtons()
+}
+window.toggleSelectAll = toggleSelectAll
+
+function onItemCheckChange() {
+  const all = document.querySelectorAll('#synced-list .item-cb')
+  const checked = document.querySelectorAll('#synced-list .item-cb:checked')
+  const cbAll = document.getElementById('cb-select-all')
+  const label = document.getElementById('select-all-label')
+  if (cbAll) cbAll.checked = all.length > 0 && checked.length === all.length
+  if (label) label.textContent = checked.length > 0 ? `${checked.length}개 선택됨` : '전체선택'
+  updateBatchButtons()
+}
+window.onItemCheckChange = onItemCheckChange
+
+function updateBatchButtons() {
+  const checked = document.querySelectorAll('#synced-list .item-cb:checked')
+  const hasSelection = checked.length > 0
+  const btnResync = document.getElementById('btn-batch-resync')
+  const btnRemove = document.getElementById('btn-batch-remove')
+  if (btnResync) btnResync.style.display = hasSelection ? 'block' : 'none'
+  if (btnRemove) btnRemove.style.display = hasSelection ? 'block' : 'none'
+}
+
+function getSelectedKeys() {
+  return Array.from(document.querySelectorAll('#synced-list .item-cb:checked'))
+    .map(cb => cb.dataset.key)
+    .filter(Boolean)
+}
+
+// ── 일괄 재업로드 ──
+async function batchResync() {
+  const keys = getSelectedKeys()
+  if (!keys.length) return
+  if (!confirm(`${keys.length}개 폴더를 재업로드하시겠습니까?`)) return
+  for (const key of keys) {
+    const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
+    if (el) {
+      const btn = el.querySelector('.btn-pending.resync')
+      if (btn) { btn.textContent = '대기 중...'; btn.disabled = true }
+    }
+  }
+  for (const key of keys) {
+    await window.api.resyncFolder(key)
+  }
+}
+window.batchResync = batchResync
+
+// ── 일괄 삭제 ──
+async function batchDelete() {
+  const keys = getSelectedKeys()
+  if (!keys.length) return
+  if (!confirm(`${keys.length}개 폴더를 삭제하시겠습니까? 서버 데이터도 함께 삭제됩니다.`)) return
+  for (const key of keys) {
+    const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
+    if (el) {
+      const btn = el.querySelector('.btn-pending.remove')
+      if (btn) { btn.textContent = '삭제 중...'; btn.disabled = true }
+    }
+  }
+  for (const key of keys) {
+    await window.api.deleteSyncedFolder(key)
+  }
+}
+window.batchDelete = batchDelete
+
+// ── 개별 재업로드/삭제 (기존) ──
 async function resyncFolder(key) {
   const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {

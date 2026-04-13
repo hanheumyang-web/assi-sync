@@ -190,6 +190,31 @@
       font-size: 9px; font-weight: 700; color: #4ADE80; background: #F0FDF4;
       padding: 2px 8px; border-radius: 6px; letter-spacing: 0.05em;
     }
+    /* ── Multi-select for synced folders ── */
+    .synced-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 6px 24px;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .synced-toolbar .cb-all {
+      width: 14px; height: 14px; accent-color: #828DF8; cursor: pointer;
+    }
+    .synced-toolbar label {
+      font-size: 10px; font-weight: 600; color: #999; cursor: pointer; user-select: none;
+    }
+    .synced-toolbar .batch-actions {
+      display: flex; gap: 4px; margin-left: auto;
+    }
+    .synced-toolbar .btn-batch {
+      padding: 3px 10px; border: none; border-radius: 6px; font-size: 9px;
+      font-weight: 700; cursor: pointer; transition: all 0.2s; display: none;
+    }
+    .synced-toolbar .btn-batch.resync { background: #E0E7FF; color: #828DF8; }
+    .synced-toolbar .btn-batch.resync:hover { background: #828DF8; color: white; }
+    .synced-toolbar .btn-batch.remove { background: #F4F3EE; color: #999; }
+    .synced-toolbar .btn-batch.remove:hover { background: #FEE2E2; color: #EF4444; }
+    .pending-item .item-cb {
+      width: 14px; height: 14px; accent-color: #828DF8; cursor: pointer; flex-shrink: 0;
+    }
 
     /* ── Folder Approval Toast ── */
     .folder-toast {
@@ -414,6 +439,14 @@
     <div id="activity-pane" style="flex:1;overflow-y:auto;min-height:0">
       <div id="synced-section" class="pending-section" style="display:none">
         <div class="pending-header">업로드 완료</div>
+        <div class="synced-toolbar" id="synced-toolbar">
+          <input type="checkbox" class="cb-all" id="cb-select-all" onclick="toggleSelectAll(this)">
+          <label for="cb-select-all" id="select-all-label">전체선택</label>
+          <div class="batch-actions">
+            <button class="btn-batch resync" id="btn-batch-resync" onclick="batchResync()">선택 재업로드</button>
+            <button class="btn-batch remove" id="btn-batch-remove" onclick="batchDelete()">선택 삭제</button>
+          </div>
+        </div>
         <div id="synced-list"></div>
       </div>
       <div id="pending-section" class="pending-section" style="display:none">
