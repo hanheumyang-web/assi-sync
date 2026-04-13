@@ -498,8 +498,8 @@ ipcMain.handle('scan-folder-tree', async () => {
       if (n.depth === 0) {
         const norm = n.name.trim().toUpperCase()
         n.badge = DEFAULT_CATS.includes(norm) ? 'category' : 'category-custom'
-        // 1단계 폴더에 직접 파일이 있으면 위치 오류
-        if (n.fileCount > 0) n.badge = 'misplaced'
+        // 1단계(카테고리) 폴더의 직접 파일은 무시 — 프로젝트 폴더 안 파일만 동기화 대상
+        n.fileCount = 0
       } else if (n.depth === 1) {
         const rel = require('path').relative(root, n.path).split(require('path').sep).join('/')
         n.badge = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
