@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
   "author": "ASSI",

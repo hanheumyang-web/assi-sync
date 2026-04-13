@@ -147,6 +147,7 @@ ipcMain.handle('maximize-window', () => {
 ipcMain.handle('close-window', () => mainWindow?.hide())
 ipcMain.handle('check-update', () => autoUpdater.checkForUpdates())
 ipcMain.handle('install-update', () => {
+  app.isQuitting = true
   autoUpdater.quitAndInstall(false, true)
 })
 ipcMain.handle('get-app-version', () => app.getVersion())
