@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 import PortfolioPublicPage from './components/portfolio/PortfolioPublicPage'
+import LinkPagePublicPage from './components/linkpage/LinkPagePublicPage'
 import DownloadPage from './components/DownloadPage'
 import InstagramCallback from './components/InstagramCallback'
 import ShareDownloadPage from './components/ShareDownloadPage'
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <Routes>
           <Route path="/p/:slug" element={<PortfolioPublicPage />} />
+          <Route path="/l/:slug" element={<LinkPagePublicPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/share/:shareId" element={<ShareDownloadPage />} />
           <Route path="/guide" element={<GuidePage />} />

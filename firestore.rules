@@ -40,6 +40,15 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == resource.data.uid;
     }
 
+    // ── Link Pages ──
+    // 본인: 읽기/쓰기 (doc ID = uid)
+    // 비인증: published == true인 링크페이지만 읽기
+    match /linkpages/{linkpageId} {
+      allow read: if request.auth != null && request.auth.uid == linkpageId;
+      allow read: if resource.data.published == true;
+      allow write: if request.auth != null && request.auth.uid == linkpageId;
+    }
+
     // ── Portfolios ──
     // 본인: 읽기/쓰기 (doc ID = uid)
     // 비인증: published == true인 포트폴리오만 읽기

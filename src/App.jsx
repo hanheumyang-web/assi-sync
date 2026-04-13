@@ -11,6 +11,7 @@ import DownloadPage from './components/DownloadPage'
 import ProfileSettings from './components/ProfileSettings'
 import PortfolioEditor from './components/portfolio/PortfolioEditor'
 import AdminPage from './components/AdminPage'
+import LinkPageEditor from './components/linkpage/LinkPageEditor'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -127,6 +128,7 @@ function App() {
         {page === 'pdf' && <PdfBuilder isMobile={isMobile} />}
         {page === 'projects' && <ProjectView isMobile={isMobile} />}
         {page === 'portfolio' && <PortfolioEditor isMobile={isMobile} />}
+        {page === 'linkpage' && <LinkPageEditor isMobile={isMobile} />}
         {page === 'profile' && <ProfileSettings />}
         {page === 'admin' && userDoc?.role === 'admin' && <AdminPage />}
       </main>

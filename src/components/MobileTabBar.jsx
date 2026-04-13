@@ -1,10 +1,10 @@
-import { IconDashboard, IconProjects, IconFeed, IconGlobe, IconSettings } from './Icons'
+import { IconDashboard, IconProjects, IconFeed, IconGlobe, IconLink, IconSettings } from './Icons'
 
 const TABS = [
   { id: 'dashboard', label: '홈', Icon: IconDashboard },
   { id: 'projects', label: '프로젝트', Icon: IconProjects },
   { id: 'portfolio', label: '포트폴리오', Icon: IconGlobe },
-  { id: 'feed', label: '피드', Icon: IconFeed },
+  { id: 'linkpage', label: '링크', Icon: IconLink },
   { id: 'profile', label: '설정', Icon: IconSettings },
 ]
 

@@ -16,6 +16,7 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/p/:slug", "destination": "/api/og?slug=:slug" },
+    { "source": "/l/:slug", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

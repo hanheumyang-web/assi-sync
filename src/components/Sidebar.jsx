@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useProjects } from '../hooks/useProjects'
-import { IconDashboard, IconProjects, IconFeed, IconPdf, IconSettings, IconCalendar, IconGlobe } from './Icons'
+import { IconDashboard, IconProjects, IconFeed, IconPdf, IconSettings, IconCalendar, IconGlobe, IconLink } from './Icons'
 
 const NAV = [
   { id: 'dashboard', label: '대시보드', en: 'DASHBOARD', Icon: IconDashboard },
@@ -8,6 +8,7 @@ const NAV = [
   { id: 'portfolio', label: '포트폴리오', en: 'PORTFOLIO', Icon: IconGlobe },
   { id: 'feed', label: '피드', en: 'FEED', Icon: IconFeed },
   { id: 'pdf', label: 'PDF', en: 'PDF', Icon: IconPdf },
+  { id: 'linkpage', label: '링크페이지', en: 'LINKPAGE', Icon: IconLink },
 ]
 
 export default function Sidebar({ page, setPage, collapsed, setCollapsed }) {
