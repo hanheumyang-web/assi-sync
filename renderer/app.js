@@ -855,8 +855,8 @@ window.api.onUpdateStatus((data) => {
   const banner = document.getElementById('update-banner')
   if (!banner) return
 
-  // ready 상태면 다른 상태로 덮어쓰지 않음
-  if (updateReady && data.status !== 'ready') return
+  // ready 상태면 installing/error 외에는 덮어쓰지 않음
+  if (updateReady && data.status !== 'ready' && data.status !== 'installing' && data.status !== 'error') return
 
   if (data.status === 'available') {
     banner.style.display = 'block'
@@ -911,16 +911,25 @@ window.api.onUpdateStatus((data) => {
         <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
+  } else if (data.status === 'installing') {
+    banner.style.display = 'block'
+    banner.innerHTML = `
+      <div class="update-banner">
+        <span class="update-icon">⏳</span>
+        <div class="update-text">업데이트 설치 중... 잠시 후 앱이 재시작됩니다</div>
+      </div>
+    `
   } else if (data.status === 'error') {
+    updateReady = false
     banner.style.display = 'block'
     banner.innerHTML = `
       <div class="update-banner">
         <span class="update-icon">⚠️</span>
-        <div class="update-text">업데이트 확인 실패</div>
+        <div class="update-text">${data.message || '업데이트 확인 실패'}</div>
         <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
-    setTimeout(() => { banner.style.display = 'none' }, 3000)
+    setTimeout(() => { banner.style.display = 'none' }, 5000)
   }
 })
 

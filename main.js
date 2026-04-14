@@ -146,9 +146,22 @@ ipcMain.handle('maximize-window', () => {
 })
 ipcMain.handle('close-window', () => mainWindow?.hide())
 ipcMain.handle('check-update', () => autoUpdater.checkForUpdates())
-ipcMain.handle('install-update', () => {
-  app.isQuitting = true
-  autoUpdater.quitAndInstall(false, true)
+ipcMain.handle('install-update', async () => {
+  try {
+    app.isQuitting = true
+    mainWindow?.webContents.send('update-status', { status: 'installing' })
+    // macOS: forceRunAfter=true 필수 (안하면 설치 후 앱이 안 열림)
+    // isSilent=false: macOS에서 silent 모드가 설치를 막을 수 있음
+    const isMac = process.platform === 'darwin'
+    await new Promise(r => setTimeout(r, 300))
+    autoUpdater.quitAndInstall(isMac, false)
+    return { success: true }
+  } catch (err) {
+    console.error('[AutoUpdater] quitAndInstall failed:', err)
+    app.isQuitting = false
+    mainWindow?.webContents.send('update-status', { status: 'error', message: '설치 실패: ' + err.message })
+    return { success: false, error: err.message }
+  }
 })
 ipcMain.handle('get-app-version', () => app.getVersion())
 
