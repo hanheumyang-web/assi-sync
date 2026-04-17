@@ -143,10 +143,11 @@ function customPrompt(message, defaultValue = '', opts = {}) {
     const overlay = document.createElement('div')
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px'
     const isPassword = opts.password ? 'password' : 'text'
-    const escMsg = String(message).replace(/</g, '&lt;').replace(/\n/g, '<br>')
+    // message 는 HTML 허용 (호출 측에서 제어). 개행만 <br> 로.
+    const htmlMsg = String(message).replace(/\n/g, '<br>')
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:14px;padding:22px 24px;max-width:460px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.3);font-family:inherit">
-        <div style="font-size:13px;color:#333;margin-bottom:14px;line-height:1.6">${escMsg}</div>
+        <div style="font-size:13px;color:#333;margin-bottom:14px;line-height:1.6">${htmlMsg}</div>
         <input type="${isPassword}" id="_cp-input" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none;font-family:ui-monospace,monospace;box-sizing:border-box" />
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
           <button type="button" id="_cp-cancel" style="padding:8px 18px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#666">취소</button>
