@@ -137,6 +137,38 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
 })
 
 // ── Rescan (새로고침) + 공유 체크 ──
+// ─── Electron 용 커스텀 prompt 모달 ───
+function customPrompt(message, defaultValue = '', opts = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px'
+    const isPassword = opts.password ? 'password' : 'text'
+    const escMsg = String(message).replace(/</g, '&lt;').replace(/\n/g, '<br>')
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:22px 24px;max-width:460px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.3);font-family:inherit">
+        <div style="font-size:13px;color:#333;margin-bottom:14px;line-height:1.6">${escMsg}</div>
+        <input type="${isPassword}" id="_cp-input" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none;font-family:ui-monospace,monospace;box-sizing:border-box" />
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button type="button" id="_cp-cancel" style="padding:8px 18px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#666">취소</button>
+          <button type="button" id="_cp-ok" style="padding:8px 18px;background:#828DF8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:800">확인</button>
+        </div>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    const input = overlay.querySelector('#_cp-input')
+    input.value = defaultValue || ''
+    setTimeout(() => { input.focus(); input.select() }, 30)
+    const cleanup = () => overlay.remove()
+    overlay.querySelector('#_cp-ok').onclick = () => { const v = input.value; cleanup(); resolve(v) }
+    overlay.querySelector('#_cp-cancel').onclick = () => { cleanup(); resolve(null) }
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); const v = input.value; cleanup(); resolve(v) }
+      else if (e.key === 'Escape') { cleanup(); resolve(null) }
+    })
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) { cleanup(); resolve(null) } })
+  })
+}
+
 // ─── 공통 Keynote 플로우 ───
 async function runKeynoteImport(button, origHtml) {
   console.log('[Keynote] runKeynoteImport 시작')
@@ -161,7 +193,12 @@ async function runKeynoteImport(button, origHtml) {
   // 2) API 키 확인
   let apiKey = await window.api.keynoteGetApiKey()
   if (!apiKey) {
-    apiKey = prompt('Claude API 키를 입력하세요\n(AI 자동 분류, 1회 $0.05~0.10)\nhttps://console.anthropic.com/settings/keys\n\n비워두면 미분류 단일 그룹')
+    apiKey = await customPrompt(
+      '<b>Claude API 키를 입력하세요</b><br>AI 자동 분류에 사용 (1회 약 $0.05~0.10)<br>' +
+      '<a href="#" onclick="window.api.openExternal(\'https://console.anthropic.com/settings/keys\');return false;" style="color:#828DF8">console.anthropic.com/settings/keys</a><br>' +
+      '<span style="color:#999;font-size:11px">비워두면 "미분류" 단일 그룹으로만 만듭니다.</span>',
+      '', { password: true }
+    )
     if (apiKey && apiKey.trim()) await window.api.keynoteSetApiKey(apiKey.trim())
     else apiKey = null
   }
