@@ -1,4 +1,4 @@
-# ASSI — Keynote → 테스터 인수용 폴더 원클릭 변환 (PowerShell)
+﻿# ASSI — Keynote → 테스터 인수용 폴더 원클릭 변환 (PowerShell)
 # 사용법:
 #   (A) ASSI-Keynote-변환.cmd 에 .key 드래그앤드롭
 #   (B) 직접 실행: powershell -ExecutionPolicy Bypass -File .\ASSI-Keynote-변환.ps1
