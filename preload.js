@@ -70,4 +70,13 @@ contextBridge.exposeInMainWorld('api', {
   installUpdate: () => ipcRenderer.invoke('install-update'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_, data) => cb(data)),
+
+  // Keynote Import
+  keynoteSelectFile: () => ipcRenderer.invoke('keynote:select-file'),
+  keynoteParse: (args) => ipcRenderer.invoke('keynote:parse', args),
+  keynoteApply: (args) => ipcRenderer.invoke('keynote:apply', args),
+  keynoteCleanup: (args) => ipcRenderer.invoke('keynote:cleanup', args),
+  keynoteGetApiKey: () => ipcRenderer.invoke('keynote:get-api-key'),
+  keynoteSetApiKey: (key) => ipcRenderer.invoke('keynote:set-api-key', key),
+  onKeynoteProgress: (cb) => ipcRenderer.on('keynote-progress', (_, data) => cb(data)),
 })

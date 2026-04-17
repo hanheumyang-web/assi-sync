@@ -583,3 +583,187 @@ ipcMain.handle('reorder-files', async (_, orderedAssetIds) => {
     return { ok: false, error: err.message }
   }
 })
+
+// ─── Keynote Import 파이프라인 ─────────────────────────────
+const { parseKeynoteFile } = require('./lib/keynote-parser')
+const { extractAllImages } = require('./lib/keynote-extractor')
+const { classifyWithClaude } = require('./lib/keynote-ai')
+const { applyClassification: applyFoldering } = require('./lib/local-foldering')
+const os = require('os')
+
+const { buildReviewHtml } = require('./scripts/keynote-ai-classify')
+
+// 활성 세션 (sessionId → { sessionDir, parsed, extracted, classification })
+const keynoteSessions = new Map()
+const keynoteReviewWindows = new Map() // sessionId → BrowserWindow
+
+function openKeynoteReviewWindow(sessionId, data) {
+  const sess = keynoteSessions.get(sessionId)
+  if (!sess) return null
+  const htmlPath = path.join(sess.sessionDir, 'review.html')
+  const html = buildReviewHtml(data)
+  fs.writeFileSync(htmlPath, html)
+
+  const win = new BrowserWindow({
+    width: 1200, height: 860, minWidth: 900, minHeight: 600,
+    backgroundColor: '#F4F3EE',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+    parent: mainWindow,
+  })
+  win.setMenu(null)
+  win.loadFile(htmlPath)
+  win.on('closed', () => keynoteReviewWindows.delete(sessionId))
+  keynoteReviewWindows.set(sessionId, win)
+  return win
+}
+
+function sendKnProgress(payload) {
+  try { mainWindow?.webContents.send('keynote-progress', payload) } catch {}
+}
+
+ipcMain.handle('keynote:select-file', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'Keynote', extensions: ['key'] }],
+  })
+  if (canceled || !filePaths[0]) return null
+  return filePaths[0]
+})
+
+ipcMain.handle('keynote:parse', async (_, { filePath, apiKey }) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) throw new Error('file not found')
+    const sessionId = 'kn-' + Date.now()
+    const sessionDir = path.join(os.homedir(), '.assi-sync', 'keynote-sessions', sessionId)
+    fs.mkdirSync(sessionDir, { recursive: true })
+
+    sendKnProgress({ sessionId, phase: 'parse', status: 'start' })
+    const parsed = await parseKeynoteFile(filePath, p => sendKnProgress({ sessionId, phase: 'parse', ...p }))
+    parsed.sourcePath = filePath
+    parsed.sourceName = path.basename(filePath)
+    sendKnProgress({ sessionId, phase: 'parse', status: 'done', slides: parsed.slides.length, images: parsed.images.length })
+
+    sendKnProgress({ sessionId, phase: 'extract', status: 'start' })
+    const extracted = await extractAllImages(filePath, parsed, sessionDir, p => sendKnProgress({ sessionId, phase: 'extract', ...p }))
+    sendKnProgress({ sessionId, phase: 'extract', status: 'done', count: extracted.length })
+
+    // AI 분류용 이미지 목록 (순서 유지 + textTokens 포함)
+    const seen = new Set()
+    const orderedImages = []
+    const metaByFn = new Map()
+    for (const ex of extracted) metaByFn.set(ex.fileName, ex)
+    const slideGroups = parsed.groups.filter(g => g.slideIndex != null).sort((a,b)=>a.slideIndex - b.slideIndex)
+    for (const sg of slideGroups) {
+      let pos = 0
+      for (const fn of sg.imageNames) {
+        if (seen.has(fn)) continue
+        seen.add(fn)
+        const meta = metaByFn.get(fn)
+        if (!meta?.thumbPath) continue
+        orderedImages.push({
+          fileName: fn, slideIndex: sg.slideIndex, slideTitle: (sg.title || '').trim(),
+          textTokens: sg.textTokens || [], positionInSlide: pos++,
+          extractedPath: meta.extractedPath, thumbPath: meta.thumbPath,
+        })
+      }
+    }
+    for (const ex of extracted) {
+      if (!seen.has(ex.fileName) && ex.thumbPath) {
+        orderedImages.push({ fileName: ex.fileName, slideIndex: -1, slideTitle: '', textTokens: [], positionInSlide: 0, extractedPath: ex.extractedPath, thumbPath: ex.thumbPath })
+      }
+    }
+
+    let classification
+    if (apiKey) {
+      sendKnProgress({ sessionId, phase: 'ai', status: 'start' })
+      const aiResult = await classifyWithClaude({
+        apiKey, images: orderedImages,
+        onProgress: p => sendKnProgress({ sessionId, phase: 'ai', ...p }),
+      })
+      classification = { projects: aiResult.projects, excludedOverview: aiResult.excludedOverview, usage: aiResult.usage }
+      sendKnProgress({ sessionId, phase: 'ai', status: 'done', projects: aiResult.projects.length })
+    } else {
+      // 키 없음 → 미분류 단일 그룹 폴백
+      classification = {
+        projects: [{ title: '미분류', category: null, imageFileNames: orderedImages.map(i => i.fileName), reasoning: 'API 키 없음 — 수동 분류 필요', titleIndicatorIndex: null, order: 0 }],
+      }
+    }
+
+    // 세션 영속화
+    const payload = {
+      sessionId, sourcePath: filePath, sourceName: parsed.sourceName,
+      sessionDir, orderedImages, classification,
+      imageMeta: Object.fromEntries(orderedImages.map(i => [i.fileName, { extractedPath: i.extractedPath, thumbPath: i.thumbPath }])),
+    }
+    keynoteSessions.set(sessionId, payload)
+    try { fs.writeFileSync(path.join(sessionDir, 'session.json'), JSON.stringify(payload, null, 2)) } catch {}
+
+    // renderer 로 돌려줄 때 thumbUrl 변환 (file:// URL)
+    const toFileUrl = p => 'file:///' + p.replace(/\\/g, '/').replace(/ /g, '%20').replace(/#/g, '%23')
+    const imagesByFn = {}
+    for (const im of orderedImages) {
+      imagesByFn[im.fileName] = { slideIndex: im.slideIndex, slideTitle: im.slideTitle, thumbUrl: im.thumbPath ? toFileUrl(im.thumbPath) : null }
+    }
+
+    // 분류 결과 리뷰 창 자동 오픈
+    const reviewData = {
+      sessionId, sourceName: parsed.sourceName,
+      totalImages: orderedImages.length,
+      imagesByFn, projects: classification.projects,
+      modelTag: apiKey ? 'claude-sonnet-4' : 'fallback',
+    }
+    openKeynoteReviewWindow(sessionId, reviewData)
+
+    return {
+      ok: true, sessionId, sourceName: parsed.sourceName,
+      totalImages: orderedImages.length,
+      projectsCount: classification.projects.length,
+      modelTag: apiKey ? 'claude-sonnet-4' : 'fallback',
+    }
+  } catch (e) {
+    console.error('[Keynote:parse] fail', e)
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('keynote:apply', async (_, { sessionId, classification }) => {
+  try {
+    const sess = keynoteSessions.get(sessionId)
+    if (!sess) throw new Error('세션 없음: ' + sessionId)
+    if (!syncEngine?.watchDir) throw new Error('sync 엔진이 실행 중이 아닙니다 (먼저 동기화 폴더 설정)')
+    const imageMeta = new Map(Object.entries(sess.imageMeta))
+    sendKnProgress({ sessionId, phase: 'folder', status: 'start' })
+    const result = await applyFoldering({
+      sessionDir: sess.sessionDir,
+      watchDir: syncEngine.watchDir,
+      classification,
+      imageMeta,
+      onProgress: p => sendKnProgress({ sessionId, phase: 'folder', ...p }),
+    })
+    sendKnProgress({ sessionId, phase: 'folder', status: 'done', ...result })
+    // sync-engine rescan 으로 새 폴더 감지
+    try { await syncEngine.rescan?.() } catch {}
+    return { ok: true, ...result }
+  } catch (e) {
+    console.error('[Keynote:apply] fail', e)
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('keynote:cleanup', (_, { sessionId }) => {
+  try {
+    const sess = keynoteSessions.get(sessionId)
+    if (sess?.sessionDir && fs.existsSync(sess.sessionDir)) {
+      fs.rmSync(sess.sessionDir, { recursive: true, force: true })
+    }
+    keynoteSessions.delete(sessionId)
+    return { ok: true }
+  } catch (e) { return { ok: false, error: e.message } }
+})
+
+ipcMain.handle('keynote:get-api-key', () => loadConfig().anthropicApiKey || '')
+ipcMain.handle('keynote:set-api-key', (_, key) => { saveConfig({ anthropicApiKey: key || '' }); return { ok: true } })

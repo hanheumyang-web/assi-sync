@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.7.9",
+  "version": "1.8.0",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
   "author": "ASSI",
@@ -67,7 +67,9 @@
     "electron-updater": "^6.3.0",
     "ffmpeg-static": "^5.3.0",
     "ffprobe-static": "^3.1.0",
-    "sharp": "^0.34.5"
+    "keynote-parser2": "^0.7.0",
+    "sharp": "^0.34.5",
+    "yauzl": "^3.3.0"
   },
   "devDependencies": {
     "electron": "^33.0.0",

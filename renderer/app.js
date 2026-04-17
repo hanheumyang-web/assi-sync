@@ -137,6 +137,43 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
 })
 
 // ── Rescan (새로고침) + 공유 체크 ──
+// ─── Keynote 가져오기 ───
+document.getElementById('btn-keynote-import').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-keynote-import')
+  // 1) API 키 확인
+  let apiKey = await window.api.keynoteGetApiKey()
+  if (!apiKey) {
+    apiKey = prompt('Claude API 키를 입력하세요\n(AI 자동 분류에 사용, 1회 호출 약 $0.09)\nhttps://console.anthropic.com/settings/keys\n\n비워두면 "미분류" 단일 그룹으로만 만듭니다.')
+    if (apiKey && apiKey.trim()) {
+      await window.api.keynoteSetApiKey(apiKey.trim())
+    } else {
+      apiKey = null
+    }
+  }
+  // 2) 파일 선택
+  const filePath = await window.api.keynoteSelectFile()
+  if (!filePath) return
+  // 3) 파싱 시작 + UI 잠금
+  btn.disabled = true
+  const origHtml = btn.innerHTML
+  btn.innerHTML = '<span>⏳</span> 분석 중... 파싱'
+  window.api.onKeynoteProgress(p => {
+    if (p.phase === 'parse' && p.done) btn.innerHTML = `<span>⏳</span> 파싱 ${p.done}/${p.total}`
+    else if (p.phase === 'extract' && p.done) btn.innerHTML = `<span>🖼️</span> 이미지 추출 ${p.done}/${p.total}`
+    else if (p.phase === 'ai' && p.status === 'calling') btn.innerHTML = '<span>🤖</span> Claude 분류 중...'
+    else if (p.phase === 'ai' && p.status === 'done') btn.innerHTML = `<span>✓</span> ${p.projects}개 프로젝트 · 검수 창 열림`
+  })
+  try {
+    const r = await window.api.keynoteParse({ filePath, apiKey })
+    if (!r.ok) alert('Keynote 분석 실패: ' + r.error)
+    else btn.innerHTML = `<span>✓</span> ${r.projectsCount}개 프로젝트 · 검수 창 확인하세요`
+  } catch (e) {
+    alert('오류: ' + e.message)
+  } finally {
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = origHtml }, 4000)
+  }
+})
+
 document.getElementById('btn-rescan').addEventListener('click', async () => {
   const btn = document.getElementById('btn-rescan')
   btn.disabled = true
