@@ -730,24 +730,28 @@ ipcMain.handle('keynote:parse', async (_, { filePath, apiKey }) => {
   }
 })
 
-ipcMain.handle('keynote:apply', async (_, { sessionId, classification }) => {
+ipcMain.handle('keynote:apply', async (_, { sessionId, classification, watchDir: explicitWatchDir }) => {
   try {
     const sess = keynoteSessions.get(sessionId)
     if (!sess) throw new Error('세션 없음: ' + sessionId)
-    if (!syncEngine?.watchDir) throw new Error('sync 엔진이 실행 중이 아닙니다 (먼저 동기화 폴더 설정)')
+    // watchDir 우선순위: 인자 > syncEngine > config
+    const cfg = loadConfig()
+    const watchDir = explicitWatchDir || syncEngine?.watchDir || cfg.watchDir
+    if (!watchDir) throw new Error('동기화 폴더가 설정되지 않았습니다')
+    if (!fs.existsSync(watchDir)) throw new Error('폴더가 존재하지 않습니다: ' + watchDir)
     const imageMeta = new Map(Object.entries(sess.imageMeta))
     sendKnProgress({ sessionId, phase: 'folder', status: 'start' })
     const result = await applyFoldering({
       sessionDir: sess.sessionDir,
-      watchDir: syncEngine.watchDir,
+      watchDir,
       classification,
       imageMeta,
       onProgress: p => sendKnProgress({ sessionId, phase: 'folder', ...p }),
     })
     sendKnProgress({ sessionId, phase: 'folder', status: 'done', ...result })
-    // sync-engine rescan 으로 새 폴더 감지
-    try { await syncEngine.rescan?.() } catch {}
-    return { ok: true, ...result }
+    // sync-engine 이 이미 돌고 있으면 rescan, 아니면 스킵 (사용자가 나중에 수동 시작)
+    try { if (syncEngine?.rescan) await syncEngine.rescan() } catch {}
+    return { ok: true, ...result, watchDir }
   } catch (e) {
     console.error('[Keynote:apply] fail', e)
     return { ok: false, error: e.message }
@@ -767,3 +771,28 @@ ipcMain.handle('keynote:cleanup', (_, { sessionId }) => {
 
 ipcMain.handle('keynote:get-api-key', () => loadConfig().anthropicApiKey || '')
 ipcMain.handle('keynote:set-api-key', (_, key) => { saveConfig({ anthropicApiKey: key || '' }); return { ok: true } })
+
+// 바탕화면에 ASSI Sync 폴더 자동 생성 + config 에 watchDir 저장
+ipcMain.handle('keynote:ensure-watchdir', async (_, { mode }) => {
+  try {
+    const cfg = loadConfig()
+    if (cfg.watchDir && fs.existsSync(cfg.watchDir)) return { ok: true, watchDir: cfg.watchDir, existed: true }
+    let watchDir
+    if (mode === 'desktop-auto') {
+      const desktop = app.getPath('desktop')
+      watchDir = path.join(desktop, 'ASSI Sync')
+      fs.mkdirSync(watchDir, { recursive: true })
+    } else if (mode === 'pick') {
+      const r = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'ASSI Sync 폴더 선택 (없으면 새로 만들기)',
+      })
+      if (r.canceled || !r.filePaths[0]) return { ok: false, cancelled: true }
+      watchDir = r.filePaths[0]
+    } else {
+      throw new Error('invalid mode')
+    }
+    saveConfig({ watchDir })
+    return { ok: true, watchDir, existed: false }
+  } catch (e) { return { ok: false, error: e.message } }
+})

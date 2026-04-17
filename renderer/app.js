@@ -137,41 +137,68 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
 })
 
 // ── Rescan (새로고침) + 공유 체크 ──
-// ─── Keynote 가져오기 ───
-document.getElementById('btn-keynote-import').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-keynote-import')
-  // 1) API 키 확인
+// ─── 공통 Keynote 플로우 ───
+async function runKeynoteImport(button, origHtml) {
+  // 1) watchDir 보장
+  let cfg = await window.api.getConfig()
+  let watchDir = cfg.watchDir
+  if (!watchDir || !selectedFolder) {
+    // 선택 안 됨 → 바탕화면 자동 생성 vs 직접 선택 물어보기
+    const choice = confirm(
+      'ASSI Sync 폴더가 없습니다.\n\n' +
+      '[확인] 바탕화면에 "ASSI Sync" 폴더 자동 생성\n' +
+      '[취소] 내가 직접 폴더 선택'
+    )
+    const mode = choice ? 'desktop-auto' : 'pick'
+    const r = await window.api.keynoteEnsureWatchDir({ mode })
+    if (!r.ok) { if (!r.cancelled) alert('폴더 생성 실패: ' + r.error); return }
+    watchDir = r.watchDir
+    selectedFolder = watchDir
+    updateFolderDisplay(watchDir)
+  }
+
+  // 2) API 키 확인
   let apiKey = await window.api.keynoteGetApiKey()
   if (!apiKey) {
-    apiKey = prompt('Claude API 키를 입력하세요\n(AI 자동 분류에 사용, 1회 호출 약 $0.09)\nhttps://console.anthropic.com/settings/keys\n\n비워두면 "미분류" 단일 그룹으로만 만듭니다.')
-    if (apiKey && apiKey.trim()) {
-      await window.api.keynoteSetApiKey(apiKey.trim())
-    } else {
-      apiKey = null
-    }
+    apiKey = prompt('Claude API 키를 입력하세요\n(AI 자동 분류, 1회 $0.05~0.10)\nhttps://console.anthropic.com/settings/keys\n\n비워두면 미분류 단일 그룹')
+    if (apiKey && apiKey.trim()) await window.api.keynoteSetApiKey(apiKey.trim())
+    else apiKey = null
   }
-  // 2) 파일 선택
+
+  // 3) 파일 선택
   const filePath = await window.api.keynoteSelectFile()
   if (!filePath) return
-  // 3) 파싱 시작 + UI 잠금
-  btn.disabled = true
-  const origHtml = btn.innerHTML
-  btn.innerHTML = '<span>⏳</span> 분석 중... 파싱'
+
+  // 4) 진행
+  button.disabled = true
+  button.innerHTML = '<span>⏳</span> 파싱 중...'
   window.api.onKeynoteProgress(p => {
-    if (p.phase === 'parse' && p.done) btn.innerHTML = `<span>⏳</span> 파싱 ${p.done}/${p.total}`
-    else if (p.phase === 'extract' && p.done) btn.innerHTML = `<span>🖼️</span> 이미지 추출 ${p.done}/${p.total}`
-    else if (p.phase === 'ai' && p.status === 'calling') btn.innerHTML = '<span>🤖</span> Claude 분류 중...'
-    else if (p.phase === 'ai' && p.status === 'done') btn.innerHTML = `<span>✓</span> ${p.projects}개 프로젝트 · 검수 창 열림`
+    if (p.phase === 'parse' && p.done) button.innerHTML = `<span>⏳</span> 파싱 ${p.done}/${p.total}`
+    else if (p.phase === 'extract' && p.done) button.innerHTML = `<span>🖼️</span> 이미지 추출 ${p.done}/${p.total}`
+    else if (p.phase === 'ai' && p.status === 'calling') button.innerHTML = '<span>🤖</span> Claude 분류 중...'
+    else if (p.phase === 'ai' && p.status === 'done') button.innerHTML = `<span>✓</span> ${p.projects}개 프로젝트 · 검수 창 열림`
   })
   try {
     const r = await window.api.keynoteParse({ filePath, apiKey })
     if (!r.ok) alert('Keynote 분석 실패: ' + r.error)
-    else btn.innerHTML = `<span>✓</span> ${r.projectsCount}개 프로젝트 · 검수 창 확인하세요`
+    else button.innerHTML = `<span>✓</span> ${r.projectsCount}개 프로젝트 · 검수 창에서 확정하세요`
   } catch (e) {
     alert('오류: ' + e.message)
   } finally {
-    setTimeout(() => { btn.disabled = false; btn.innerHTML = origHtml }, 4000)
+    setTimeout(() => { button.disabled = false; button.innerHTML = origHtml }, 5000)
   }
+}
+
+// setup-screen 버튼
+document.getElementById('btn-keynote-setup').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-keynote-setup')
+  await runKeynoteImport(btn, btn.innerHTML)
+})
+
+// sync-screen 버튼 — 공통 runKeynoteImport 재사용
+document.getElementById('btn-keynote-import').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-keynote-import')
+  await runKeynoteImport(btn, btn.innerHTML)
 })
 
 document.getElementById('btn-rescan').addEventListener('click', async () => {

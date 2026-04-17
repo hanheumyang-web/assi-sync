@@ -78,5 +78,6 @@ contextBridge.exposeInMainWorld('api', {
   keynoteCleanup: (args) => ipcRenderer.invoke('keynote:cleanup', args),
   keynoteGetApiKey: () => ipcRenderer.invoke('keynote:get-api-key'),
   keynoteSetApiKey: (key) => ipcRenderer.invoke('keynote:set-api-key', key),
+  keynoteEnsureWatchDir: (args) => ipcRenderer.invoke('keynote:ensure-watchdir', args),
   onKeynoteProgress: (cb) => ipcRenderer.on('keynote-progress', (_, data) => cb(data)),
 })
