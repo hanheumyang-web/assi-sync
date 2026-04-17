@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
   "author": "ASSI",
@@ -18,7 +18,8 @@
       "preload.js",
       "renderer/**/*",
       "lib/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "scripts/keynote-ai-classify.js"
     ],
     "icon": "assets/icon.png",
     "extraResources": [],
