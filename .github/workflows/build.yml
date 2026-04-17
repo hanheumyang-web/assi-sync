@@ -3,6 +3,12 @@ name: Build Desktop App
 on:
   push:
     branches: [main]
+    # CTO 전용 스크립트·문서 수정은 빌드 스킵
+    paths-ignore:
+      - 'scripts/**'
+      - '**/*.md'
+      - '.gitignore'
+      - 'docs/**'
   workflow_dispatch:
 
 jobs:
