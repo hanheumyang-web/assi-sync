@@ -139,19 +139,20 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
 // ── Rescan (새로고침) + 공유 체크 ──
 // ─── 공통 Keynote 플로우 ───
 async function runKeynoteImport(button, origHtml) {
+  console.log('[Keynote] runKeynoteImport 시작')
   // 1) watchDir 보장
-  let cfg = await window.api.getConfig()
-  let watchDir = cfg.watchDir
-  if (!watchDir || !selectedFolder) {
-    // 선택 안 됨 → 바탕화면 자동 생성 vs 직접 선택 물어보기
+  let cfg = {}
+  try { cfg = await window.api.getConfig() } catch (e) { console.warn('getConfig fail', e) }
+  let watchDir = cfg?.watchDir
+  if (!watchDir) {
     const choice = confirm(
-      'ASSI Sync 폴더가 없습니다.\n\n' +
+      'ASSI Sync 폴더가 아직 없습니다.\n\n' +
       '[확인] 바탕화면에 "ASSI Sync" 폴더 자동 생성\n' +
       '[취소] 내가 직접 폴더 선택'
     )
     const mode = choice ? 'desktop-auto' : 'pick'
     const r = await window.api.keynoteEnsureWatchDir({ mode })
-    if (!r.ok) { if (!r.cancelled) alert('폴더 생성 실패: ' + r.error); return }
+    if (!r || !r.ok) { if (r && !r.cancelled) alert('폴더 생성 실패: ' + r.error); return }
     watchDir = r.watchDir
     selectedFolder = watchDir
     updateFolderDisplay(watchDir)
@@ -189,17 +190,20 @@ async function runKeynoteImport(button, origHtml) {
   }
 }
 
-// setup-screen 버튼
-document.getElementById('btn-keynote-setup').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-keynote-setup')
-  await runKeynoteImport(btn, btn.innerHTML)
-})
-
-// sync-screen 버튼 — 공통 runKeynoteImport 재사용
-document.getElementById('btn-keynote-import').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-keynote-import')
-  await runKeynoteImport(btn, btn.innerHTML)
-})
+// setup-screen + sync-screen 버튼 바인딩 — 둘 다 동일 플로우
+function bindKeynoteButton(id) {
+  const btn = document.getElementById(id)
+  if (!btn) { console.warn('[Keynote] 버튼 없음:', id); return }
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('[Keynote] 버튼 클릭:', id)
+    try { await runKeynoteImport(btn, btn.innerHTML) }
+    catch (err) { console.error('[Keynote] error:', err); alert('오류: ' + err.message) }
+  })
+}
+bindKeynoteButton('btn-keynote-setup')
+bindKeynoteButton('btn-keynote-import')
 
 document.getElementById('btn-rescan').addEventListener('click', async () => {
   const btn = document.getElementById('btn-rescan')
