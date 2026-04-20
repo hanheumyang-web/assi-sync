@@ -2,7 +2,7 @@ name: Build Desktop App
 
 on:
   push:
-    branches: [main]
+    branches: [main, multi-device-dev]
     # CTO 전용 스크립트·문서 수정은 빌드 스킵
     paths-ignore:
       - 'scripts/**'
@@ -104,6 +104,10 @@ jobs:
             dist/latest.yml
 
   release:
+    # 퍼블릭 릴리즈는 main 브랜치에서만. 그 외(multi-device-dev 등)에선
+    # build-mac/build-win 의 아티팩트만 남기고 release job 은 스킵.
+    # 개발 빌드는 GitHub Actions 의 아티팩트 섹션에서 수동 다운로드 가능.
+    if: github.ref == 'refs/heads/main'
     needs: [build-mac, build-win]
     runs-on: ubuntu-latest
     permissions:
