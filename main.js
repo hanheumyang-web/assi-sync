@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell, safeStorage, Notification } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs = require('fs')
@@ -393,7 +393,22 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
     statePath: STATE_PATH,
     api,
     onProgress: (data) => mainWindow?.webContents.send('sync-progress', data),
-    onFileStatus: (data) => mainWindow?.webContents.send('file-status', data),
+    onFileStatus: (data) => {
+      mainWindow?.webContents.send('file-status', data)
+      // Phase 1 — upload throttle 트리거 감지 → 트레이 경고 + 시스템 알림
+      if (data?.status === 'failed' && /throttled|루프/.test(data?.error || '')) {
+        try {
+          if (Notification.isSupported()) {
+            new Notification({
+              title: 'ASSI Sync — 반복 업로드 자동 정지',
+              body: `"${data.fileName}" 가 60초 내 5회 이상 업로드 시도 → 루프 의심으로 정지됨. 앱 재시작 또는 트레이에서 해제.`,
+              silent: false,
+            }).show()
+          }
+          if (tray) tray.setToolTip('ASSI Sync — 루프 감지 정지 (확인 필요)')
+        } catch (e) { /* 무시 */ }
+      }
+    },
     onError: (data) => mainWindow?.webContents.send('sync-error', data),
     onFolderRemoved: () => {
       mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
@@ -402,6 +417,17 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
       // 자동 승인 — 폴더 넣으면 바로 동기화 시작
       mainWindow?.webContents.send('new-folder-auto', { name: data.name, fileCount: data.fileCount })
       return true
+    },
+    // Phase 1 디바이스 등록 의존성 — 제공 시 SyncEngine 이 자동으로 heartbeat 시작
+    deviceDeps: {
+      safeStorage,
+      userDataDir: app.getPath('userData'),
+      appVersion: app.getVersion(),
+      deviceName: null, // os.hostname() 사용 (DeviceRegistry 기본값)
+      onRevoked: () => {
+        // 원격 로그아웃 감지 → 렌더러에 통지해서 로그아웃 플로우로
+        mainWindow?.webContents.send('device-revoked')
+      },
     },
   })
 
