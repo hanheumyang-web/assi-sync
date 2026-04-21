@@ -137,6 +137,12 @@ async function performLogout() {
   }
   const btnStart = document.getElementById('btn-start')
   if (btnStart) btnStart.disabled = true
+  // Google 로그인 버튼이 "로그인 중..." 잔재로 막혀있는 경우 복구
+  const gbtn = document.getElementById('btn-google-login')
+  if (gbtn) {
+    gbtn.disabled = false
+    gbtn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:20px;height:20px"> Google 계정으로 로그인'
+  }
   showScreen('login-screen')
 }
 
