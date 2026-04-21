@@ -69,10 +69,21 @@
       width: 100%; padding: 16px; background: #828DF8; color: white; border: none;
       border-radius: 16px; font-size: 15px; font-weight: 700; cursor: pointer;
       box-shadow: 0 4px 16px rgba(130,141,248,0.3); transition: all 0.2s;
-      margin-top: auto;
+      flex-shrink: 0;
     }
     .btn-start:hover { background: #7078E8; transform: translateY(-1px); }
     .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* setup-screen header — 환영 문구 + 우상단 로그아웃 버튼 */
+    .setup-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .btn-setup-logout {
+      background: white; color: #EF4444; border: 1px solid #FCA5A5;
+      padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+    }
+    .btn-setup-logout:hover { background: #FEF2F2; border-color: #EF4444; }
 
     /* ── Sync Screen ── */
     #sync-screen { padding: 0; }
@@ -355,9 +366,12 @@
 
   <!-- Setup Screen -->
   <div id="setup-screen" class="screen">
-    <div>
-      <div class="welcome" id="welcome-name">안녕하세요</div>
-      <div class="welcome-sub" id="welcome-email"></div>
+    <div class="setup-header">
+      <div>
+        <div class="welcome" id="welcome-name">안녕하세요</div>
+        <div class="welcome-sub" id="welcome-email"></div>
+      </div>
+      <button class="btn-setup-logout" id="btn-setup-logout" title="로그아웃">로그아웃</button>
     </div>
     <div class="folder-box">
       <div class="folder-label">동기화 폴더</div>

@@ -122,14 +122,27 @@ document.getElementById('btn-open-web').addEventListener('click', () => {
 })
 
 // ── Logout ──
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await window.api.stopSync()
-  await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '' })
+async function performLogout() {
+  try { await window.api.stopSync() } catch {}
+  try { await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '' }) } catch {}
   currentUser = null
   selectedFolder = null
-  document.getElementById('uid-input').value = ''
+  const uidInput = document.getElementById('uid-input')
+  if (uidInput) uidInput.value = ''
+  // 폴더 표시 초기화 (다음 로그인 시 잔재 방지)
+  const folderDisplay = document.getElementById('folder-display')
+  if (folderDisplay) {
+    folderDisplay.textContent = '폴더를 선택하세요'
+    folderDisplay.classList.add('empty')
+  }
+  const btnStart = document.getElementById('btn-start')
+  if (btnStart) btnStart.disabled = true
   showScreen('login-screen')
-})
+}
+
+document.getElementById('btn-logout').addEventListener('click', performLogout)
+// setup-screen 우상단 로그아웃 버튼
+document.getElementById('btn-setup-logout')?.addEventListener('click', performLogout)
 
 // ── Retry ──
 document.getElementById('btn-retry-all').addEventListener('click', () => {
@@ -197,12 +210,7 @@ window.api.onSyncError((data) => {
 window.api.onDeviceRevoked?.(async () => {
   try {
     alert('웹에서 이 기기를 원격 로그아웃했습니다. 재로그인이 필요합니다.')
-    await window.api.stopSync()
-    await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '' })
-    currentUser = null
-    selectedFolder = null
-    document.getElementById('uid-input').value = ''
-    showScreen('login-screen')
+    await performLogout()
   } catch (e) {
     console.error('[onDeviceRevoked] 처리 실패:', e)
   }
