@@ -70,4 +70,7 @@ contextBridge.exposeInMainWorld('api', {
   installUpdate: () => ipcRenderer.invoke('install-update'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_, data) => cb(data)),
+
+  // Phase 1 원격 로그아웃 — 웹 DevicesPage 에서 이 기기 revoke 하면 main 이 이벤트 보냄
+  onDeviceRevoked: (cb) => ipcRenderer.on('device-revoked', () => cb()),
 })

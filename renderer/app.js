@@ -193,6 +193,21 @@ window.api.onSyncError((data) => {
   console.error('Sync error:', data)
 })
 
+// Phase 1 — 웹 '내 디바이스' 에서 원격 로그아웃 클릭 시 자동 로그아웃
+window.api.onDeviceRevoked?.(async () => {
+  try {
+    alert('웹에서 이 기기를 원격 로그아웃했습니다. 재로그인이 필요합니다.')
+    await window.api.stopSync()
+    await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '' })
+    currentUser = null
+    selectedFolder = null
+    document.getElementById('uid-input').value = ''
+    showScreen('login-screen')
+  } catch (e) {
+    console.error('[onDeviceRevoked] 처리 실패:', e)
+  }
+})
+
 // ── New Folder Auto-Sync Notification ──
 window.api.onNewFolder((data) => {
   // 자동 승인 — 간단한 알림만 표시
