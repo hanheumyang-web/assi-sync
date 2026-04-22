@@ -387,11 +387,40 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
   })
 
   const { SyncEngine } = require('./lib/sync-engine.js')
+  const { WorkspaceManager } = require('./lib/workspace-manager.js')
+  const { ViewerIsolationNotifier } = require('./lib/viewer-guard.js')
+
+  const workspaceManager = new WorkspaceManager({
+    api,
+    homeDir: require('os').homedir(),
+    personalRoot: watchDir,
+  })
+  // 서버에서 팀 목록 받아와 팀 폴더 자동 생성 (실패해도 개인 동기화는 계속)
+  try { await workspaceManager.refresh() }
+  catch (e) { console.warn('[WorkspaceManager] refresh failed (non-fatal):', e.message) }
+
+  const viewerNotifier = new ViewerIsolationNotifier({
+    onNotify: ({ workspaceId, count }) => {
+      try {
+        if (Notification.isSupported()) {
+          new Notification({
+            title: 'ASSI Sync — 읽기 전용 팀',
+            body: `이 팀에서는 로컬 수정이 업로드되지 않습니다. 변경 파일은 .local-changes/ 폴더에 격리됩니다. (${count}개)`,
+            silent: false,
+          }).show()
+        }
+      } catch {}
+      mainWindow?.webContents.send('viewer-isolation', { workspaceId, count })
+    },
+  })
+
   syncEngine = new SyncEngine({
     uid,
     watchDir,
     statePath: STATE_PATH,
     api,
+    workspaceManager,
+    viewerNotifier,
     onProgress: (data) => mainWindow?.webContents.send('sync-progress', data),
     onFileStatus: (data) => {
       mainWindow?.webContents.send('file-status', data)
