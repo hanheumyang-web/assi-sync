@@ -389,15 +389,41 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
   const { SyncEngine } = require('./lib/sync-engine.js')
   const { WorkspaceManager } = require('./lib/workspace-manager.js')
   const { ViewerIsolationNotifier } = require('./lib/viewer-guard.js')
+  const { scanForRootId } = require('./lib/root-marker.js')
+
+  // 개인 폴더 이동 감지 — state 에서 personalRootId 읽고 scan
+  let effectiveWatchDir = watchDir
+  if (watchDir && !fs.existsSync(watchDir)) {
+    let prevState = {}
+    try { if (fs.existsSync(STATE_PATH)) prevState = JSON.parse(fs.readFileSync(STATE_PATH, 'utf-8')) } catch {}
+    if (prevState.personalRootId) {
+      const found = scanForRootId(prevState.personalRootId, { extraParents: [path.dirname(watchDir)] })
+      if (found) {
+        console.log(`[main] personal root recovered: ${watchDir} → ${found}`)
+        effectiveWatchDir = found
+        saveConfig({ watchDir: found })
+      }
+    }
+    if (!fs.existsSync(effectiveWatchDir)) {
+      const { dialog } = require('electron')
+      const res = await dialog.showOpenDialog(mainWindow, {
+        title: 'ASSI 폴더를 찾을 수 없습니다',
+        message: `원래 위치: ${watchDir}\n폴더를 이동하셨다면 새 위치를 지정해주세요.`,
+        properties: ['openDirectory'],
+      })
+      if (res?.filePaths?.[0]) {
+        effectiveWatchDir = res.filePaths[0]
+        saveConfig({ watchDir: effectiveWatchDir })
+      }
+    }
+  }
 
   const workspaceManager = new WorkspaceManager({
     api,
     homeDir: require('os').homedir(),
-    personalRoot: watchDir,
+    personalRoot: effectiveWatchDir,
   })
-  // 서버에서 팀 목록 받아와 팀 폴더 자동 생성 (실패해도 개인 동기화는 계속)
-  try { await workspaceManager.refresh() }
-  catch (e) { console.warn('[WorkspaceManager] refresh failed (non-fatal):', e.message) }
+  // state 는 sync-engine 이 먼저 로드한 뒤 attach (sync-engine.start 내부에서)
 
   const viewerNotifier = new ViewerIsolationNotifier({
     onNotify: ({ workspaceId, count }) => {
@@ -416,7 +442,7 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
 
   syncEngine = new SyncEngine({
     uid,
-    watchDir,
+    watchDir: effectiveWatchDir,
     statePath: STATE_PATH,
     api,
     workspaceManager,
