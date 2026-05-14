@@ -165,11 +165,18 @@ ipcMain.handle('install-update', async () => {
 })
 ipcMain.handle('get-app-version', () => app.getVersion())
 
-// ──── Google OAuth via localhost ────
-// Now captures ID token + refresh token for secure API calls
-ipcMain.handle('google-login', async () => {
-  return new Promise((resolve) => {
+// ──── OAuth via localhost (Google + Apple) ────
+// Generic Firebase Auth popup flow. provider 인자로 'google' / 'apple' 분기.
+function buildAuthHandler(providerKind) {
+  // providerKind: 'google' | 'apple'
+  return async () => new Promise((resolve) => {
     const port = 18234 + Math.floor(Math.random() * 1000)
+
+    const subLabel = providerKind === 'apple' ? 'APPLE LOGIN' : 'GOOGLE LOGIN'
+    const statusText = providerKind === 'apple' ? 'Apple 로그인 중...' : 'Google 로그인 중...'
+    const providerJsExpr = providerKind === 'apple'
+      ? `(() => { const p = new firebase.auth.OAuthProvider('apple.com'); p.addScope('email'); p.addScope('name'); return p })()`
+      : `new firebase.auth.GoogleAuthProvider()`
 
     const authHTML = `<!DOCTYPE html><html><head>
       <meta charset="UTF-8">
@@ -191,9 +198,9 @@ ipcMain.handle('google-login', async () => {
     </head><body>
       <div class="card">
         <div class="logo">ASSI</div>
-        <div class="sub">GOOGLE LOGIN</div>
+        <div class="sub">${subLabel}</div>
         <div class="spinner" id="spinner"></div>
-        <p class="status" id="status">Google 로그인 중...</p>
+        <p class="status" id="status">${statusText}</p>
       </div>
       <script>
         firebase.initializeApp({
@@ -201,7 +208,7 @@ ipcMain.handle('google-login', async () => {
           authDomain: "assi-app-6ea04.firebaseapp.com",
           projectId: "assi-app-6ea04",
         });
-        const provider = new firebase.auth.GoogleAuthProvider();
+        const provider = ${providerJsExpr};
         firebase.auth().signInWithPopup(provider).then(async (result) => {
           const u = result.user;
           const idToken = await u.getIdToken();
@@ -320,7 +327,11 @@ ipcMain.handle('google-login', async () => {
       })
     })
   })
-})
+}
+
+// Google + Apple 두 provider 등록 — 같은 generic 흐름 사용
+ipcMain.handle('google-login', buildAuthHandler('google'))
+ipcMain.handle('apple-login', buildAuthHandler('apple'))
 
 ipcMain.handle('get-config', () => loadConfig())
 

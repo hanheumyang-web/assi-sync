@@ -11,17 +11,20 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active')
 }
 
-// ── Google Login ──
-document.getElementById('btn-google-login').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-google-login')
+// ── OAuth Login (Google + Apple) ──
+async function handleOAuthLogin(providerKind) {
+  const btnId = providerKind === 'apple' ? 'btn-apple-login' : 'btn-google-login'
+  const btn = document.getElementById(btnId)
+  const originalHTML = btn.innerHTML
   btn.disabled = true
   btn.innerHTML = '<span style="font-size:13px">로그인 중...</span>'
   try {
-    const result = await window.api.googleLogin()
+    const apiCall = providerKind === 'apple' ? window.api.appleLogin : window.api.googleLogin
+    const result = await apiCall()
     if (result.error) {
       alert('로그인 실패: ' + result.error)
       btn.disabled = false
-      btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:20px;height:20px"> Google 계정으로 로그인'
+      btn.innerHTML = originalHTML
       return
     }
     currentUser = { uid: result.uid, name: result.name || '', email: result.email || '' }
@@ -30,9 +33,12 @@ document.getElementById('btn-google-login').addEventListener('click', async () =
   } catch (err) {
     alert('로그인 실패: ' + err.message)
     btn.disabled = false
-    btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:20px;height:20px"> Google 계정으로 로그인'
+    btn.innerHTML = originalHTML
   }
-})
+}
+
+document.getElementById('btn-google-login').addEventListener('click', () => handleOAuthLogin('google'))
+document.getElementById('btn-apple-login').addEventListener('click', () => handleOAuthLogin('apple'))
 
 // ── UID Login (fallback) ──
 document.getElementById('btn-login').addEventListener('click', async () => {
