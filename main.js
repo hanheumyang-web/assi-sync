@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell, session } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs = require('fs')
 const http = require('http')
+const crypto = require('crypto')
 
 let mainWindow = null
 let tray = null
@@ -329,9 +330,56 @@ function buildAuthHandler(providerKind) {
   })
 }
 
-// Google + Apple 두 provider 등록 — 같은 generic 흐름 사용
+// Google 은 generic signInWithPopup 흐름 사용 (Google 은 localhost context 허용)
 ipcMain.handle('google-login', buildAuthHandler('google'))
-ipcMain.handle('apple-login', buildAuthHandler('apple'))
+
+// Apple 은 호스팅된 페이지 (assifolio.com/auth-popup.html) 를 BrowserWindow 로 띄움.
+// Apple Service ID Domain 에 assifolio.com 등록 → signInWithPopup 의 context_uri 가 assifolio.com →
+// Apple 검증 통과. 페이지가 성공 시 location.hash 로 결과 박아두면 Electron 이 가로채서 닫음.
+ipcMain.handle('apple-login', () => new Promise((resolve) => {
+  const popupURL = 'https://assifolio.com/auth-popup.html?provider=apple'
+  let captured = false
+  let authWindow = new BrowserWindow({
+    width: 500, height: 700, resizable: false, parent: mainWindow, modal: true,
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  })
+  authWindow.setMenuBarVisibility(false)
+
+  // 페이지가 결과를 location.hash 에 박으면 (#assi-result=<base64 json>) 가로채서 결과 추출.
+  const handleNavigate = (_event, url) => {
+    try {
+      const u = new URL(url)
+      const hash = u.hash || ''
+      const m = hash.match(/#assi-result=([^&]+)/)
+      if (!m) return
+      const json = decodeURIComponent(atob(m[1]))
+      const data = JSON.parse(json)
+      captured = true
+      authWindow?.close()
+      if (data.uid) {
+        const userData = { uid: data.uid, name: data.name || '', email: data.email || '', photo: data.photo || '' }
+        if (data.idToken) userData.idToken = data.idToken
+        if (data.refreshToken) userData.refreshToken = data.refreshToken
+        saveConfig(userData)
+        resolve(userData)
+      } else {
+        resolve({ error: data.error || 'Apple login failed' })
+      }
+    } catch (e) {
+      console.error('[apple-login] hash parse', e)
+    }
+  }
+  authWindow.webContents.on('did-navigate', handleNavigate)
+  authWindow.webContents.on('did-navigate-in-page', handleNavigate)
+
+  authWindow.on('closed', () => {
+    if (!captured) resolve({ error: 'Window closed' })
+    authWindow = null
+  })
+
+  authWindow.loadURL(popupURL)
+}))
+
 
 ipcMain.handle('get-config', () => loadConfig())
 
