@@ -130,7 +130,9 @@ document.getElementById('btn-open-web').addEventListener('click', () => {
 // ── Logout ──
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await window.api.stopSync()
-  await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '' })
+  // 계정 바꿀 때 다른 사람 파일 충돌 막으려고 sync state 도 청소 — 다음 로그인 시 fresh sync.
+  try { await window.api.clearSyncState() } catch {}
+  await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '', idToken: '', refreshToken: '' })
   currentUser = null
   selectedFolder = null
   document.getElementById('uid-input').value = ''

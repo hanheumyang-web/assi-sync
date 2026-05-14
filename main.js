@@ -381,6 +381,16 @@ ipcMain.handle('apple-login', () => new Promise((resolve) => {
 }))
 
 
+// sync-state.json 청소 — 로그아웃 시 호출. 다음 계정으로 fresh sync 시작.
+ipcMain.handle('clear-sync-state', () => {
+  try {
+    if (fs.existsSync(STATE_PATH)) fs.unlinkSync(STATE_PATH)
+  } catch (e) {
+    console.warn('[clear-sync-state]', e)
+  }
+  return true
+})
+
 ipcMain.handle('get-config', () => loadConfig())
 
 ipcMain.handle('save-config', (_, data) => {

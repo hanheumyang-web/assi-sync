@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('api', {
   // Auth
   googleLogin: () => ipcRenderer.invoke('google-login'),
   appleLogin: () => ipcRenderer.invoke('apple-login'),
+  clearSyncState: () => ipcRenderer.invoke('clear-sync-state'),
 
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
