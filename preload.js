@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('api', {
   // Sync
   startSync: (opts) => ipcRenderer.invoke('start-sync', opts),
   stopSync: () => ipcRenderer.invoke('stop-sync'),
+  // 진단
+  diagnoseSync: () => ipcRenderer.invoke('diagnose-sync'),
+  forceDownloadAsset: (assetId) => ipcRenderer.invoke('force-download-asset', assetId),
   retryFile: (path) => ipcRenderer.invoke('retry-file', path),
   retryAllFailed: () => ipcRenderer.invoke('retry-all-failed'),
   rescan: () => ipcRenderer.invoke('rescan'),

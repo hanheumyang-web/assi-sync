@@ -493,6 +493,24 @@ ipcMain.handle('stop-sync', () => {
   return true
 })
 
+// 진단 — DevTools 에서 window.electronAPI.diagnoseSync() 호출 → 현재 sync 상태 dump
+ipcMain.handle('diagnose-sync', () => {
+  if (!syncEngine) return { error: 'syncEngine not running' }
+  return syncEngine.diagnose()
+})
+
+// 진단 — 특정 자산을 강제 다운로드 (skip 우회). DevTools 에서 assetId 박아서 테스트.
+ipcMain.handle('force-download-asset', async (_, assetId) => {
+  if (!syncEngine) return { error: 'syncEngine not running' }
+  try {
+    const assets = await syncEngine.api.request('firestore', { action: 'getAsset', id: assetId }).catch(() => null)
+    if (!assets) return { error: 'asset not found' }
+    return await syncEngine.downloadRemoteAsset(assets)
+  } catch (e) {
+    return { error: e.message }
+  }
+})
+
 ipcMain.handle('retry-file', async (_, relativePath) => {
   if (!syncEngine) return false
   await syncEngine.retryFile(relativePath)
