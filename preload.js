@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('api', {
   appleLogin: () => ipcRenderer.invoke('apple-login'),
   clearSyncState: () => ipcRenderer.invoke('clear-sync-state'),
 
+  // Main process 로그 forward — DevTools Console 에 [main] 으로 표시
+  onMainLog: (cb) => ipcRenderer.on('main-log', (_, data) => cb(data)),
+
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 

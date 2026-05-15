@@ -455,6 +455,15 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
     },
   })
 
+  // [v1.9.15] main process 의 console.log/warn 을 renderer DevTools 로 forward.
+  // sync-engine 의 진단 로그가 사용자 DevTools (renderer) 에 안 보이던 문제 해결.
+  const origLog = console.log
+  const origWarn = console.warn
+  const origErr = console.error
+  console.log = (...args) => { origLog(...args); try { mainWindow?.webContents.send('main-log', { lvl: 'log', msg: args.map(String).join(' ') }) } catch {} }
+  console.warn = (...args) => { origWarn(...args); try { mainWindow?.webContents.send('main-log', { lvl: 'warn', msg: args.map(String).join(' ') }) } catch {} }
+  console.error = (...args) => { origErr(...args); try { mainWindow?.webContents.send('main-log', { lvl: 'error', msg: args.map(String).join(' ') }) } catch {} }
+
   const { SyncEngine } = require('./lib/sync-engine.js')
   syncEngine = new SyncEngine({
     uid,

@@ -5,6 +5,14 @@ let currentUser = null
 let selectedFolder = null
 const fileStatuses = new Map() // path → status data
 
+// [v1.9.15] main process 로그 forward — DevTools Console 에 [main] 표시
+if (window.api?.onMainLog) {
+  window.api.onMainLog(({ lvl, msg }) => {
+    const style = lvl === 'error' ? 'color:#EF4444;font-weight:bold' : lvl === 'warn' ? 'color:#F59E0B' : 'color:#828DF8'
+    console.log(`%c[main] %c${msg}`, style, '')
+  })
+}
+
 // ── Screen Navigation ──
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
