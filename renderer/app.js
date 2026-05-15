@@ -441,7 +441,7 @@ window.api.onFolderDeletionRequested(async (info) => {
   }
   const msg = `동기화된 폴더 "${folderName}" 가 삭제되었습니다.\n` +
               `웹에서도 삭제할까요? (${fileCount}개 파일)\n\n` +
-              `※ 삭제해도 휴지통에 7일간 보관됩니다.\n` +
+              `※ 삭제해도 휴지통에 30일간 보관됩니다.\n` +
               `※ 취소하면 다음 동기화 때 자동으로 다시 받아집니다.`
   const ok = window.confirm(msg)
   if (ok) {
