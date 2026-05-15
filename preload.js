@@ -32,6 +32,11 @@ contextBridge.exposeInMainWorld('api', {
   resyncFolder: (key) => ipcRenderer.invoke('resync-folder', key),
   deleteSyncedFolder: (key) => ipcRenderer.invoke('delete-synced-folder', key),
 
+  // 폴더 삭제 confirm — Finder 에서 동기화 폴더 삭제 시 사용자에게 확인 받는 흐름
+  confirmFolderDeletion: (info) => ipcRenderer.invoke('confirm-folder-deletion', info),
+  cancelFolderDeletion: () => ipcRenderer.invoke('cancel-folder-deletion'),
+  onFolderDeletionRequested: (cb) => ipcRenderer.on('folder-deletion-requested', (_, data) => cb(data)),
+
   // Events from main
   onSyncProgress: (cb) => ipcRenderer.on('sync-progress', (_, data) => cb(data)),
   onFileStatus: (cb) => ipcRenderer.on('file-status', (_, data) => cb(data)),

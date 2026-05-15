@@ -476,6 +476,10 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
     onFolderRemoved: () => {
       mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
     },
+    onFolderDeletionRequested: (info) => {
+      // Finder 에서 동기화된 폴더 삭제 감지 → 사용자 confirm 대기 (자동 삭제 X)
+      mainWindow?.webContents.send('folder-deletion-requested', info)
+    },
     onNewFolder: (data) => {
       // 자동 승인 — 폴더 넣으면 바로 동기화 시작
       mainWindow?.webContents.send('new-folder-auto', { name: data.name, fileCount: data.fileCount })
@@ -580,6 +584,24 @@ ipcMain.handle('delete-synced-folder', async (_, projectKey) => {
   await syncEngine.deleteSyncedFolder(projectKey)
   mainWindow?.webContents.send('synced-folders-updated', syncEngine.getSyncedFolders())
   return true
+})
+
+// 사용자가 "삭제 confirm" 다이얼로그에서 "예" 누르면 호출 — soft delete (휴지통 7일).
+ipcMain.handle('confirm-folder-deletion', async (_, { projectId }) => {
+  if (!syncEngine || !projectId) return { ok: false }
+  try {
+    const r = await syncEngine.api.softDeleteProject(projectId)
+    return { ok: true, ...r }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+// 사용자가 "취소" 누르면 — 그대로 두고 다음 폴링에서 자동 재다운로드되게 다운로드 트리거
+ipcMain.handle('cancel-folder-deletion', async () => {
+  if (!syncEngine) return { ok: false }
+  await syncEngine.triggerDownloadPollNow?.().catch(() => {})
+  return { ok: true }
 })
 
 // ── Folder Tree Explorer ──
