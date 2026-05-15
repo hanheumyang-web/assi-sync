@@ -525,7 +525,17 @@ ipcMain.handle('retry-all-failed', async () => {
 
 ipcMain.handle('rescan', async () => {
   if (!syncEngine) return false
+  // 1) 로컬 폴더 재스캔 (기존 — 업로드용)
   await syncEngine.rescan()
+  // 2) 다운로드 풀스캔 — downloadSince/cursor 리셋 후 즉시 폴링 트리거.
+  //    웹에 있는데 데스크탑에 없는 누락 자산 회수.
+  if (syncEngine.state) {
+    syncEngine.state.downloadSince = null
+    syncEngine.state.downloadCursor = null
+    syncEngine.saveState?.()
+    console.log('[rescan] 다운로드 풀스캔 ─ downloadSince/cursor null 리셋')
+  }
+  await syncEngine.triggerDownloadPollNow?.().catch(e => console.warn('[rescan] download poll error:', e?.message))
   return true
 })
 
