@@ -163,6 +163,11 @@ document.getElementById('btn-open-web').addEventListener('click', () => {
 })
 
 // ── Logout ──
+/* 로그아웃은 두 화면에 있다 — 준비 화면과 동기화 화면.
+   같은 일을 하므로 한 곳에서 처리한다. */
+document.getElementById('btn-logout-setup')?.addEventListener('click', () =>
+  document.getElementById('btn-logout').click())
+
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await window.api.stopSync()
   // 계정 바꿀 때 다른 사람 파일 충돌 막으려고 sync state 도 청소 — 다음 로그인 시 fresh sync.
