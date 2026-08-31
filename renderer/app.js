@@ -289,7 +289,7 @@ function renderPendingFolders(folders) {
         <div class="pending-meta">${f.fileCount}개 파일 · 대기 중</div>
       </div>
       <div class="pending-actions">
-        <button class="btn-pending remove" onclick="removePendingFolder('${f.key}')">삭제</button>
+        <button class="btn-pending remove" onclick="removePendingFolder('${f.key}')">지우기</button>
         <button class="btn-pending upload" onclick="approvePendingFolder('${f.key}')">업로드</button>
       </div>
     </div>
@@ -355,8 +355,8 @@ function renderSyncedFolders(folders) {
         <div class="pending-meta">${f.fileCount}개 파일 · <span class="synced-badge">업로드 됨</span></div>
       </div>
       <div class="pending-actions">
-        <button class="btn-pending resync" onclick="resyncFolder('${f.key}')">재업로드</button>
-        <button class="btn-pending remove" onclick="deleteSyncedFolder('${f.key}')">삭제</button>
+        <button class="btn-pending resync" onclick="resyncFolder('${f.key}')">다시 올리기</button>
+        <button class="btn-pending remove" onclick="deleteSyncedFolder('${f.key}')">지우기</button>
       </div>
     </div>
   `).join('')
