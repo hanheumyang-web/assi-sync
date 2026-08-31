@@ -56,7 +56,7 @@ jobs:
       - name: Submit notarization (non-blocking)
         continue-on-error: true
         run: |
-          for ZIP in dist/ASSI-Sync-Mac-*.zip; do
+          for ZIP in dist/ASSI-Sync-Mac-*.zip dist/Pofol-Sync-Mac-*.dmg; do
             echo "=== Submitting $ZIP ==="
             xcrun notarytool submit "$ZIP" \
               --apple-id "$APPLE_ID" \
@@ -78,6 +78,7 @@ jobs:
           name: ASSI-Sync-Mac
           path: |
             dist/*.zip
+            dist/*.dmg
             dist/latest-mac.yml
 
   build-win:

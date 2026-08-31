@@ -45,6 +45,74 @@ function saveConfig(data) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify({ ...prev, ...data }, null, 2))
 }
 
+
+/* ──────────────────────────────────────────────────────────────
+   응용 프로그램 폴더로 옮기기 — 2026-08-31
+
+   왜 필요한가:
+     맥은 인터넷에서 받은 앱을 '다운로드 폴더에서' 실행하면 원본 대신
+     읽기 전용 임시 복사본을 만들어 거기서 돌린다(App Translocation).
+     자동 업데이트는 자기 자신을 덮어쓰는 일이라, 이 상태에서는 매번
+     "Cannot update while running on a read-only volume" 로 실패한다.
+     압축을 풀고 그냥 더블클릭하는 게 가장 자연스러운 행동인데,
+     그렇게 하면 업데이트가 영원히 안 된다 — 아무도 안 알려주니까.
+
+   ⚠️ 안내문만 띄우면 안 된다. 사람은 안내를 읽고도 안 옮긴다.
+      앱이 직접 옮기고 스스로 다시 켜야 실제로 해결된다.
+   ────────────────────────────────────────────────────────────── */
+function ensureInApplications() {
+  if (process.platform !== 'darwin') return
+  if (!app.isPackaged) return                 // 개발 중에는 건드리지 않는다
+  try { if (app.isInApplicationsFolder()) return } catch { return }
+
+  const answer = dialog.showMessageBoxSync({
+    type: 'question',
+    buttons: ['응용 프로그램 폴더로 옮기기', '나중에'],
+    defaultId: 0,
+    cancelId: 1,
+    title: '포폴 싱크',
+    message: '앱을 응용 프로그램 폴더로 옮길까요?',
+    detail: [
+      '지금은 다운로드 폴더에서 실행되고 있습니다.',
+      '이 상태에서는 맥의 보안 기능 때문에 자동 업데이트가 되지 않습니다.',
+      '',
+      '옮기면 앱이 한 번 다시 켜지고, 그 뒤로는 업데이트가 정상으로 됩니다.',
+      '로그인과 감시 폴더 설정은 그대로 유지됩니다.',
+    ].join('\n'),
+  })
+  if (answer !== 0) return
+
+  try {
+    /* 같은 이름의 앱이 이미 응용 프로그램 폴더에 있을 수 있다.
+       실제로 옛 버전이 남아 있어서 옮기기가 막힌 적이 있다. */
+    app.moveToApplicationsFolder({
+      conflictHandler: (type) => {
+        if (type === 'existsAndRunning') {
+          dialog.showMessageBoxSync({
+            type: 'warning', title: '포폴 싱크',
+            message: '같은 앱이 이미 실행 중입니다',
+            detail: '응용 프로그램 폴더에 있는 포폴 싱크를 먼저 끄고 다시 시도해 주세요.',
+          })
+          return false
+        }
+        return true   // 옛 버전이 남아 있으면 덮어쓴다
+      },
+    })
+    /* 성공하면 일렉트론이 알아서 옮기고 다시 켠다 — 여기 아래는 안 온다 */
+  } catch (e) {
+    dialog.showMessageBoxSync({
+      type: 'warning', title: '포폴 싱크',
+      message: '옮기지 못했습니다',
+      detail: [
+        e.message,
+        '',
+        'Finder 에서 앱을 응용 프로그램 폴더로 직접 끌어다 놓아 주세요.',
+        '그렇게만 하면 자동 업데이트가 정상으로 됩니다.',
+      ].join('\n'),
+    })
+  }
+}
+
 function createWindow() {
   /* 창틀 — 2026-08-31
      ⚠️ 예전에는 맥에서도 창틀을 끄고(frame:false) 동그라미 세 개를 HTML 로
@@ -137,6 +205,9 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  /* ⚠️ 창을 만들기 전에 해야 한다. 옮기기가 성공하면 앱이 그 자리에서
+     다시 켜지므로, 창을 먼저 띄우면 빈 창이 깜빡이고 사라진다. */
+  ensureInApplications()
   createWindow()
   createTray()
 

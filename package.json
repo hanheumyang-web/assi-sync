@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.9.35",
+  "version": "1.9.36",
   "productName": "Pofol Sync",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
@@ -45,6 +45,13 @@
     "mac": {
       "target": [
         {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
           "target": "zip",
           "arch": [
             "x64",
@@ -63,6 +70,27 @@
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "deleteAppDataOnUninstall": true
+    },
+    "dmg": {
+      "artifactName": "Pofol-Sync-Mac-${version}-${arch}.${ext}",
+      "title": "포폴 싱크",
+      "contents": [
+        {
+          "x": 150,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 420,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 570,
+        "height": 400
+      }
     }
   },
   "dependencies": {
