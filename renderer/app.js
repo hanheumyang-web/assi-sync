@@ -1106,7 +1106,11 @@ let trashData = null
    "이 파일을 지운다" 지 "이 파일을 남긴다" 가 아니다. 셋 이상일 때도
    남길 것 하나만 고르면 나머지가 통째로 날아가 무섭다.
    그래서 지울 것을 하나씩 표시하는 방식으로 바꿨다. 최소 한 장은 남는다. */
-const trashDel = new Map()    // 무리 번호 → 지울 자산 id 모음(Set)
+/* ⚠️ 예전엔 '무리 번호 → 고른 파일' 로 기억했다. 탐색기에 갔다 돌아오면
+   목록을 다시 불러오면서 번호가 바뀌고, 골라둔 게 통째로 날아갔다.
+   실제로 "삭제가 된 거야 만 거야" 라는 말을 들었다.
+   파일 자체를 기억하면 다시 불러와도 그대로 남는다. */
+const trashDel = new Set()   // 지울 자산 id
 
 /* '알아요' 로 접은 경고. 무리는 순서가 바뀔 수 있으니 번호가 아니라
    파일 지문으로 기억한다 — 번호로 기억하면 엉뚱한 경고가 접힌다. */
@@ -1165,8 +1169,9 @@ async function loadTrash() {
      "왜 삭제한다고 안 했는데 삭제됐냐" 는 말을 들었다.
      지우는 건 되돌리기 어려운 일이다. 아무것도 안 고른 채로 시작한다.
      한 번에 고르고 싶은 사람을 위해 위에 '한 장씩만 남기고 모두' 를 둔다. */
-  trashDel.clear()
-  r.groups.forEach((g, i) => trashDel.set(i, new Set()))
+  /* 다시 불러와도 골라둔 것은 지킨다. 없어진 파일만 정리한다. */
+  const alive = new Set(r.groups.flatMap(g => g.items.map(a => a.id)))
+  for (const id of [...trashDel]) if (!alive.has(id)) trashDel.delete(id)
   markTrashTab()
   renderTrash()
 }
@@ -1183,8 +1188,8 @@ function renderTrash() {
   //    지워도 자리가 안 빈다 — 넣으면 "10GB 비울 수 있어요" 가 거짓말이 된다.
   let free = 0, picked = 0, maxFree = 0
   d.groups.forEach((g, i) => {
-    const del = trashDel.get(i) || new Set()
-    picked += del.size                        // 고른 개수는 위험한 무리도 센다 (사람이 직접 골랐으니)
+    const del = trashDel
+    picked += g.items.filter(a => del.has(a.id)).length                        // 고른 개수는 위험한 무리도 센다 (사람이 직접 골랐으니)
     if (g.kind === 'shared') return
     g.items.forEach(a => { if (del.has(a.id)) free += a.fileSize })
     // 한 장씩만 남겼을 때 비는 값 — '여기까지 비울 수 있어요' 의 근거
@@ -1236,7 +1241,9 @@ function renderTrash() {
 
   const body = d.groups.map((g, i) => {
     const lv = LV[g.level] || LV.maybe
-    const del = trashDel.get(i) || new Set()
+    const del = trashDel
+    const allGone = g.items.every(a => del.has(a.id))
+    const picked0 = g.items.filter(a => del.has(a.id)).length
     const lastOne = g.items.length - del.size <= 1   // 마지막 한 장은 못 지운다
     const thumb = g.items.find(a => a.thumb)
     const one = g.level === 'sure'
@@ -1268,11 +1275,21 @@ function renderTrash() {
          '지울 예정 / 그냥 두기' 는 짝이 안 맞아 뭘 누르는 건지 헷갈렸다. */
       /* 마지막 한 장은 못 지운다 — 무리째 사라지면 되돌리기가 곤란하다.
          단, 아무것도 안 고른 상태에서는 이 딱지를 안 보여준다 (아직 고를 게 남았다). */
-      if (!on && lastOne && del.size > 0) return `<span style="border:1px solid #dcdbe2;border-radius:6px;
-          padding:4px 11px;font-size:11px;color:#a4a1ab;background:#f7f6f9">남기기</span>`
+      /* 이 무리에서 하나라도 골랐고 이건 안 골랐으면 = 남을 것.
+         누르면 이것도 지울 수 있다 (무리째 지우는 것도 이제 허용한다). */
+      if (!on && picked0 > 0) return `<span style="display:inline-flex;align-items:center;gap:6px">
+          <span style="border:1px solid #cfe0cd;border-radius:6px;padding:4px 10px;
+                       font-size:11px;color:#4a7a44;background:#f2f8f1">남길 것</span>
+          <button onclick="toggleDel(${i},'${a.id}')"
+            style="border:1px solid #e2c4bb;border-radius:6px;padding:4px 10px;
+                   font-size:11px;cursor:pointer;background:#fff;color:#a3402c">삭제하기</button>
+        </span>`
+      /* ⚠️ 여기 '삭제됨' 이라고 썼다가, 아직 아무것도 안 지웠는데 지운 것처럼
+         읽혀서 "삭제가 된 거야 만 거야" 라는 말을 들었다.
+         실제로 지우는 건 아래 막대의 '휴지통으로 옮기기' 다. 그때까지는 표시일 뿐이다. */
       if (on) return `<span style="display:inline-flex;align-items:center;gap:6px">
           <span style="background:#c0392b;color:#fff;border-radius:6px;padding:4px 10px;
-                       font-size:11px;font-weight:600">삭제됨</span>
+                       font-size:11px;font-weight:600">지울 것</span>
           <button onclick="toggleDel(${i},'${a.id}')"
             style="border:1px solid #dcdbe2;border-radius:6px;padding:4px 10px;
                    font-size:11px;cursor:pointer;background:#fff;color:#6c6976">되돌리기</button>
@@ -1331,13 +1348,37 @@ function renderTrash() {
           <i style="width:8px;height:8px;border-radius:50%;background:${lv.c};display:inline-block"></i>
           <b style="font-size:13px">${lv.t}</b>
           <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
+          <button onclick="toggleWholeGroup(${i})"
+            style="border:1px solid ${allGone ? '#dcdbe2' : '#e2c4bb'};border-radius:6px;padding:3px 9px;
+                   font-size:11px;cursor:pointer;white-space:nowrap;background:#fff;
+                   color:${allGone ? '#6c6976' : '#a3402c'}">${allGone
+                     ? '되돌리기' : (g.items.length === 2 ? '둘 다 삭제' : `${g.items.length}개 모두 삭제`)}</button>
         </div>
+        ${allGone ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;
+             padding:8px 10px;margin:8px 0 0;font-size:11.5px;color:#8a4a2c;line-height:1.5">
+             이 파일은 한 장도 안 남아요. 30일 안에는 되돌릴 수 있어요.</div>` : ''}
         ${lv.sub ? `<p style="margin:0 0 11px;color:#78757f;font-size:11px">${lv.sub}</p>` : '<div style="height:9px"></div>'}
         ${warn}${inner}
       </section>`
   }).join('')
 
-  pane.innerHTML = head + trashed + body
+  /* ⚠️ 지우는 버튼이 화면 맨 위에만 있었다. 아래에서 파일을 고르고 나면
+     그 버튼이 화면 밖이라, 골라놓고도 '지워진 거야 만 거야' 가 됐다.
+     고른 게 있으면 아래에 붙어 따라다니는 막대를 띄운다. */
+  const barHtml = picked ? `
+    <div style="position:sticky;bottom:0;z-index:5;margin:12px -2px 0;padding:11px 13px;
+                background:#17161c;border-radius:12px;display:flex;align-items:center;gap:10px;
+                box-shadow:0 -6px 22px rgba(0,0,0,.22)">
+      <b style="color:#fff;font-size:13px">${picked}개 선택</b>
+      <span style="color:#a8a5b2;font-size:11.5px">${tGB(free)} GB</span>
+      <button onclick="clearTrashPick()"
+        style="margin-left:auto;background:none;border:1px solid #45434f;border-radius:8px;
+               padding:7px 12px;font-size:12px;color:#c9c7d0;cursor:pointer">선택 해제</button>
+      <button onclick="applyTrash()"
+        style="background:#fff;color:#17161c;border:0;border-radius:8px;padding:8px 15px;
+               font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">휴지통으로 옮기기</button>
+    </div>` : ''
+  pane.innerHTML = head + trashed + body + barHtml
 }
 
 /* 탭 이름 옆에 비울 수 있는 용량을 적는다 — 열어보기 전에도 값어치가 보이게 */
@@ -1363,18 +1404,29 @@ async function peekTrashOnce() {
    ⚠️ 위험한 무리(두 프로젝트에 걸친 것)는 건드리지 않는다 — 지우면 자리도 안 비고
       한쪽 프로젝트에서 사진만 사라진다. 그건 사람이 직접 골라야 한다. */
 function pickAllDupes() {
-  trashData.groups.forEach((g, i) => {
+  trashData.groups.forEach((g) => {
     if (g.kind === 'shared') return
-    trashDel.set(i, new Set(g.items.slice(1).map(a => a.id)))
+    g.items.slice(1).forEach(a => trashDel.add(a.id))
   })
   renderTrash()
 }
 
 function toggleDel(groupIdx, assetId) {
-  const s = trashDel.get(groupIdx) || new Set()
-  if (s.has(assetId)) s.delete(assetId)
-  else s.add(assetId)
-  trashDel.set(groupIdx, s)
+  if (trashDel.has(assetId)) trashDel.delete(assetId)
+  else trashDel.add(assetId)
+  renderTrash()
+}
+
+/* 한 무리를 통째로 — 둘 다(또는 전부) 지우고 싶을 때.
+   ⚠️ 예전엔 '마지막 한 장은 못 지운다' 로 막아뒀다. 그런데 두 장 다
+      어느 프로젝트에도 없는 파일이면 둘 다 지우는 게 맞다. 막지 않는다.
+      대신 무리가 통째로 사라진다는 걸 그 자리에서 알려준다. */
+function clearTrashPick() { trashDel.clear(); renderTrash() }
+
+function toggleWholeGroup(groupIdx) {
+  const g = trashData.groups[groupIdx]
+  const all = g.items.every(a => trashDel.has(a.id))
+  g.items.forEach(a => all ? trashDel.delete(a.id) : trashDel.add(a.id))
   renderTrash()
 }
 
@@ -1405,13 +1457,13 @@ async function applyTrash() {
   const ids = []
   trashData.groups.forEach((g, i) => {
     if (g.kind === 'shared') return
-    const del = trashDel.get(i) || new Set()
+    const del = trashDel
     g.items.forEach(a => { if (del.has(a.id)) ids.push(a.id) })
   })
   if (!ids.length) return
   const bytes = trashData.groups.reduce((n, g, i) => {
     if (g.kind === 'shared') return n
-    const del = trashDel.get(i) || new Set()
+    const del = trashDel
     return n + g.items.reduce((m, a) => m + (del.has(a.id) ? a.fileSize : 0), 0)
   }, 0)
   if (!confirm(`${ids.length}개 · ${tGB(bytes)}GB 를 휴지통에 넣습니다.\n\n30일 동안은 되돌릴 수 있고, 그 뒤에 완전히 지워집니다.\n계속할까요?`)) return
