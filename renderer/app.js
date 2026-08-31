@@ -30,7 +30,7 @@ async function handleOAuthLogin(providerKind) {
     const apiCall = providerKind === 'apple' ? window.api.appleLogin : window.api.googleLogin
     const result = await apiCall()
     if (result.error) {
-      alert('로그인 실패: ' + result.error)
+      alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + result.error)
       btn.disabled = false
       btn.innerHTML = originalHTML
       return
@@ -39,7 +39,7 @@ async function handleOAuthLogin(providerKind) {
     selectedFolder = (await window.api.getConfig()).watchDir || null
     showSetup()
   } catch (err) {
-    alert('로그인 실패: ' + err.message)
+    alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + err.message)
     btn.disabled = false
     btn.innerHTML = originalHTML
   }
@@ -66,7 +66,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     await window.api.saveConfig({ uid })
     showSetup()
   } catch (err) {
-    alert('로그인 실패: ' + err.message)
+    alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + err.message)
   }
 })
 
@@ -182,22 +182,22 @@ window.api.onSyncProgress((data) => {
 
   if (data.phase === 'scanning') {
     statusEl.innerHTML = '<span class="dot syncing"></span>스캔 중...'
-    infoEl.textContent = `${data.total}개 파일 발견`
+    infoEl.textContent = `파일 ${data.total}개를 찾았어요`
   } else if (data.phase === 'syncing') {
     statusEl.innerHTML = '<span class="dot syncing"></span>동기화 중...'
     infoEl.textContent = `${data.completed} / ${data.total}`
   } else if (data.phase === 'watching') {
     statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
-    infoEl.textContent = `${data.total}개 파일 동기화 완료`
+    infoEl.textContent = `파일 ${data.total}개를 맞췄어요`
     refreshSyncedFolders()
   } else if (data.phase === 'share_uploading') {
-    statusEl.innerHTML = '<span class="dot syncing"></span>무압축 공유 업로드 중'
+    statusEl.innerHTML = '<span class="dot syncing"></span>원본을 그대로 올리는 중'
     infoEl.textContent = `${data.projectName || '공유'} · ${data.completed} / ${data.total}`
   } else if (data.phase === 'share_complete') {
     statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
-    infoEl.textContent = `공유 업로드 완료 (${data.total}개)`
+    infoEl.textContent = `원본 ${data.total}개를 올렸어요`
     setTimeout(() => {
-      infoEl.textContent = `${Object.keys(window._lastSyncTotal || {}).length || data.total}개 파일 동기화 완료`
+      infoEl.textContent = `파일 ${Object.keys(window._lastSyncTotal || {}).length || data.total}개를 맞췄어요`
     }, 3000)
   } else if (data.phase === 'share_error') {
     statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
@@ -378,7 +378,7 @@ function getSelectedKeys() {
 async function batchResync() {
   const keys = getSelectedKeys()
   if (!keys.length) return
-  if (!confirm(`${keys.length}개 폴더를 재업로드하시겠습니까?`)) return
+  if (!confirm(`${keys.length}개 폴더를 다시 올릴게요. 계속할까요?`)) return
   for (const key of keys) {
     const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
     if (el) {
@@ -396,7 +396,7 @@ window.batchResync = batchResync
 async function batchDelete() {
   const keys = getSelectedKeys()
   if (!keys.length) return
-  if (!confirm(`${keys.length}개 폴더를 삭제하시겠습니까? 서버 데이터도 함께 삭제됩니다.`)) return
+  if (!confirm(`${keys.length}개 폴더를 지울게요. 서버에 올라간 것도 함께 삭제됩니다.`)) return
   for (const key of keys) {
     const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
     if (el) {
@@ -422,7 +422,7 @@ async function resyncFolder(key) {
 window.resyncFolder = resyncFolder
 
 async function deleteSyncedFolder(key) {
-  if (!confirm('이 폴더의 업로드 기록과 서버 데이터를 삭제하시겠습니까?')) return
+  if (!confirm('이 폴더의 올린 기록과 서버에 있는 것을 지울게요. 계속할까요?')) return
   const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {
     const btn = el.querySelector('.btn-pending.remove')
@@ -455,7 +455,7 @@ window.api.onFolderDeletionRequested(async (info) => {
     if (r?.ok) {
       console.log(`[folder-deletion] soft-deleted ${folderName} (assets: ${r.markedAssets})`)
     } else {
-      alert(`삭제 실패: ${r?.error || '알 수 없는 오류'}`)
+      alert(`삭제 실패: ${r?.error || '알 수 없는 문제가 생겼어요'}`)
     }
   } else {
     await window.api.cancelFolderDeletion()
@@ -493,7 +493,7 @@ async function refreshExplorer() {
   const pane = document.getElementById('explorer-pane')
   pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">스캔 중...</div>'
   const data = await window.api.scanFolderTree()
-  if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">동기화 폴더가 없습니다</div>'; return }
+  if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">아직 연결한 폴더가 없어요</div>'; return }
   explorerRoot = data.root
   expandedProjects.clear()
   const currentSize = parseInt(document.documentElement.style.getPropertyValue('--thumb-size')) || 60
@@ -588,7 +588,7 @@ function attachExplorerHandlers(root) {
         if (result.ok) {
           setTimeout(refreshExplorer, 500)
         } else {
-          alert('이동 실패: ' + result.error)
+          alert('옮기지 못했어요.\n' + result.error)
         }
       })
     }
@@ -636,7 +636,7 @@ async function toggleProjectFiles(projectKey, root) {
 
   const files = await window.api.getProjectFiles(projectKey)
   if (files.length === 0) {
-    container.innerHTML = '<div style="padding:8px;color:#ccc;font-size:10px">파일 없음</div>'
+    container.innerHTML = '<div style="padding:8px;color:#ccc;font-size:10px">이 폴더는 비어 있어요</div>'
     return
   }
 
@@ -742,7 +742,7 @@ function startRenameProject(nodeEl, projectKey) {
     if (save && newName && newName !== oldName) {
       const result = await window.api.renameProject(projectKey, newName)
       if (!result.ok) {
-        alert('이름 변경 실패: ' + result.error)
+        alert('이름을 바꾸지 못했어요.\n' + result.error)
       }
     }
     setTimeout(refreshExplorer, 300)
@@ -776,7 +776,7 @@ function startRenameFile(fileEl) {
     if (save && newName && newName !== oldName) {
       const result = await window.api.renameFile(relPath, newName)
       if (!result.ok) {
-        alert('이름 변경 실패: ' + result.error)
+        alert('이름을 바꾸지 못했어요.\n' + result.error)
       }
     }
     // 파일 목록 새로고침
@@ -980,7 +980,7 @@ window.api.onUpdateStatus((data) => {
     banner.innerHTML = `
       <div class="update-banner">
         <span class="update-icon">⚠️</span>
-        <div class="update-text">${data.message || '업데이트 확인 실패'}</div>
+        <div class="update-text">${data.message || '업데이트를 확인하지 못했어요'}</div>
         <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
@@ -1086,10 +1086,40 @@ let trashData = null
    그래서 지울 것을 하나씩 표시하는 방식으로 바꿨다. 최소 한 장은 남는다. */
 const trashDel = new Map()    // 무리 번호 → 지울 자산 id 모음(Set)
 
+/* '알아요' 로 접은 경고. 무리는 순서가 바뀔 수 있으니 번호가 아니라
+   파일 지문으로 기억한다 — 번호로 기억하면 엉뚱한 경고가 접힌다. */
+const groupKey = g => (g.items[0] && (g.items[0].contentHash || g.items[0].id)) || ''
+let warnHidden = new Set()
+try { warnHidden = new Set(JSON.parse(localStorage.getItem('trash-warn-hidden') || '[]')) } catch {}
+function hideWarn(key) {
+  warnHidden.add(key)
+  try { localStorage.setItem('trash-warn-hidden', JSON.stringify([...warnHidden])) } catch {}
+  renderTrash()
+}
+
+/* ⚠️ 여기 말투가 번역체라는 지적을 받았다. '바이트까지 똑같습니다' 같은 말은
+   우리끼리 쓰는 말이지 고객의 말이 아니다.
+   기준: 사진 찍는 사람이 읽고 바로 무슨 뜻인지 알 것. 전문 용어 금지. */
+/* 문구 규칙 — 2026-08-31
+ *
+ * ⚠️ 처음엔 여기에 설명 문장을 썼다.
+ *    "똑같은 파일이 여러 개 있습니다 / 내용이 하나도 다르지 않습니다. 하나만 남기면 됩니다."
+ *    번역기 돌린 것 같다는 말을 들었고, 맞는 말이었다. 이유는 셋이다.
+ *      ① 화면이 이미 보여주는 걸 문장으로 또 말했다 (파일 두 장이 나란히 있는데)
+ *      ② 당연한 걸 설명했다 ("하나만 남기면 됩니다")
+ *      ③ '-합니다' 체를 썼다. 국내 서비스는 해요체를 쓴다.
+ *
+ * 그래서 규칙을 이렇게 둔다:
+ *   · 목록 머리글은 문장이 아니라 **라벨**이다. 개수·용량은 옆에 숫자로.
+ *   · 보조 설명은 **화면이 못 보여주는 새 정보**가 있을 때만 붙인다.
+ *     '똑같은 파일' 은 근거가 확실하니 더 할 말이 없다 — 그래서 비운다.
+ *     '같은 영상 같아요' 는 확실치 않으니 무엇을 해야 하는지 한 줄 붙인다.
+ *   · 말투는 해요체. 소리 내어 읽어서 어색하면 다시 쓴다.
+ */
 const LV = {
-  sure:   { t: '완전히 같은 파일입니다', c: '#1f9d55', sub: '바이트까지 똑같습니다. 안심하고 정리하세요.' },
-  likely: { t: '같은 영상으로 보입니다', c: '#c08a2e', sub: '다시 내보낸 것 같습니다. 재생해서 확인하세요.' },
-  maybe:  { t: '확인이 필요합니다',      c: '#b0624a', sub: '크기만 같습니다. 반드시 재생해서 확인하세요.' },
+  sure:   { t: '똑같은 파일',      c: '#1f9d55', sub: '' },
+  likely: { t: '같은 영상 같아요', c: '#c08a2e', sub: '재생해서 확인해 주세요' },
+  maybe:  { t: '크기만 같아요',    c: '#b0624a', sub: '내용은 다를 수 있어요' },
 }
 const tMB = n => (n / 1048576).toFixed(1)
 const tGB = n => (n / 1073741824).toFixed(2)
@@ -1108,10 +1138,13 @@ async function loadTrash() {
     return
   }
   trashData = r
+  /* ⚠️ 예전엔 열자마자 한 장만 남기고 나머지를 지울 것으로 미리 골라뒀다.
+     그랬더니 아무것도 안 눌렀는데 '삭제됨' 이 떠서
+     "왜 삭제한다고 안 했는데 삭제됐냐" 는 말을 들었다.
+     지우는 건 되돌리기 어려운 일이다. 아무것도 안 고른 채로 시작한다.
+     한 번에 고르고 싶은 사람을 위해 위에 '한 장씩만 남기고 모두' 를 둔다. */
   trashDel.clear()
-  /* 기본값: 맨 위(프로젝트에 들어 있는 · 먼저 올라온 것) 한 장만 남기고
-     나머지는 지울 것으로 미리 표시해 둔다. 사람이 손대면 바뀐다. */
-  r.groups.forEach((g, i) => trashDel.set(i, new Set(g.items.slice(1).map(a => a.id))))
+  r.groups.forEach((g, i) => trashDel.set(i, new Set()))
   markTrashTab()
   renderTrash()
 }
@@ -1120,32 +1153,38 @@ function renderTrash() {
   const pane = document.getElementById('trash-pane')
   const d = trashData
   if (!d || !d.groups.length) {
-    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">중복 파일이 없습니다</div>'
+    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">중복된 파일이 없어요</div>'
     return
   }
   // 고객이 고른 대로 다시 계산 — 남길 것 빼고 나머지가 비는 값
   // ⚠️ 비는 값은 안전한 무리만 센다. 두 프로젝트에 다 살아있는 건
   //    지워도 자리가 안 빈다 — 넣으면 "10GB 비울 수 있어요" 가 거짓말이 된다.
-  let free = 0
+  let free = 0, picked = 0, maxFree = 0
   d.groups.forEach((g, i) => {
-    if (g.kind === 'shared') return
     const del = trashDel.get(i) || new Set()
+    picked += del.size                        // 고른 개수는 위험한 무리도 센다 (사람이 직접 골랐으니)
+    if (g.kind === 'shared') return
     g.items.forEach(a => { if (del.has(a.id)) free += a.fileSize })
+    // 한 장씩만 남겼을 때 비는 값 — '여기까지 비울 수 있어요' 의 근거
+    g.items.slice(1).forEach(a => { maxFree += a.fileSize })
   })
 
   const head = `
     <div style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:14px 16px;
                 display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
       <div><div style="font-size:20px;font-weight:700">${tGB(d.usedBytes)} GB</div>
-           <div style="font-size:11px;color:#8b8892">사용 중 · 파일 ${d.assetCount}개</div></div>
+           <div style="font-size:11px;color:#8b8892">쓰는 중 · 파일 ${d.assetCount}개</div></div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <span style="font-size:15px">🗑</span>
-        <b style="font-size:17px;color:#1f9d55">${tGB(free)} GB</b>
+        <b style="font-size:17px;color:${picked ? '#1f9d55' : '#8b8892'}">${picked ? '' : '최대 '}${tGB(picked ? free : maxFree)} GB</b>
         <span style="font-size:11px;color:#8b8892">비울 수 있어요</span>
-        <button onclick="applyTrash()" ${free ? '' : 'disabled'}
-          style="background:${free ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
+        ${picked ? '' : `<button onclick="pickAllDupes()"
+          style="background:#fff;border:1px solid #dcdbe2;border-radius:8px;padding:8px 13px;
+                 font-size:12px;cursor:pointer;white-space:nowrap">중복 모두 선택</button>`}
+        <button onclick="applyTrash()" ${picked ? '' : 'disabled'}
+          style="background:${picked ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
                  padding:9px 16px;font-size:12px;font-weight:600;white-space:nowrap;
-                 cursor:${free ? 'pointer' : 'default'}">정리하기</button>
+                 cursor:${picked ? 'pointer' : 'default'}">${picked ? `${picked}개 휴지통으로 이동` : '휴지통으로 이동'}</button>
       </div>
     </div>`
 
@@ -1154,10 +1193,10 @@ function renderTrash() {
   const trashed = (t && !t.error && t.items?.length) ? `
     <section style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:13px 15px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-        <span style="font-size:13px">🗑</span><b style="font-size:13px">휴지통에 넣은 것</b>
+        <span style="font-size:13px">🗑</span><b style="font-size:13px">휴지통에 있는 파일</b>
         <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${t.items.length}개 · ${tGB(t.bytes)} GB</em>
       </div>
-      <p style="margin:0 0 10px;color:#78757f;font-size:11px">남은 기간이 지나면 완전히 지워집니다. 그 전에는 되돌릴 수 있습니다.</p>
+      <p style="margin:0 0 10px;color:#78757f;font-size:11px">30일이 지나면 완전히 지워져요. 그 전에는 언제든 되돌릴 수 있어요.</p>
       <div style="display:flex;flex-direction:column;gap:5px;max-height:230px;overflow:auto">
         ${t.items.slice(0, 40).map(a => `
           <div style="display:flex;align-items:center;gap:9px;border:1px solid #eceaf0;border-radius:8px;padding:7px 9px">
@@ -1168,7 +1207,7 @@ function renderTrash() {
               style="border:1px solid #dcdbe2;background:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">되돌리기</button>
           </div>`).join('')}
       </div>
-      ${t.items.length > 40 ? `<p style="margin:8px 0 0;font-size:11px;color:#8b8892">… 그리고 ${t.items.length - 40}개 더</p>` : ''}
+      ${t.items.length > 40 ? `<p style="margin:8px 0 0;font-size:11px;color:#8b8892">… 그리고 ${t.items.length - 40}개 더 있어요</p>` : ''}
       <button onclick="restoreAll()" style="margin-top:9px;border:1px solid #dcdbe2;background:#fff;
         border-radius:7px;padding:6px 13px;font-size:11.5px;cursor:pointer">전부 되돌리기</button>
     </section>` : ''
@@ -1186,16 +1225,39 @@ function renderTrash() {
                   border-radius:99px;padding:4px 10px;font-size:10.5px;cursor:pointer">▶ 재생</button>` : ''
     const reveal = a => `<button onclick="revealAsset('${esc(a.folder)}','${esc(a.fileName)}')"
         style="background:#fff;border:1px solid #dcdbe2;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer">📁 폴더 열기</button>`
+    /* ⚠️ 예전엔 '삭제함 · 되돌리기' 라고 썼다. 아직 아무것도 안 지웠는데
+       이미 지운 것처럼 읽혀서 "왜 삭제한다고 안 했는데 삭제됐냐" 는 말을 들었다.
+       지금은 '앞으로 이렇게 할 계획' 이라는 게 드러나는 말만 쓴다. */
+    /* ⚠️ 예전엔 여기에 '먼저 올라온 파일이라 이걸 남깁니다' 같은 설명을 달았다.
+       기본 선택이 있던 시절의 문장인데, 이제 사람이 직접 고르므로 그 말이
+       사실과 달라진다 — 실제로 고아 파일을 남겨 놓고 '먼저 올라와서' 라고
+       적혀 있었다. 설명 대신, 잘못 고른 것 같을 때만 짚어준다. */
+    const keepWhy = a => {
+      if (del.has(a.id) || del.size === 0) return ''
+      // 프로젝트에 든 걸 지우고 어디에도 없는 걸 남기려 한다 — 대개 반대로 하려던 것이다
+      const losingLive = g.items.some(x => del.has(x.id) && !x.orphan)
+      if (!(a.orphan && losingLive)) return ''
+      return `<span style="font-size:10.5px;color:#a3402c;margin-top:2px;line-height:1.5">
+        프로젝트에 있는 쪽을 남기는 게 좋아요</span>`
+    }
     const delBtn = a => {
       const on = del.has(a.id)
-      /* 지워질 것 = 빨강. 남을 것 = 회색 테두리.
-         마지막 한 장에는 삭제를 못 걸리게 막는다 — 무리째 사라지면 복구가 곤란하다. */
-      if (!on && lastOne) return `<span style="border:1px solid #dcdbe2;border-radius:6px;padding:4px 11px;
-          font-size:11px;color:#a4a1ab;background:#f7f6f9">남습니다</span>`
+      /* 짝이 되는 말이어야 한다 — 하기 ↔ 되돌리기.
+         '지울 예정 / 그냥 두기' 는 짝이 안 맞아 뭘 누르는 건지 헷갈렸다. */
+      /* 마지막 한 장은 못 지운다 — 무리째 사라지면 되돌리기가 곤란하다.
+         단, 아무것도 안 고른 상태에서는 이 딱지를 안 보여준다 (아직 고를 게 남았다). */
+      if (!on && lastOne && del.size > 0) return `<span style="border:1px solid #dcdbe2;border-radius:6px;
+          padding:4px 11px;font-size:11px;color:#a4a1ab;background:#f7f6f9">남기기</span>`
+      if (on) return `<span style="display:inline-flex;align-items:center;gap:6px">
+          <span style="background:#c0392b;color:#fff;border-radius:6px;padding:4px 10px;
+                       font-size:11px;font-weight:600">삭제됨</span>
+          <button onclick="toggleDel(${i},'${a.id}')"
+            style="border:1px solid #dcdbe2;border-radius:6px;padding:4px 10px;
+                   font-size:11px;cursor:pointer;background:#fff;color:#6c6976">되돌리기</button>
+        </span>`
       return `<button onclick="toggleDel(${i},'${a.id}')"
-        style="border:1px solid ${on ? '#c0392b' : '#dcdbe2'};border-radius:6px;padding:4px 11px;
-               font-size:11px;cursor:pointer;background:${on ? '#c0392b' : '#fff'};
-               color:${on ? '#fff' : '#8a4a3c'};font-weight:${on ? '600' : '400'}">${on ? '삭제함 · 되돌리기' : '이 파일 삭제'}</button>`
+        style="border:1px solid #d9b3a8;border-radius:6px;padding:4px 11px;
+               font-size:11px;cursor:pointer;background:#fff;color:#a3402c">삭제하기</button>`
     }
     const loc = a => `
       <div style="border:1px solid ${del.has(a.id) ? '#e8c4bd' : '#17161c'};border-radius:8px;padding:9px 10px;
@@ -1204,9 +1266,11 @@ function renderTrash() {
         <span style="font-size:11px;padding:2px 6px;border-radius:4px;align-self:flex-start;max-width:100%;
                      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
                      background:${a.orphan ? '#fbe9e4' : '#eceaf0'};color:${a.orphan ? '#a3543c' : '#4a4854'}">
-          ${esc(a.folder)}${a.orphan ? ' · 프로젝트 없음' : ''}</span>
+          ${a.orphan ? '프로젝트 없음' : esc(a.folder)}</span>
         <b style="font-size:12px;word-break:break-all">${esc(a.fileName)}</b>
-        <span style="font-size:10.5px;color:#a4a1ab">${esc((a.createdAt || '').slice(0, 10))}</span>
+        <span style="font-size:10.5px;color:#a4a1ab">
+          ${tMB(a.fileSize)} MB · ${esc((a.createdAt || '').slice(0, 10))}</span>
+        ${keepWhy(a)}
         <span style="display:flex;gap:5px;margin-top:4px">${reveal(a)}${delBtn(a)}</span>
       </div>`
     const card = a => `
@@ -1216,12 +1280,20 @@ function renderTrash() {
                     : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${play(a)}</div>
         ${loc(a)}
       </div>`
-    const warn = g.kind === 'shared'
+    /* ⚠️ 같은 사진을 두 프로젝트에 '일부러' 넣어두는 경우가 있다.
+       그런 사람에게는 이 경고가 매번 뜨는 잔소리가 된다. 접을 수 있게 한다.
+       접은 것은 앱을 꺼도 기억한다 — 매번 다시 접게 하면 안 접느니만 못하다. */
+    const warn = (g.kind === 'shared' && !warnHidden.has(groupKey(g)))
       ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;padding:9px 11px;
-                     margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55">
-           ⚠️ 두 프로젝트 모두에 들어 있는 파일입니다.
-           지워도 저장 공간은 안 줄고, <b>그 프로젝트에서 사진이 사라집니다.</b>
-           일부러 두 곳에 넣은 것이라면 그대로 두세요.</div>` : ''
+                     margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55;
+                     display:flex;gap:8px;align-items:flex-start">
+           <span style="flex:1"><b>두 프로젝트에 모두</b> 들어 있어요.
+           지워도 저장 공간은 안 줄고, <b>그 프로젝트에서만 사진이 없어져요.</b></span>
+           <button onclick="hideWarn('${groupKey(g)}')"
+             style="flex:0 0 auto;background:#fff;border:1px solid #e6cdbc;border-radius:6px;
+                    padding:3px 9px;font-size:11px;color:#8a4a2c;cursor:pointer;
+                    white-space:nowrap">메시지 삭제하기</button>
+         </div>` : ''
     const inner = one
       ? `<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
            <div style="position:relative;flex:1 1 190px;min-width:150px;max-width:260px;aspect-ratio:16/10;background:#111;border-radius:8px;
@@ -1238,7 +1310,7 @@ function renderTrash() {
           <b style="font-size:13px">${lv.t}</b>
           <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
         </div>
-        <p style="margin:0 0 11px;color:#78757f;font-size:11px">${lv.sub}</p>
+        ${lv.sub ? `<p style="margin:0 0 11px;color:#78757f;font-size:11px">${lv.sub}</p>` : '<div style="height:9px"></div>'}
         ${warn}${inner}
       </section>`
   }).join('')
@@ -1265,6 +1337,17 @@ async function peekTrashOnce() {
   } catch {}
 }
 
+/* 한 장씩만 남기고 나머지를 고른다.
+   ⚠️ 위험한 무리(두 프로젝트에 걸친 것)는 건드리지 않는다 — 지우면 자리도 안 비고
+      한쪽 프로젝트에서 사진만 사라진다. 그건 사람이 직접 골라야 한다. */
+function pickAllDupes() {
+  trashData.groups.forEach((g, i) => {
+    if (g.kind === 'shared') return
+    trashDel.set(i, new Set(g.items.slice(1).map(a => a.id)))
+  })
+  renderTrash()
+}
+
 function toggleDel(groupIdx, assetId) {
   const s = trashDel.get(groupIdx) || new Set()
   if (s.has(assetId)) s.delete(assetId)
@@ -1287,10 +1370,10 @@ async function restoreOne(id) {
 async function restoreAll() {
   const ids = (trashedList?.items || []).map(a => a.id)
   if (!ids.length) return
-  if (!confirm(`${ids.length}개를 되돌립니다. 계속할까요?`)) return
+  if (!confirm(`파일 ${ids.length}개(${tGB(bytes)}GB)를 휴지통으로 옮길게요.\n30일 안에는 되돌릴 수 있어요.\n\n계속할까요?`)) return
   const r = await window.api.untrashAssets(ids)
   if (r?.error) { alert(r.error); return }
-  alert(`${r.restored}개를 되돌렸습니다.`)
+  alert(`${r.restored}개를 되돌렸어요.`)
   loadTrash()
 }
 
@@ -1312,6 +1395,6 @@ async function applyTrash() {
   if (!confirm(`${ids.length}개 · ${tGB(bytes)}GB 를 휴지통에 넣습니다.\n\n30일 동안은 되돌릴 수 있고, 그 뒤에 완전히 지워집니다.\n계속할까요?`)) return
   const r = await window.api.trashAssets(ids)
   if (r?.error) { alert(r.error); return }
-  alert(`${r.moved}개를 휴지통에 넣었습니다.\n30일 안에는 되돌릴 수 있습니다.`)
+  alert(`${r.moved}개를 휴지통으로 옮겼어요.\n30일 안에는 되돌릴 수 있어요.`)
   loadTrash()
 }
