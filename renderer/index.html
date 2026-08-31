@@ -72,6 +72,21 @@
     .exp-crumb { background: none; border: 0; color: #828DF8; font-size: 12px; cursor: pointer; padding: 0; }
     .exp-sep { color: #bbb; }
     .exp-selinfo { margin-left: auto; font-size: 11px; color: #8b8892; }
+
+    /* 파일 격자 — 대표와 순서가 한눈에 */
+    .exp-file { display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 4px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; position: relative; }
+    .exp-file:hover { background: #F1F0F5; }
+    .exp-fthumb { position: relative; width: 100%; aspect-ratio: 1; border-radius: 7px;
+      overflow: hidden; background: #ECEAF0; display: grid; place-items: center; font-size: 18px; }
+    .exp-fthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .exp-fbadge { position: absolute; left: 4px; top: 4px; font-style: normal; font-size: 9px;
+      background: #111; color: #fff; border-radius: 4px; padding: 1px 5px; }
+    .exp-fnum { position: absolute; right: 4px; bottom: 4px; font-style: normal; font-size: 9.5px;
+      background: rgba(0,0,0,.55); color: #fff; border-radius: 4px; padding: 1px 5px; }
+    .exp-file .btn-rename { position: absolute; right: 3px; top: 3px; opacity: 0;
+      background: rgba(255,255,255,.9); border: 0; border-radius: 5px; cursor: pointer; font-size: 10px; padding: 2px 4px; }
+    .exp-file:hover .btn-rename { opacity: 1; }
     /* ── Screens ── */
     .screen { display: none; height: calc(100vh - 36px); flex-direction: column; }
     .screen.active { display: flex; }

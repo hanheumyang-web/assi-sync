@@ -540,6 +540,7 @@ async function refreshExplorer() {
   pane.innerHTML = toolbarHtml + renderExplorerGrid(data.tree, data.root)
   attachExplorerHandlers(data.root)
   attachGridNav()
+  if (expProj) fillExplorerFiles()
 }
 
 
@@ -549,7 +550,8 @@ async function refreshExplorer() {
    ⚠️ 처리기가 .tree-node · data-path · data-project-key 에 붙어 있다.
       모양만 바꾸고 그 셋은 반드시 그대로 둔다.
    ══════════════════════════════════════════════════════════ */
-let expCat = null   // 지금 열어본 분류 (null 이면 분류 목록)
+let expCat = null    // 지금 열어본 분류 (null 이면 분류 목록)
+let expProj = null   // 지금 열어본 프로젝트 { key, name } — 파일까지 보여준다
 
 function folderCard(n, root, big) {
   const isProject = n.depth === 1
@@ -568,7 +570,19 @@ function folderCard(n, root, big) {
 function renderExplorerGrid(nodes, root) {
   if (!nodes.length) return '<div style="padding:20px;color:#999;font-size:11px">폴더가 없어요</div>'
   const cat = expCat ? nodes.find(n => n.name === expCat) : null
+  /* 프로젝트를 열었으면 그 안의 파일을 보여준다. 목록은 뒤에 채워 넣는다
+     (파일은 서버에서 받아오므로 지금 당장은 없다). */
+  if (expProj) return renderExplorerShell(nodes, `<div class="exp-grid" id="exp-files">
+      <div style="color:#bbb;font-size:11px;padding:14px">불러오는 중…</div></div>`)
   const shown = cat ? (cat.children || []) : nodes
+  return renderExplorerShell(nodes, `<div class="exp-grid">
+      ${shown.length ? shown.map(n => folderCard(n, root, !!cat)).join('')
+                     : '<div style="color:#bbb;font-size:11px;padding:14px">비어 있어요</div>'}
+    </div>`)
+}
+
+/** 사이드바 + 경로줄 — 폴더 화면과 파일 화면이 같이 쓴다 */
+function renderExplorerShell(nodes, inner) {
   const total = nodes.reduce((s, n) => s + (n.children || []).length, 0)
   return `
     <div class="exp-wrap">
@@ -581,13 +595,13 @@ function renderExplorerGrid(nodes, root) {
         <div class="exp-path">
           <button class="exp-back" id="exp-backbtn" ${expBack.length ? '' : 'disabled'} title="뒤로">←</button>
           <button class="exp-crumb" data-go="">전체 프로젝트</button>
-          ${expCat ? `<span class="exp-sep">›</span><b>${expCat}</b>` : ''}
+          ${expCat ? `<span class="exp-sep">›</span>${expProj
+            ? `<button class="exp-crumb" data-go="${expCat.replace(/"/g, '&quot;')}">${expCat}</button>`
+            : `<b>${expCat}</b>`}` : ''}
+          ${expProj ? `<span class="exp-sep">›</span><b>${expProj.name}</b>` : ''}
           <span id="exp-selinfo" class="exp-selinfo"></span>
         </div>
-        <div class="exp-grid">
-          ${shown.length ? shown.map(n => folderCard(n, root, !!cat)).join('')
-                         : '<div style="color:#bbb;font-size:11px;padding:14px">비어 있어요</div>'}
-        </div>
+        ${inner}
       </div>
     </div>`
 }
@@ -636,8 +650,14 @@ function expPick(card, e) {
 
 /** 여는 동작 — 분류면 안으로, 프로젝트면 파인더에서 */
 function expOpen(card) {
-  if (card.dataset.depth === '0') { expBack.push(expCat); expCat = card.dataset.cat; expSel.clear(); refreshExplorer() }
-  else window.api.openInExplorer(card.dataset.path)
+  expBack.push({ cat: expCat, proj: expProj })
+  if (card.dataset.depth === '0') { expCat = card.dataset.cat; expProj = null }
+  else {
+    /* ⚠️ 예전엔 프로젝트를 열면 파인더가 떴다. 앱 안에서 파일을 봐야
+       무엇이 올라갔는지·대표가 뭔지 알 수 있다. 앱 안에서 연다. */
+    expProj = { key: card.dataset.projectKey, name: card.querySelector('.exp-name')?.textContent || '' }
+  }
+  expSel.clear(); refreshExplorer()
 }
 
 function expMenu(card, x, y) {
@@ -694,21 +714,87 @@ function expKeys(e) {
 }
 
 function expUp() {
-  if (!expCat) return
-  expBack.push(expCat)
-  expCat = null
+  if (!expCat && !expProj) return
+  expBack.push({ cat: expCat, proj: expProj })
+  if (expProj) expProj = null
+  else expCat = null
   expSel.clear()
   refreshExplorer()
+}
+
+
+/** 프로젝트 안의 파일을 격자로 — 대표 사진과 순서가 한눈에 보여야 한다.
+    ⚠️ 이름 바꾸기·순서 바꾸기 처리기가 .tree-file 과 data-* 에 붙는다. 그대로 둔다. */
+async function fillExplorerFiles() {
+  const box = document.getElementById('exp-files')
+  if (!box || !expProj) return
+  const files = await window.api.getProjectFiles(expProj.key).catch(() => [])
+  if (!files || !files.length) {
+    box.innerHTML = '<div style="color:#bbb;font-size:11px;padding:14px">이 폴더는 비어 있어요</div>'
+    return
+  }
+  box.innerHTML = files.map((f, i) => {
+    const src = f.isVideo ? (f.videoThumbnailUrl || '') : (f.url || '')
+    return `<div class="tree-file exp-file" draggable="true"
+         data-asset-id="${f.assetId}" data-rel-path="${(f.relPath || '').replace(/"/g, '&quot;')}" data-index="${i}">
+      <div class="exp-fthumb">
+        ${src ? `<img src="${src}" loading="lazy" onerror="this.style.display='none'">`
+              : `<span>${f.isVideo ? '🎬' : '📷'}</span>`}
+        ${f.isThumbnail ? '<em class="exp-fbadge">대표</em>' : ''}
+        <i class="exp-fnum">${i + 1}</i>
+      </div>
+      <div class="exp-name" title="${(f.fileName || '').replace(/"/g, '&quot;')}">${f.fileName || ''}</div>
+      <button class="btn-rename" title="이름 바꾸기">✏️</button>
+    </div>`
+  }).join('')
+  attachFileHandlers(box, expProj.key)
+  /* 파일에서도 파인더처럼 — 두 번 누르면 Finder 에서 보기, 우클릭에 할 일 */
+  box.querySelectorAll('.exp-file').forEach(el => {
+    el.addEventListener('dblclick', e => {
+      if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+      window.api.revealInFolder({ folder: expProj.key, fileName: el.querySelector('.exp-name')?.textContent || '' })
+    })
+    el.addEventListener('contextmenu', e => {
+      e.preventDefault()
+      expFileMenu(el, e.clientX, e.clientY)
+    })
+  })
+}
+
+function expFileMenu(el, x, y) {
+  document.getElementById('exp-menu')?.remove()
+  const name = el.querySelector('.exp-name')?.textContent || ''
+  const m = document.createElement('div')
+  m.id = 'exp-menu'
+  m.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:300;background:#fff;border:1px solid #dcdbe2;
+    border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:4px;min-width:150px;font-size:12px`
+  const item = (label, fn) => {
+    const b = document.createElement('button')
+    b.textContent = label
+    b.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:#333'
+    b.onmouseenter = () => b.style.background = '#f1f0f5'
+    b.onmouseleave = () => b.style.background = 'none'
+    b.onclick = () => { m.remove(); fn() }
+    m.appendChild(b)
+  }
+  item('Finder 에서 보기', () => window.api.revealInFolder({ folder: expProj.key, fileName: name }))
+  item('이름 바꾸기', () => el.querySelector('.btn-rename')?.click())
+  document.body.appendChild(m)
+  const close = ev => { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('mousedown', close) } }
+  setTimeout(() => document.addEventListener('mousedown', close), 0)
 }
 
 function attachGridNav() {
   document.querySelectorAll('[data-go]').forEach(b =>
     b.addEventListener('click', e => {
-      e.stopPropagation(); expBack.push(expCat)
-      expCat = b.dataset.go || null; expSel.clear(); refreshExplorer()
+      e.stopPropagation(); expBack.push({ cat: expCat, proj: expProj })
+      expCat = b.dataset.go || null; expProj = null; expSel.clear(); refreshExplorer()
     }))
   document.getElementById('exp-backbtn')?.addEventListener('click', () => {
-    expCat = expBack.pop() ?? null; expSel.clear(); refreshExplorer()
+    const prev = expBack.pop()
+    expCat = prev ? prev.cat : null
+    expProj = prev ? prev.proj : null
+    expSel.clear(); refreshExplorer()
   })
   expCards().forEach(c => {
     c.addEventListener('click', e => {
