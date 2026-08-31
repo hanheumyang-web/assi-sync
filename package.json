@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.9.31",
+  "version": "1.9.32",
   "productName": "Pofol Sync",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.assi.sync",
-    "productName": "ASSI Sync",
+    "productName": "Pofol Sync",
     "files": [
       "main.js",
       "preload.js",
