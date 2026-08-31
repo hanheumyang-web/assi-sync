@@ -1076,7 +1076,11 @@ document.getElementById('btn-settings').addEventListener('click', openSettings)
         확인 필요        크기만 같다 — 반드시 재생
    ══════════════════════════════════════════════════════════ */
 let trashData = null
-const trashKeep = new Map()   // 무리 번호 → 남길 자산 id
+/* ⚠️ 예전엔 '남길 것 하나' 를 골랐다. 그런데 사람이 화면에서 하려는 일은
+   "이 파일을 지운다" 지 "이 파일을 남긴다" 가 아니다. 셋 이상일 때도
+   남길 것 하나만 고르면 나머지가 통째로 날아가 무섭다.
+   그래서 지울 것을 하나씩 표시하는 방식으로 바꿨다. 최소 한 장은 남는다. */
+const trashDel = new Map()    // 무리 번호 → 지울 자산 id 모음(Set)
 
 const LV = {
   sure:   { t: '완전히 같은 파일입니다', c: '#1f9d55', sub: '바이트까지 똑같습니다. 안심하고 정리하세요.' },
@@ -1100,8 +1104,10 @@ async function loadTrash() {
     return
   }
   trashData = r
-  trashKeep.clear()
-  r.groups.forEach((g, i) => trashKeep.set(i, g.items[0].id))
+  trashDel.clear()
+  /* 기본값: 맨 위(프로젝트에 들어 있는 · 먼저 올라온 것) 한 장만 남기고
+     나머지는 지울 것으로 미리 표시해 둔다. 사람이 손대면 바뀐다. */
+  r.groups.forEach((g, i) => trashDel.set(i, new Set(g.items.slice(1).map(a => a.id))))
   markTrashTab()
   renderTrash()
 }
@@ -1119,22 +1125,23 @@ function renderTrash() {
   let free = 0
   d.groups.forEach((g, i) => {
     if (g.kind === 'shared') return
-    const keep = trashKeep.get(i)
-    g.items.forEach(a => { if (a.id !== keep) free += a.fileSize })
+    const del = trashDel.get(i) || new Set()
+    g.items.forEach(a => { if (del.has(a.id)) free += a.fileSize })
   })
 
   const head = `
     <div style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:14px 16px;
-                display:flex;align-items:center;gap:14px;margin-bottom:12px">
+                display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
       <div><div style="font-size:20px;font-weight:700">${tGB(d.usedBytes)} GB</div>
            <div style="font-size:11px;color:#8b8892">사용 중 · 파일 ${d.assetCount}개</div></div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <span style="font-size:15px">🗑</span>
         <b style="font-size:17px;color:#1f9d55">${tGB(free)} GB</b>
         <span style="font-size:11px;color:#8b8892">비울 수 있어요</span>
         <button onclick="applyTrash()" ${free ? '' : 'disabled'}
           style="background:${free ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
-                 padding:9px 16px;font-size:12px;font-weight:600;cursor:${free ? 'pointer' : 'default'}">정리하기</button>
+                 padding:9px 16px;font-size:12px;font-weight:600;white-space:nowrap;
+                 cursor:${free ? 'pointer' : 'default'}">정리하기</button>
       </div>
     </div>`
 
@@ -1164,7 +1171,8 @@ function renderTrash() {
 
   const body = d.groups.map((g, i) => {
     const lv = LV[g.level] || LV.maybe
-    const keep = trashKeep.get(i)
+    const del = trashDel.get(i) || new Set()
+    const lastOne = g.items.length - del.size <= 1   // 마지막 한 장은 못 지운다
     const thumb = g.items.find(a => a.thumb)
     const one = g.level === 'sure'
     // ⚠️ 사진에 '재생' 을 붙이면 안 된다. 영상만.
@@ -1174,22 +1182,31 @@ function renderTrash() {
                   border-radius:99px;padding:4px 10px;font-size:10.5px;cursor:pointer">▶ 재생</button>` : ''
     const reveal = a => `<button onclick="revealAsset('${esc(a.folder)}','${esc(a.fileName)}')"
         style="background:#fff;border:1px solid #dcdbe2;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer">📁 폴더 열기</button>`
-    const keepBtn = a => `<button onclick="pickKeep(${i},'${a.id}')"
-        style="border:1px solid ${a.id === keep ? '#17161c' : '#dcdbe2'};border-radius:6px;padding:4px 11px;
-               font-size:11px;cursor:pointer;background:${a.id === keep ? '#17161c' : '#fff'};
-               color:${a.id === keep ? '#fff' : '#6c6976'};font-weight:${a.id === keep ? '600' : '400'}">${a.id === keep ? '남길 것' : '이걸 남긴다'}</button>`
+    const delBtn = a => {
+      const on = del.has(a.id)
+      /* 지워질 것 = 빨강. 남을 것 = 회색 테두리.
+         마지막 한 장에는 삭제를 못 걸리게 막는다 — 무리째 사라지면 복구가 곤란하다. */
+      if (!on && lastOne) return `<span style="border:1px solid #dcdbe2;border-radius:6px;padding:4px 11px;
+          font-size:11px;color:#a4a1ab;background:#f7f6f9">남습니다</span>`
+      return `<button onclick="toggleDel(${i},'${a.id}')"
+        style="border:1px solid ${on ? '#c0392b' : '#dcdbe2'};border-radius:6px;padding:4px 11px;
+               font-size:11px;cursor:pointer;background:${on ? '#c0392b' : '#fff'};
+               color:${on ? '#fff' : '#8a4a3c'};font-weight:${on ? '600' : '400'}">${on ? '삭제함 · 되돌리기' : '이 파일 삭제'}</button>`
+    }
     const loc = a => `
-      <div style="border:1px solid ${a.id === keep ? '#17161c' : '#e6e5ea'};border-radius:8px;padding:9px 10px;
-                  background:${a.id === keep ? '#fff' : '#fafafa'};display:flex;flex-direction:column;gap:3px">
-        <span style="font-size:11px;padding:2px 6px;border-radius:4px;align-self:flex-start;
+      <div style="border:1px solid ${del.has(a.id) ? '#e8c4bd' : '#17161c'};border-radius:8px;padding:9px 10px;
+                  background:${del.has(a.id) ? '#fdf6f4' : '#fff'};opacity:${del.has(a.id) ? '.72' : '1'};
+                  display:flex;flex-direction:column;gap:3px;min-width:0">
+        <span style="font-size:11px;padding:2px 6px;border-radius:4px;align-self:flex-start;max-width:100%;
+                     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
                      background:${a.orphan ? '#fbe9e4' : '#eceaf0'};color:${a.orphan ? '#a3543c' : '#4a4854'}">
           ${esc(a.folder)}${a.orphan ? ' · 프로젝트 없음' : ''}</span>
         <b style="font-size:12px;word-break:break-all">${esc(a.fileName)}</b>
         <span style="font-size:10.5px;color:#a4a1ab">${esc((a.createdAt || '').slice(0, 10))}</span>
-        <span style="display:flex;gap:5px;margin-top:4px">${reveal(a)}${keepBtn(a)}</span>
+        <span style="display:flex;gap:5px;margin-top:4px">${reveal(a)}${delBtn(a)}</span>
       </div>`
     const card = a => `
-      <div style="flex:1 1 260px;border:1px solid #e6e5ea;border-radius:9px;overflow:hidden;background:#fafafa">
+      <div style="flex:1 1 200px;min-width:0;border:1px solid #e6e5ea;border-radius:9px;overflow:hidden;background:#fafafa">
         <div style="position:relative;aspect-ratio:16/10;background:#111;display:grid;place-items:center;overflow:hidden">
           ${a.thumb ? `<img src="${esc(a.thumb)}" style="width:100%;height:100%;object-fit:cover">`
                     : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${play(a)}</div>
@@ -1202,12 +1219,12 @@ function renderTrash() {
            지워도 저장 공간은 안 줄고, <b>그 프로젝트에서 사진이 사라집니다.</b>
            일부러 두 곳에 넣은 것이라면 그대로 두세요.</div>` : ''
     const inner = one
-      ? `<div style="display:flex;gap:12px;align-items:flex-start">
-           <div style="position:relative;flex:0 0 240px;aspect-ratio:16/10;background:#111;border-radius:8px;
+      ? `<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+           <div style="position:relative;flex:1 1 190px;min-width:150px;max-width:260px;aspect-ratio:16/10;background:#111;border-radius:8px;
                        display:grid;place-items:center;overflow:hidden">
              ${thumb ? `<img src="${esc(thumb.thumb)}" style="width:100%;height:100%;object-fit:cover">`
                      : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${thumb ? play(thumb) : ''}</div>
-           <div style="flex:1;display:flex;flex-direction:column;gap:7px">${g.items.map(loc).join('')}</div>
+           <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:7px">${g.items.map(loc).join('')}</div>
          </div>`
       : `<div style="display:flex;gap:10px;flex-wrap:wrap">${g.items.map(card).join('')}</div>`
     return `
@@ -1244,7 +1261,13 @@ async function peekTrashOnce() {
   } catch {}
 }
 
-function pickKeep(groupIdx, assetId) { trashKeep.set(groupIdx, assetId); renderTrash() }
+function toggleDel(groupIdx, assetId) {
+  const s = trashDel.get(groupIdx) || new Set()
+  if (s.has(assetId)) s.delete(assetId)
+  else s.add(assetId)
+  trashDel.set(groupIdx, s)
+  renderTrash()
+}
 
 async function revealAsset(folder, fileName) {
   const r = await window.api.revealInFolder({ folder, fileName })
@@ -1273,14 +1296,14 @@ async function applyTrash() {
   const ids = []
   trashData.groups.forEach((g, i) => {
     if (g.kind === 'shared') return
-    const keep = trashKeep.get(i)
-    g.items.forEach(a => { if (a.id !== keep) ids.push(a.id) })
+    const del = trashDel.get(i) || new Set()
+    g.items.forEach(a => { if (del.has(a.id)) ids.push(a.id) })
   })
   if (!ids.length) return
   const bytes = trashData.groups.reduce((n, g, i) => {
     if (g.kind === 'shared') return n
-    const keep = trashKeep.get(i)
-    return n + g.items.reduce((m, a) => m + (a.id === keep ? 0 : a.fileSize), 0)
+    const del = trashDel.get(i) || new Set()
+    return n + g.items.reduce((m, a) => m + (del.has(a.id) ? a.fileSize : 0), 0)
   }, 0)
   if (!confirm(`${ids.length}개 · ${tGB(bytes)}GB 를 휴지통에 넣습니다.\n\n30일 동안은 되돌릴 수 있고, 그 뒤에 완전히 지워집니다.\n계속할까요?`)) return
   const r = await window.api.trashAssets(ids)
