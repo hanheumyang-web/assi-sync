@@ -1270,10 +1270,11 @@ function renderTrash() {
   // 고객이 고른 대로 다시 계산 — 남길 것 빼고 나머지가 비는 값
   // ⚠️ 비는 값은 안전한 무리만 센다. 두 프로젝트에 다 살아있는 건
   //    지워도 자리가 안 빈다 — 넣으면 "10GB 비울 수 있어요" 가 거짓말이 된다.
-  let free = 0, picked = 0, maxFree = 0
+  let free = 0, picked = 0, maxFree = 0, pickedBytes = 0
   d.groups.forEach((g, i) => {
     const del = trashDel
-    picked += g.items.filter(a => del.has(a.id)).length                        // 고른 개수는 위험한 무리도 센다 (사람이 직접 골랐으니)
+    // 고른 개수·크기는 위험한 무리도 센다 (사람이 직접 골랐으니)
+    g.items.forEach(a => { if (del.has(a.id)) { picked++; pickedBytes += a.fileSize } })
     if (g.kind === 'shared') return
     g.items.forEach(a => { if (del.has(a.id)) free += a.fileSize })
     // 한 장씩만 남겼을 때 비는 값 — '여기까지 비울 수 있어요' 의 근거
@@ -1455,7 +1456,8 @@ function renderTrash() {
                 background:#17161c;border-radius:12px;display:flex;align-items:center;gap:10px;
                 box-shadow:0 -6px 22px rgba(0,0,0,.22)">
       <b style="color:#fff;font-size:13px">${picked}개 선택</b>
-      <span style="color:#a8a5b2;font-size:11.5px">${tGB(free)} GB</span>
+      <span style="color:#a8a5b2;font-size:11.5px">${tMB(pickedBytes)} MB${
+        free < pickedBytes ? ` · 공간은 ${tMB(free)} MB 만 줄어요` : ''}</span>
       <button onclick="clearTrashPick()"
         style="margin-left:auto;background:none;border:1px solid #45434f;border-radius:8px;
                padding:7px 12px;font-size:12px;color:#c9c7d0;cursor:pointer">선택 해제</button>
@@ -1470,8 +1472,10 @@ function renderTrash() {
 function markTrashTab() {
   const btn = document.getElementById('tab-trash')
   if (!btn || !trashData) return
+  /* ⚠️ 여기서 매번 글자를 덮어써서, index.html 에서 '중복 파일' 로 바꿔놔도
+     화면에는 계속 '휴지통' 이 떴다. 이름은 한 곳에서만 정한다. */
   const g = tGB(trashData.freeableBytes || 0)
-  btn.textContent = Number(g) > 0.01 ? `휴지통 ${g}GB` : '휴지통'
+  btn.textContent = Number(g) > 0.01 ? `중복 파일 ${g}GB` : '중복 파일'
 }
 
 /* 앱을 켜두면 한 번은 조용히 확인해 둔다. 탭을 안 눌러도 용량이 보이게. */
@@ -1537,23 +1541,33 @@ async function restoreAll() {
 }
 
 async function applyTrash() {
-  // 두 프로젝트에 다 살아있는 무리는 '정리하기' 에서 뺀다.
-  // 지우려면 그 무리에서 직접 골라야 한다 — 실수로 사진이 사라지면 안 된다.
+  /* ⚠️ 예전엔 '두 프로젝트에 다 있는 무리' 를 여기서 통째로 걸렀다.
+     그런데 그건 자동으로 고를 때 빼야 하는 것이지, **사람이 직접 고른 것**까지
+     버리면 안 된다. 실제로 3개를 골라 눌렀는데 아무 일도 안 일어났다 —
+     아무 말도 없이. 고른 것은 고른 대로 옮긴다. */
   const ids = []
-  trashData.groups.forEach((g, i) => {
-    if (g.kind === 'shared') return
-    const del = trashDel
-    g.items.forEach(a => { if (del.has(a.id)) ids.push(a.id) })
+  let riskyCount = 0
+  trashData.groups.forEach((g) => {
+    g.items.forEach(a => {
+      if (!trashDel.has(a.id)) return
+      ids.push(a.id)
+      if (g.kind === 'shared') riskyCount++
+    })
   })
-  if (!ids.length) return
-  const bytes = trashData.groups.reduce((n, g, i) => {
-    if (g.kind === 'shared') return n
-    const del = trashDel
-    return n + g.items.reduce((m, a) => m + (del.has(a.id) ? a.fileSize : 0), 0)
-  }, 0)
-  if (!confirm(`${ids.length}개 · ${tGB(bytes)}GB 를 휴지통에 넣습니다.\n\n30일 동안은 되돌릴 수 있고, 그 뒤에 완전히 지워집니다.\n계속할까요?`)) return
+  if (!ids.length) { alert('고른 파일이 없어요.'); return }
+  /* 고른 크기와 실제로 비는 크기는 다르다. 두 프로젝트에 다 있는 파일은
+     지워도 저장 공간이 안 준다 — 숨기면 나중에 "왜 안 줄었냐" 가 된다. */
+  let total = 0
+  trashData.groups.forEach(g => g.items.forEach(a => { if (trashDel.has(a.id)) total += a.fileSize }))
+  const lines = [`파일 ${ids.length}개(${tMB(total)}MB)를 휴지통으로 옮길게요.`]
+  if (riskyCount) lines.push(`이 중 ${riskyCount}개는 두 프로젝트에 모두 있어서 저장 공간은 안 줄어요.`)
+  lines.push('컴퓨터의 원본도 동기화 폴더 안 _Trash 로 옮겨져요.')
+  lines.push('', '30일 안에는 되돌릴 수 있어요.', '계속할까요?')
+  if (!confirm(lines.join('\n'))) return
   const r = await window.api.trashAssets(ids)
   if (r?.error) { alert(r.error); return }
-  alert(`${r.moved}개를 휴지통으로 옮겼어요.\n30일 안에는 되돌릴 수 있어요.`)
+  alert(`${r.moved}개를 휴지통으로 옮겼어요.${
+    r.localMoved ? `\n컴퓨터의 원본 ${r.localMoved}개도 _Trash 로 옮겼어요.` : ''
+  }\n30일 안에는 되돌릴 수 있어요.`)
   loadTrash()
 }
