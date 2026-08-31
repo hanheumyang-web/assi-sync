@@ -140,6 +140,46 @@ app.on('window-all-closed', () => {
 // ──── IPC Handlers ────
 
 ipcMain.handle('open-external', (_, url) => shell.openExternal(url))
+
+// ── 휴지통 ──
+// ⚠️ 중복 판정은 서버가 한다. 여기서는 서버에 묻고 결과를 넘기기만 한다.
+//    파일 위치를 Finder/탐색기에서 열어주는 건 여기서만 할 수 있다.
+ipcMain.handle('find-duplicates', async () => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try { return await syncEngine.api.findDuplicates() }
+  catch (e) { return { error: e.message } }
+})
+
+ipcMain.handle('trash-assets', async (_, assetIds) => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try { return await syncEngine.api.trashAssets(assetIds) }
+  catch (e) { return { error: e.message } }
+})
+
+ipcMain.handle('list-trashed', async () => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try { return await syncEngine.api.listTrashedAssets() }
+  catch (e) { return { error: e.message } }
+})
+
+ipcMain.handle('untrash-assets', async (_, assetIds) => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try { return await syncEngine.api.untrashAssets(assetIds) }
+  catch (e) { return { error: e.message } }
+})
+
+// 폴더 위치 열기 — 파일이 있으면 그 파일을 고른 채로, 없으면 폴더만
+ipcMain.handle('reveal-in-folder', (_, { folder, fileName }) => {
+  const root = syncEngine?.watchDir
+  if (!root) return { ok: false, error: '동기화 폴더를 모릅니다' }
+  const fsMod = require('fs')
+  const pathMod = require('path')
+  const dir = pathMod.join(root, ...String(folder || '').split('/'))
+  const file = pathMod.join(dir, fileName || '')
+  if (fileName && fsMod.existsSync(file)) { shell.showItemInFolder(file); return { ok: true, at: 'file' } }
+  if (fsMod.existsSync(dir)) { shell.openPath(dir); return { ok: true, at: 'folder' } }
+  return { ok: false, error: '이 컴퓨터에 아직 내려받지 않은 파일입니다' }
+})
 ipcMain.handle('minimize-window', () => mainWindow?.minimize())
 ipcMain.handle('maximize-window', () => {
   if (mainWindow?.isMaximized()) mainWindow.unmaximize()

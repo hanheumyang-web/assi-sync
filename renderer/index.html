@@ -440,8 +440,12 @@
     <div style="display:flex;gap:4px;padding:8px 16px 0 16px">
       <button id="tab-activity" class="tab-btn active" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:none;background:#111;color:#fff;border-radius:8px;cursor:pointer">활동</button>
       <button id="tab-explorer" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">탐색기</button>
+      <button id="tab-trash" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">휴지통</button>
     </div>
     <div id="explorer-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
+    <!-- 휴지통 — 같은 파일이 여러 벌 올라간 것을 찾아 정리한다.
+         근거에 따라 말이 다르다: 지문이 같다 / 화면이 같다 / 크기만 같다. -->
+    <div id="trash-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
     <div id="activity-pane" style="flex:1;overflow-y:auto;min-height:0">
       <div id="synced-section" class="pending-section" style="display:none">
         <div class="pending-header">업로드 완료</div>

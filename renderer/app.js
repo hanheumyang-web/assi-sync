@@ -460,19 +460,25 @@ window.api.onFolderDeletionRequested(async (info) => {
 // ── Explorer Mode ──
 let dragNode = null
 
-document.getElementById('tab-activity').addEventListener('click', () => switchTab('activity'))
-document.getElementById('tab-explorer').addEventListener('click', () => switchTab('explorer'))
+// 탭 세 개 — 활동 / 탐색기 / 휴지통
+// ⚠️ 예전에는 둘뿐이라 'isExp' 참·거짓으로 갈랐는데, 셋이 되면서 그 방식으로는 안 된다.
+const TABS = ['activity', 'explorer', 'trash']
+TABS.forEach(t => document.getElementById('tab-' + t).addEventListener('click', () => switchTab(t)))
 
 function switchTab(tab) {
-  const isExp = tab === 'explorer'
-  document.getElementById('tab-activity').style.background = isExp ? '#fff' : '#111'
-  document.getElementById('tab-activity').style.color = isExp ? '#666' : '#fff'
-  document.getElementById('tab-explorer').style.background = isExp ? '#111' : '#fff'
-  document.getElementById('tab-explorer').style.color = isExp ? '#fff' : '#666'
-  document.getElementById('explorer-pane').style.display = isExp ? 'block' : 'none'
-  document.getElementById('activity-pane').style.display = isExp ? 'none' : 'flex'
+  TABS.forEach(t => {
+    const on = t === tab
+    const btn = document.getElementById('tab-' + t)
+    btn.style.background = on ? '#111' : '#fff'
+    btn.style.color = on ? '#fff' : '#666'
+    btn.style.border = on ? 'none' : '1px solid rgba(0,0,0,0.08)'
+  })
+  document.getElementById('explorer-pane').style.display = tab === 'explorer' ? 'block' : 'none'
+  document.getElementById('trash-pane').style.display = tab === 'trash' ? 'block' : 'none'
+  document.getElementById('activity-pane').style.display = tab === 'activity' ? 'flex' : 'none'
   document.getElementById('activity-pane').style.flexDirection = 'column'
-  if (isExp) refreshExplorer()
+  if (tab === 'explorer') refreshExplorer()
+  if (tab === 'trash') loadTrash()
 }
 
 let explorerRoot = ''
@@ -1053,3 +1059,209 @@ document.getElementById('btn-settings').addEventListener('click', openSettings)
     }
   }
 })()
+
+/* ══════════════════════════════════════════════════════════
+   휴지통 — 2026-08-31
+   같은 파일이 여러 벌 올라간 것을 찾아 고객이 직접 정리한다.
+
+   ⚠️ 우리가 지우지 않는다. 후보만 보여주고 고객이 남길 것을 고른다.
+      판정 근거에 따라 말이 다르다:
+        완전히 같은 파일  바이트 지문이 같다 — 미리보기 하나만 보여준다.
+                        (썸네일은 업로드마다 다른 프레임이 잡혀서
+                         나란히 놓으면 다른 영상처럼 보인다. 한 번 데였다.)
+        같은 영상        화면 지문이 가깝다 — 재생해서 확인 권함
+        확인 필요        크기만 같다 — 반드시 재생
+   ══════════════════════════════════════════════════════════ */
+let trashData = null
+const trashKeep = new Map()   // 무리 번호 → 남길 자산 id
+
+const LV = {
+  sure:   { t: '완전히 같은 파일입니다', c: '#1f9d55', sub: '바이트까지 똑같습니다. 안심하고 정리하세요.' },
+  likely: { t: '같은 영상으로 보입니다', c: '#c08a2e', sub: '다시 내보낸 것 같습니다. 재생해서 확인하세요.' },
+  maybe:  { t: '확인이 필요합니다',      c: '#b0624a', sub: '크기만 같습니다. 반드시 재생해서 확인하세요.' },
+}
+const tMB = n => (n / 1048576).toFixed(1)
+const tGB = n => (n / 1073741824).toFixed(2)
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+let trashedList = null   // 이미 휴지통에 넣은 것들
+
+async function loadTrash() {
+  const pane = document.getElementById('trash-pane')
+  pane.innerHTML = '<div style="padding:30px 0;text-align:center;color:#888;font-size:12px">중복을 찾는 중…</div>'
+  // ⚠️ 되돌릴 길이 없으면 '휴지통' 이 아니라 즉시 삭제다. 넣은 것도 같이 보여준다.
+  trashedList = await window.api.listTrashed().catch(() => null)
+  const r = await window.api.findDuplicates()
+  if (r?.error) {
+    pane.innerHTML = `<div style="padding:30px 0;text-align:center;color:#b0624a;font-size:12px">${esc(r.error)}</div>`
+    return
+  }
+  trashData = r
+  trashKeep.clear()
+  r.groups.forEach((g, i) => trashKeep.set(i, g.items[0].id))
+  renderTrash()
+}
+
+function renderTrash() {
+  const pane = document.getElementById('trash-pane')
+  const d = trashData
+  if (!d || !d.groups.length) {
+    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">정리할 중복이 없습니다 👍</div>'
+    return
+  }
+  // 고객이 고른 대로 다시 계산 — 남길 것 빼고 나머지가 비는 값
+  // ⚠️ 비는 값은 안전한 무리만 센다. 두 프로젝트에 다 살아있는 건
+  //    지워도 자리가 안 빈다 — 넣으면 "10GB 비울 수 있어요" 가 거짓말이 된다.
+  let free = 0
+  d.groups.forEach((g, i) => {
+    if (g.kind === 'shared') return
+    const keep = trashKeep.get(i)
+    g.items.forEach(a => { if (a.id !== keep) free += a.fileSize })
+  })
+
+  const head = `
+    <div style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:14px 16px;
+                display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <div><div style="font-size:20px;font-weight:700">${tGB(d.usedBytes)} GB</div>
+           <div style="font-size:11px;color:#8b8892">사용 중 · 파일 ${d.assetCount}개</div></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <span style="font-size:15px">🗑</span>
+        <b style="font-size:17px;color:#1f9d55">${tGB(free)} GB</b>
+        <span style="font-size:11px;color:#8b8892">비울 수 있어요</span>
+        <button onclick="applyTrash()" ${free ? '' : 'disabled'}
+          style="background:${free ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
+                 padding:9px 16px;font-size:12px;font-weight:600;cursor:${free ? 'pointer' : 'default'}">정리하기</button>
+      </div>
+    </div>`
+
+  // ── 휴지통에 넣은 것 — 30일 안에는 되돌릴 수 있다 ──
+  const t = trashedList
+  const trashed = (t && !t.error && t.items?.length) ? `
+    <section style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:13px 15px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <span style="font-size:13px">🗑</span><b style="font-size:13px">휴지통에 넣은 것</b>
+        <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${t.items.length}개 · ${tGB(t.bytes)} GB</em>
+      </div>
+      <p style="margin:0 0 10px;color:#78757f;font-size:11px">남은 기간이 지나면 완전히 지워집니다. 그 전에는 되돌릴 수 있습니다.</p>
+      <div style="display:flex;flex-direction:column;gap:5px;max-height:230px;overflow:auto">
+        ${t.items.slice(0, 40).map(a => `
+          <div style="display:flex;align-items:center;gap:9px;border:1px solid #eceaf0;border-radius:8px;padding:7px 9px">
+            <b style="font-size:11.5px;flex:1;word-break:break-all">${esc(a.fileName)}</b>
+            <span style="font-size:10.5px;color:#8b8892">${tMB(a.fileSize)} MB</span>
+            <span style="font-size:10.5px;color:${a.daysLeft <= 3 ? '#b0624a' : '#8b8892'}">${a.daysLeft}일 남음</span>
+            <button onclick="restoreOne('${a.id}')"
+              style="border:1px solid #dcdbe2;background:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">되돌리기</button>
+          </div>`).join('')}
+      </div>
+      ${t.items.length > 40 ? `<p style="margin:8px 0 0;font-size:11px;color:#8b8892">… 그리고 ${t.items.length - 40}개 더</p>` : ''}
+      <button onclick="restoreAll()" style="margin-top:9px;border:1px solid #dcdbe2;background:#fff;
+        border-radius:7px;padding:6px 13px;font-size:11.5px;cursor:pointer">전부 되돌리기</button>
+    </section>` : ''
+
+  const body = d.groups.map((g, i) => {
+    const lv = LV[g.level] || LV.maybe
+    const keep = trashKeep.get(i)
+    const thumb = g.items.find(a => a.thumb)
+    const one = g.level === 'sure'
+    // ⚠️ 사진에 '재생' 을 붙이면 안 된다. 영상만.
+    const play = a => (a.isVideo && a.play)
+      ? `<button onclick="window.api.openExternal('${esc(a.play)}')"
+           style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.62);color:#fff;border:0;
+                  border-radius:99px;padding:4px 10px;font-size:10.5px;cursor:pointer">▶ 재생</button>` : ''
+    const reveal = a => `<button onclick="revealAsset('${esc(a.folder)}','${esc(a.fileName)}')"
+        style="background:#fff;border:1px solid #dcdbe2;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer">📁 폴더 열기</button>`
+    const keepBtn = a => `<button onclick="pickKeep(${i},'${a.id}')"
+        style="border:1px solid ${a.id === keep ? '#17161c' : '#dcdbe2'};border-radius:6px;padding:4px 11px;
+               font-size:11px;cursor:pointer;background:${a.id === keep ? '#17161c' : '#fff'};
+               color:${a.id === keep ? '#fff' : '#6c6976'};font-weight:${a.id === keep ? '600' : '400'}">${a.id === keep ? '남길 것' : '이걸 남긴다'}</button>`
+    const loc = a => `
+      <div style="border:1px solid ${a.id === keep ? '#17161c' : '#e6e5ea'};border-radius:8px;padding:9px 10px;
+                  background:${a.id === keep ? '#fff' : '#fafafa'};display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:11px;padding:2px 6px;border-radius:4px;align-self:flex-start;
+                     background:${a.orphan ? '#fbe9e4' : '#eceaf0'};color:${a.orphan ? '#a3543c' : '#4a4854'}">
+          ${esc(a.folder)}${a.orphan ? ' · 프로젝트 없음' : ''}</span>
+        <b style="font-size:12px;word-break:break-all">${esc(a.fileName)}</b>
+        <span style="font-size:10.5px;color:#a4a1ab">${esc((a.createdAt || '').slice(0, 10))}</span>
+        <span style="display:flex;gap:5px;margin-top:4px">${reveal(a)}${keepBtn(a)}</span>
+      </div>`
+    const card = a => `
+      <div style="flex:1 1 260px;border:1px solid #e6e5ea;border-radius:9px;overflow:hidden;background:#fafafa">
+        <div style="position:relative;aspect-ratio:16/10;background:#111;display:grid;place-items:center;overflow:hidden">
+          ${a.thumb ? `<img src="${esc(a.thumb)}" style="width:100%;height:100%;object-fit:cover">`
+                    : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${play(a)}</div>
+        ${loc(a)}
+      </div>`
+    const warn = g.kind === 'shared'
+      ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;padding:9px 11px;
+                     margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55">
+           ⚠️ 두 프로젝트 모두에 들어 있는 파일입니다.
+           지워도 저장 공간은 안 줄고, <b>그 프로젝트에서 사진이 사라집니다.</b>
+           일부러 두 곳에 넣은 것이라면 그대로 두세요.</div>` : ''
+    const inner = one
+      ? `<div style="display:flex;gap:12px;align-items:flex-start">
+           <div style="position:relative;flex:0 0 240px;aspect-ratio:16/10;background:#111;border-radius:8px;
+                       display:grid;place-items:center;overflow:hidden">
+             ${thumb ? `<img src="${esc(thumb.thumb)}" style="width:100%;height:100%;object-fit:cover">`
+                     : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${thumb ? play(thumb) : ''}</div>
+           <div style="flex:1;display:flex;flex-direction:column;gap:7px">${g.items.map(loc).join('')}</div>
+         </div>`
+      : `<div style="display:flex;gap:10px;flex-wrap:wrap">${g.items.map(card).join('')}</div>`
+    return `
+      <section style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:13px 15px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+          <i style="width:8px;height:8px;border-radius:50%;background:${lv.c};display:inline-block"></i>
+          <b style="font-size:13px">${lv.t}</b>
+          <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
+        </div>
+        <p style="margin:0 0 11px;color:#78757f;font-size:11px">${lv.sub}</p>
+        ${warn}${inner}
+      </section>`
+  }).join('')
+
+  pane.innerHTML = head + trashed + body
+}
+
+function pickKeep(groupIdx, assetId) { trashKeep.set(groupIdx, assetId); renderTrash() }
+
+async function revealAsset(folder, fileName) {
+  const r = await window.api.revealInFolder({ folder, fileName })
+  if (!r?.ok) alert(r?.error || '폴더를 열 수 없습니다')
+}
+
+async function restoreOne(id) {
+  const r = await window.api.untrashAssets([id])
+  if (r?.error) { alert(r.error); return }
+  loadTrash()
+}
+
+async function restoreAll() {
+  const ids = (trashedList?.items || []).map(a => a.id)
+  if (!ids.length) return
+  if (!confirm(`${ids.length}개를 되돌립니다. 계속할까요?`)) return
+  const r = await window.api.untrashAssets(ids)
+  if (r?.error) { alert(r.error); return }
+  alert(`${r.restored}개를 되돌렸습니다.`)
+  loadTrash()
+}
+
+async function applyTrash() {
+  // 두 프로젝트에 다 살아있는 무리는 '정리하기' 에서 뺀다.
+  // 지우려면 그 무리에서 직접 골라야 한다 — 실수로 사진이 사라지면 안 된다.
+  const ids = []
+  trashData.groups.forEach((g, i) => {
+    if (g.kind === 'shared') return
+    const keep = trashKeep.get(i)
+    g.items.forEach(a => { if (a.id !== keep) ids.push(a.id) })
+  })
+  if (!ids.length) return
+  const bytes = trashData.groups.reduce((n, g, i) => {
+    if (g.kind === 'shared') return n
+    const keep = trashKeep.get(i)
+    return n + g.items.reduce((m, a) => m + (a.id === keep ? 0 : a.fileSize), 0)
+  }, 0)
+  if (!confirm(`${ids.length}개 · ${tGB(bytes)}GB 를 휴지통에 넣습니다.\n\n30일 동안은 되돌릴 수 있고, 그 뒤에 완전히 지워집니다.\n계속할까요?`)) return
+  const r = await window.api.trashAssets(ids)
+  if (r?.error) { alert(r.error); return }
+  alert(`${r.moved}개를 휴지통에 넣었습니다.\n30일 안에는 되돌릴 수 있습니다.`)
+  loadTrash()
+}

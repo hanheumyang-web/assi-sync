@@ -3,6 +3,12 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('api', {
   // Config
   getConfig: () => ipcRenderer.invoke('get-config'),
+  // 휴지통
+  findDuplicates: () => ipcRenderer.invoke('find-duplicates'),
+  trashAssets: (ids) => ipcRenderer.invoke('trash-assets', ids),
+  listTrashed: () => ipcRenderer.invoke('list-trashed'),
+  untrashAssets: (ids) => ipcRenderer.invoke('untrash-assets', ids),
+  revealInFolder: (loc) => ipcRenderer.invoke('reveal-in-folder', loc),
   saveConfig: (data) => ipcRenderer.invoke('save-config', data),
 
   // Folder
