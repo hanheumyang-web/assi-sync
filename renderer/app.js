@@ -186,6 +186,8 @@ document.getElementById('btn-retry-all').addEventListener('click', () => {
 })
 
 // ── Rescan (새로고침) + 공유 체크 ──
+document.getElementById('btn-trash')?.addEventListener('click', openTrash)
+
 document.getElementById('btn-rescan').addEventListener('click', async () => {
   const btn = document.getElementById('btn-rescan')
   btn.disabled = true
@@ -1148,7 +1150,7 @@ function hideWarn(key) {
  *   · 말투는 해요체. 소리 내어 읽어서 어색하면 다시 쓴다.
  */
 const LV = {
-  sure:   { t: '똑같은 파일',      c: '#1f9d55', sub: '' },
+  sure:   { t: '중복 파일',        c: '#1f9d55', sub: '' },
   likely: { t: '같은 영상 같아요', c: '#c08a2e', sub: '재생해서 확인해 주세요' },
   maybe:  { t: '크기만 같아요',    c: '#b0624a', sub: '내용은 다를 수 있어요' },
 }
@@ -1158,11 +1160,88 @@ const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&am
 
 let trashedList = null   // 이미 휴지통에 넣은 것들
 
+
+/* ══════════════════════════════════════════════════════════
+   휴지통 — 지운 파일이 실제로 어디 있는지 보여주는 자리.
+   ⚠️ 예전엔 중복 정리 화면 안에 묻혀 있어서, 지우고 나서
+      "그래서 어디 갔냐" 를 알 수가 없었다.
+   30일 동안 여기 있다가 서버가 영구 삭제한다.
+   ══════════════════════════════════════════════════════════ */
+async function openTrash() {
+  let box = document.getElementById('trash-modal')
+  if (!box) {
+    box = document.createElement('div')
+    box.id = 'trash-modal'
+    box.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(20,19,26,.45);' +
+      'display:flex;align-items:flex-end;justify-content:center'
+    box.addEventListener('click', e => { if (e.target === box) box.remove() })
+    document.body.appendChild(box)
+  }
+  box.innerHTML = '<div style="background:#f7f6f9;width:100%;max-height:86vh;border-radius:16px 16px 0 0;' +
+    'padding:16px;overflow:auto;font-size:12px">불러오는 중…</div>'
+  const t = await window.api.listTrashed().catch(e => ({ error: e?.message || '알 수 없는 문제' }))
+  trashedList = t
+  const inner = box.firstChild
+
+  if (t && t.error) {
+    inner.innerHTML = `<div style="color:#8a4a2c;line-height:1.6">휴지통을 불러오지 못했어요.
+      <div style="font-size:10.5px;color:#a8836f;margin-top:4px">${esc(String(t.error).slice(0, 120))}</div></div>`
+    return
+  }
+  const items = (t && t.items) || []
+  const hiddenCount = warnHidden.size
+  inner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+      <b style="font-size:14px">휴지통</b>
+      <span style="font-size:11px;color:#8b8892">${items.length}개 · ${tGB(t?.bytes || 0)} GB</span>
+      <button onclick="document.getElementById('trash-modal').remove()"
+        style="margin-left:auto;border:1px solid #dcdbe2;background:#fff;border-radius:8px;
+               padding:6px 12px;font-size:12px;cursor:pointer">닫기</button>
+    </div>
+    <p style="margin:0 0 12px;color:#78757f;font-size:11.5px;line-height:1.55">
+      30일이 지나면 완전히 지워져요. 그 전에는 언제든 되돌릴 수 있어요.<br>
+      컴퓨터의 원본은 동기화 폴더 안 <b>_Trash</b> 로 옮겨져 있어요.</p>
+    ${items.length ? `
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${items.slice(0, 200).map(a => `
+          <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #eceaf0;
+                      border-radius:8px;padding:7px 10px">
+            <b style="font-size:11.5px;flex:1;word-break:break-all">${esc(a.fileName)}</b>
+            <span style="font-size:10.5px;color:#8b8892;white-space:nowrap">${tMB(a.fileSize)} MB</span>
+            <span style="font-size:10.5px;white-space:nowrap;color:${a.daysLeft <= 3 ? '#b0624a' : '#8b8892'}">${a.daysLeft}일 남음</span>
+            <button onclick="restoreOne('${a.id}')"
+              style="border:1px solid #dcdbe2;background:#fff;border-radius:6px;padding:4px 10px;
+                     font-size:11px;cursor:pointer;white-space:nowrap">되돌리기</button>
+          </div>`).join('')}
+      </div>
+      <button onclick="restoreAll()" style="margin-top:10px;border:1px solid #dcdbe2;background:#fff;
+        border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer">전부 되돌리기</button>`
+      : '<div style="padding:26px 0;text-align:center;color:#8b8892">휴지통이 비어 있어요</div>'}
+    ${hiddenCount ? `
+      <div style="margin-top:14px;border-top:1px solid #e6e5ea;padding-top:12px">
+        <b style="font-size:12px">숨긴 제안 ${hiddenCount}개</b>
+        <p style="margin:4px 0 8px;color:#78757f;font-size:11px">'메시지 삭제하기' 로 뺀 중복 제안이에요.</p>
+        <button onclick="unhideWarns()" style="border:1px solid #dcdbe2;background:#fff;border-radius:8px;
+          padding:6px 12px;font-size:11.5px;cursor:pointer">다시 보기</button>
+      </div>` : ''}`
+}
+
+function unhideWarns() {
+  warnHidden.clear()
+  try { localStorage.setItem('trash-warn-hidden', '[]') } catch {}
+  document.getElementById('trash-modal')?.remove()
+  renderTrash()
+}
+
 async function loadTrash() {
   const pane = document.getElementById('trash-pane')
   pane.innerHTML = '<div style="padding:30px 0;text-align:center;color:#888;font-size:12px">중복을 찾는 중…</div>'
   // ⚠️ 되돌릴 길이 없으면 '휴지통' 이 아니라 즉시 삭제다. 넣은 것도 같이 보여준다.
-  trashedList = await window.api.listTrashed().catch(() => null)
+  /* ⚠️ 예전엔 .catch(() => null) 로 실패를 조용히 삼켰다.
+     서버 조회가 색인 문제로 통째로 실패하고 있었는데 화면엔 아무 말도 없어서,
+     "휴지통이 비었다" 와 "못 불러왔다" 가 구분이 안 됐다. 실제로 79개가 있었다.
+     못 불러온 건 못 불러왔다고 말해야 한다. */
+  trashedList = await window.api.listTrashed().catch(e => ({ error: e?.message || '알 수 없는 문제' }))
   const r = await window.api.findDuplicates()
   if (r?.error) {
     pane.innerHTML = `<div style="padding:30px 0;text-align:center;color:#b0624a;font-size:12px">${esc(r.error)}</div>`
@@ -1210,9 +1289,6 @@ function renderTrash() {
         <span style="font-size:15px">🗑</span>
         <b style="font-size:17px;color:${picked ? '#1f9d55' : '#8b8892'}">${picked ? '' : '최대 '}${tGB(picked ? free : maxFree)} GB</b>
         <span style="font-size:11px;color:#8b8892">비울 수 있어요</span>
-        ${picked ? '' : `<button onclick="pickAllDupes()"
-          style="background:#fff;border:1px solid #dcdbe2;border-radius:8px;padding:8px 13px;
-                 font-size:12px;cursor:pointer;white-space:nowrap">중복 모두 선택</button>`}
         <button onclick="applyTrash()" ${picked ? '' : 'disabled'}
           style="background:${picked ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
                  padding:9px 16px;font-size:12px;font-weight:600;white-space:nowrap;
@@ -1222,29 +1298,30 @@ function renderTrash() {
 
   // ── 휴지통에 넣은 것 — 30일 안에는 되돌릴 수 있다 ──
   const t = trashedList
-  const trashed = (t && !t.error && t.items?.length) ? `
-    <section style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:13px 15px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-        <span style="font-size:13px">🗑</span><b style="font-size:13px">휴지통에 있는 파일</b>
-        <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${t.items.length}개 · ${tGB(t.bytes)} GB</em>
-      </div>
-      <p style="margin:0 0 10px;color:#78757f;font-size:11px">30일이 지나면 완전히 지워져요. 그 전에는 언제든 되돌릴 수 있어요.</p>
-      <div style="display:flex;flex-direction:column;gap:5px;max-height:230px;overflow:auto">
-        ${t.items.slice(0, 40).map(a => `
-          <div style="display:flex;align-items:center;gap:9px;border:1px solid #eceaf0;border-radius:8px;padding:7px 9px">
-            <b style="font-size:11.5px;flex:1;word-break:break-all">${esc(a.fileName)}</b>
-            <span style="font-size:10.5px;color:#8b8892">${tMB(a.fileSize)} MB</span>
-            <span style="font-size:10.5px;color:${a.daysLeft <= 3 ? '#b0624a' : '#8b8892'}">${a.daysLeft}일 남음</span>
-            <button onclick="restoreOne('${a.id}')"
-              style="border:1px solid #dcdbe2;background:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">되돌리기</button>
-          </div>`).join('')}
-      </div>
-      ${t.items.length > 40 ? `<p style="margin:8px 0 0;font-size:11px;color:#8b8892">… 그리고 ${t.items.length - 40}개 더 있어요</p>` : ''}
-      <button onclick="restoreAll()" style="margin-top:9px;border:1px solid #dcdbe2;background:#fff;
-        border-radius:7px;padding:6px 13px;font-size:11.5px;cursor:pointer">전부 되돌리기</button>
+  /* 못 불러왔으면 그렇게 말한다. 빈 것과 다르다. */
+  const trashedErr = (t && t.error) ? `
+    <section style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:12px;padding:12px 14px;
+                    margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55">
+      휴지통 목록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.
+      <div style="margin-top:4px;color:#a8836f;font-size:10.5px">${esc(String(t.error).slice(0, 90))}</div>
     </section>` : ''
+  /* ⚠️ 휴지통 목록이 중복 정리 화면 안에 묻혀 있었다. 지우고 나서
+     어디로 갔는지 찾을 수가 없었다. 별도 창으로 뺀다 (아래 openTrash).
+     여기서는 '몇 개 들어 있다' 만 알리고 들어가는 자리를 둔다. */
+  const inBin = (t && !t.error && t.items?.length) ? t.items.length : 0
+  const trashed = inBin ? `
+    <button onclick="openTrash()"
+      style="width:100%;text-align:left;background:#fff;border:1px solid #e3e2e8;border-radius:12px;
+             padding:12px 15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:9px">
+      <span style="font-size:14px">🗑</span>
+      <b style="font-size:12.5px">휴지통에 ${inBin}개</b>
+      <span style="font-size:11px;color:#8b8892">${tGB(t.bytes)} GB · 30일 안에는 되돌릴 수 있어요</span>
+      <span style="margin-left:auto;font-size:11.5px;color:#6c6976">열기 →</span>
+    </button>` : ''
 
+  /* 숨긴 제안은 목록에서 아예 뺀다 — 메시지만 감추는 게 아니다. */
   const body = d.groups.map((g, i) => {
+    if (g.kind === 'shared' && warnHidden.has(groupKey(g))) return ''
     const lv = LV[g.level] || LV.maybe
     const del = trashDel
     const allGone = g.items.every(a => del.has(a.id))
@@ -1327,6 +1404,9 @@ function renderTrash() {
     /* ⚠️ 같은 사진을 두 프로젝트에 '일부러' 넣어두는 경우가 있다.
        그런 사람에게는 이 경고가 매번 뜨는 잔소리가 된다. 접을 수 있게 한다.
        접은 것은 앱을 꺼도 기억한다 — 매번 다시 접게 하면 안 접느니만 못하다. */
+    /* ⚠️ '메시지 삭제하기' 는 메시지만 숨기는 게 아니라
+       이 무리를 제안에서 통째로 빼는 것이다 (일부러 두 곳에 넣은 사람에게는
+       매번 뜨는 잔소리다). 실수로 눌렀으면 휴지통의 '숨긴 제안' 에서 되살린다. */
     const warn = (g.kind === 'shared' && !warnHidden.has(groupKey(g)))
       ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;padding:9px 11px;
                      margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55;
@@ -1383,7 +1463,7 @@ function renderTrash() {
         style="background:#fff;color:#17161c;border:0;border-radius:8px;padding:8px 15px;
                font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">휴지통으로 옮기기</button>
     </div>` : ''
-  pane.innerHTML = head + trashed + body + barHtml
+  pane.innerHTML = head + trashedErr + trashed + body + barHtml
 }
 
 /* 탭 이름 옆에 비울 수 있는 용량을 적는다 — 열어보기 전에도 값어치가 보이게 */

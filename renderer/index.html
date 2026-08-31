@@ -447,7 +447,10 @@
         <div class="sync-info" id="sync-info"></div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn-stop" id="btn-rescan" title="새로고침 — 누락된 파일 재확인">🔄</button>
+        <!-- ⚠️ 지우면 어디로 가는지 보이는 자리가 있어야 한다.
+               예전엔 중복 정리 탭 안에 묻혀 있어 찾을 수가 없었다. -->
+          <button class="btn-stop" id="btn-trash" title="휴지통 — 지운 파일은 30일 동안 여기 있어요">🗑</button>
+          <button class="btn-stop" id="btn-rescan" title="새로고침 — 누락된 파일 재확인">🔄</button>
         <button class="btn-stop" id="btn-change-folder" title="폴더 변경">📂</button>
         <button class="btn-stop" id="btn-stop">중지</button>
       </div>
@@ -455,7 +458,7 @@
     <div style="display:flex;gap:4px;padding:8px 16px 0 16px">
       <button id="tab-activity" class="tab-btn active" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:none;background:#111;color:#fff;border-radius:8px;cursor:pointer">활동</button>
       <button id="tab-explorer" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">탐색기</button>
-      <button id="tab-trash" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">휴지통</button>
+      <button id="tab-trash" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">중복 파일</button>
     </div>
     <div id="explorer-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
     <!-- 휴지통 — 같은 파일이 여러 벌 올라간 것을 찾아 정리한다.

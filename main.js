@@ -268,7 +268,14 @@ ipcMain.handle('find-duplicates', async () => {
 
 ipcMain.handle('trash-assets', async (_, assetIds) => {
   if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
-  try { return await syncEngine.api.trashAssets(assetIds) }
+  try {
+    const r = await syncEngine.api.trashAssets(assetIds)
+    /* ⚠️ 클라우드만 지우면 컴퓨터의 원본이 그대로 남아 디스크가 안 준다.
+       로컬 파일도 _Trash 로 옮긴다. 되돌릴 수 있게 원래 자리를 적어둔다. */
+    let local = { moved: 0 }
+    try { local = syncEngine.trashAssetFiles(assetIds) } catch (e) { console.warn('[trash] 로컬 이동 실패:', e.message) }
+    return { ...r, localMoved: local.moved }
+  }
   catch (e) { return { error: e.message } }
 })
 
@@ -280,7 +287,12 @@ ipcMain.handle('list-trashed', async () => {
 
 ipcMain.handle('untrash-assets', async (_, assetIds) => {
   if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
-  try { return await syncEngine.api.untrashAssets(assetIds) }
+  try {
+    const r = await syncEngine.api.untrashAssets(assetIds)
+    let local = { restored: 0 }
+    try { local = syncEngine.restoreAssetFiles(assetIds) } catch (e) { console.warn('[trash] 로컬 복구 실패:', e.message) }
+    return { ...r, localRestored: local.restored }
+  }
   catch (e) { return { error: e.message } }
 })
 
