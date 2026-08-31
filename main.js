@@ -42,6 +42,16 @@ function loadConfig() {
 
 function saveConfig(data) {
   const prev = loadConfig()
+  /* ⚠️ 계정이 바뀌면 감시 폴더를 물려주면 안 된다.
+     로그아웃할 때는 지우고 있었지만, 로그아웃 없이 다른 계정으로 로그인하면
+     이전 계정의 폴더가 그대로 남아 있었다. 그 상태로 동기화를 시작하면
+     남의 파일이 새 계정으로 올라간다.
+     로그인 통로가 셋(애플·구글·이메일)이라 여기 한 곳에서 막는다. */
+  if (data && data.uid && prev.uid && data.uid !== prev.uid) {
+    data = { ...data, watchDir: '' }
+    try { if (fs.existsSync(STATE_PATH)) fs.unlinkSync(STATE_PATH) } catch {}
+    console.log('[Config] 계정이 바뀌어 감시 폴더와 동기화 기록을 비웠다')
+  }
   fs.writeFileSync(CONFIG_PATH, JSON.stringify({ ...prev, ...data }, null, 2))
 }
 
