@@ -10,6 +10,31 @@ let tray = null
 const STATE_PATH = path.join(app.getPath('userData'), 'sync-state.json')
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json')
 
+/* ── 옛 이름(assi-sync) 폴더에서 설정 옮겨오기 — 2026-08-31 ──
+   보이는 이름을 '포폴 싱크' 로 바꾸면서 설정 저장 폴더도 바뀐다.
+   ⚠️ 그냥 두면 로그인·동기화 폴더는 물론 sync-state.json 까지 잃는다.
+      그러면 앱이 폴더 전체를 처음 보는 것처럼 다시 훑고 다시 올린다.
+      한 번만, 새 폴더가 비어 있을 때만 옮긴다. 원본은 지우지 않는다. */
+;(function migrateFromOldName() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) return          // 이미 새 폴더에 있다
+    const oldDir = path.join(app.getPath('appData'), 'assi-sync')
+    if (!fs.existsSync(oldDir)) return
+    const newDir = app.getPath('userData')
+    fs.mkdirSync(newDir, { recursive: true })
+    let moved = 0
+    for (const f of ['config.json', 'sync-state.json', 'classification.json', 'device.json']) {
+      const from = path.join(oldDir, f)
+      if (fs.existsSync(from) && !fs.existsSync(path.join(newDir, f))) {
+        fs.copyFileSync(from, path.join(newDir, f)); moved++
+      }
+    }
+    if (moved) console.log(`[Migrate] 옛 폴더에서 설정 ${moved}개를 옮겨왔다: ${oldDir}`)
+  } catch (e) {
+    console.warn('[Migrate] 설정 옮기기 실패:', e.message)
+  }
+})()
+
 function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8')) }
   catch { return {} }
@@ -55,11 +80,11 @@ function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', iconName))
   if (isMac) icon.setTemplateImage(true)
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon)
-  tray.setToolTip('ASSI Sync')
+  tray.setToolTip('포폴 싱크')
   tray.on('click', () => mainWindow?.show())
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'ASSI Sync 열기', click: () => mainWindow?.show() },
+    { label: '포폴 싱크 열기', click: () => mainWindow?.show() },
     { type: 'separator' },
     {
       label: '동기화 상태',

@@ -101,6 +101,7 @@ document.getElementById('btn-start').addEventListener('click', async () => {
   fileStatuses.clear()
   renderFileList()
   await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })
+    setTimeout(peekTrashOnce, 4000)
 })
 
 function updateSyncUserLabel() {
@@ -127,6 +128,7 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
     fileStatuses.clear()
     renderFileList()
     await window.api.startSync({ uid: currentUser.uid, watchDir: folder })
+    setTimeout(peekTrashOnce, 4000)
   }
 })
 
@@ -1054,6 +1056,7 @@ document.getElementById('btn-settings').addEventListener('click', openSettings)
       fileStatuses.clear()
       renderFileList()
       await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })
+    setTimeout(peekTrashOnce, 4000)
     } else {
       showSetup()
     }
@@ -1099,6 +1102,7 @@ async function loadTrash() {
   trashData = r
   trashKeep.clear()
   r.groups.forEach((g, i) => trashKeep.set(i, g.items[0].id))
+  markTrashTab()
   renderTrash()
 }
 
@@ -1106,7 +1110,7 @@ function renderTrash() {
   const pane = document.getElementById('trash-pane')
   const d = trashData
   if (!d || !d.groups.length) {
-    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">정리할 중복이 없습니다 👍</div>'
+    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">중복 파일이 없습니다</div>'
     return
   }
   // 고객이 고른 대로 다시 계산 — 남길 것 빼고 나머지가 비는 값
@@ -1219,6 +1223,25 @@ function renderTrash() {
   }).join('')
 
   pane.innerHTML = head + trashed + body
+}
+
+/* 탭 이름 옆에 비울 수 있는 용량을 적는다 — 열어보기 전에도 값어치가 보이게 */
+function markTrashTab() {
+  const btn = document.getElementById('tab-trash')
+  if (!btn || !trashData) return
+  const g = tGB(trashData.freeableBytes || 0)
+  btn.textContent = Number(g) > 0.01 ? `휴지통 ${g}GB` : '휴지통'
+}
+
+/* 앱을 켜두면 한 번은 조용히 확인해 둔다. 탭을 안 눌러도 용량이 보이게. */
+let trashPeeked = false
+async function peekTrashOnce() {
+  if (trashPeeked) return
+  trashPeeked = true
+  try {
+    const r = await window.api.findDuplicates()
+    if (r && !r.error) { trashData = r; markTrashTab() }
+  } catch {}
 }
 
 function pickKeep(groupIdx, assetId) { trashKeep.set(groupIdx, assetId); renderTrash() }
