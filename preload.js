@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld('api', {
   // Auth
   googleLogin: () => ipcRenderer.invoke('google-login'),
   appleLogin: () => ipcRenderer.invoke('apple-login'),
+  emailLogin: (email, password) => ipcRenderer.invoke('email-login', { email, password }),
   clearSyncState: () => ipcRenderer.invoke('clear-sync-state'),
 
   // Main process 로그 forward — DevTools Console 에 [main] 으로 표시

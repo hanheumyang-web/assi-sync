@@ -312,6 +312,55 @@ ipcMain.handle('install-update', async () => {
 })
 ipcMain.handle('get-app-version', () => app.getVersion())
 
+
+/* ──────────────────────────────────────────────────────────────
+   이메일 로그인 — 2026-08-31
+
+   앱에는 애플·구글 로그인만 있었고, 그 아래 'UID 직접 입력' 칸이 열려 있었다.
+   UID 는 우리끼리 쓰는 말이고, 고객이 자기 UID 를 알 방법도 없다.
+   웹에는 이메일 로그인이 있는데 앱에만 없어서 생긴 구멍이었다.
+
+   ⚠️ 비밀번호는 여기서 Firebase 로 바로 보내고 **저장하지 않는다.**
+      config.json 에 남는 건 토큰뿐이다 (다른 로그인 방식과 같다).
+   ────────────────────────────────────────────────────────────── */
+const FIREBASE_API_KEY = 'AIzaSyD-JUPcZ5iIIBEtoCE7YPye0PRP4WTPGgg'
+
+ipcMain.handle('email-login', async (_e, { email, password }) => {
+  try {
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true }) })
+    const data = await res.json()
+    if (data.error) {
+      /* 서버가 주는 말(EMAIL_NOT_FOUND 등)은 고객이 읽을 말이 아니다.
+         무엇을 하면 되는지로 바꿔서 돌려준다. */
+      const code = data.error.message || ''
+      const say =
+        /EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD/.test(code)
+          ? '이메일이나 비밀번호가 맞지 않아요. 다시 확인해 주세요.'
+        : /TOO_MANY_ATTEMPTS/.test(code)
+          ? '잠시 후에 다시 시도해 주세요.'
+        : /USER_DISABLED/.test(code)
+          ? '사용할 수 없는 계정이에요. 고객센터로 문의해 주세요.'
+          : '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.'
+      return { error: say }
+    }
+    const userData = {
+      uid: data.localId,
+      name: data.displayName || '',
+      email: data.email || email,
+      photo: '',
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+    }
+    saveConfig(userData)
+    return userData
+  } catch (e) {
+    return { error: '연결하지 못했어요. 인터넷을 확인해 주세요.' }
+  }
+})
+
 // ──── OAuth via localhost (Google + Apple) ────
 // Generic Firebase Auth popup flow. provider 인자로 'google' / 'apple' 분기.
 function buildAuthHandler(providerKind) {

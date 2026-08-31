@@ -49,30 +49,51 @@ document.getElementById('btn-google-login').addEventListener('click', () => hand
 document.getElementById('btn-apple-login').addEventListener('click', () => handleOAuthLogin('apple'))
 
 // ── UID Login (fallback) ──
-document.getElementById('btn-login').addEventListener('click', async () => {
+/* ⚠️ 예전엔 여기서 UID 를 그대로 받아 저장했다. 비밀번호 확인 없이
+   아이디만으로 들어가는 셈이라 위험하기도 했고, 애초에 고객이 자기 UID 를
+   알 방법이 없었다. 웹과 같은 이메일 로그인으로 바꾼다. */
+function showEmailError(msg) {
+  const el = document.getElementById('email-error')
+  el.textContent = msg
+  el.style.display = msg ? 'block' : 'none'
+}
+
+async function doEmailLogin() {
+  const btn = document.getElementById('btn-email-login')
+  const email = document.getElementById('email-input').value.trim()
+  const password = document.getElementById('password-input').value
+  showEmailError('')
+  if (!email) { document.getElementById('email-input').focus(); return }
+  if (!password) { document.getElementById('password-input').focus(); return }
+
+  const was = btn.textContent
+  btn.textContent = '로그인 중...'
+  btn.disabled = true
   try {
+    const r = await window.api.emailLogin(email, password)
+    if (!r || r.error) { showEmailError((r && r.error) || '로그인하지 못했어요.'); return }
+    currentUser = { uid: r.uid, name: r.name || '', email: r.email || email }
     const config = await window.api.getConfig()
-    if (config.uid) {
-      currentUser = { uid: config.uid, name: config.name || '', email: config.email || '' }
-      selectedFolder = config.watchDir || null
-      showSetup()
-      return
-    }
-
-    const uid = document.getElementById('uid-input').value.trim()
-    if (!uid) { document.getElementById('uid-input').focus(); return }
-
-    currentUser = { uid, name: '', email: '' }
-    await window.api.saveConfig({ uid })
+    selectedFolder = config.watchDir || null
+    /* 비밀번호는 화면에도 남기지 않는다 */
+    document.getElementById('password-input').value = ''
     showSetup()
   } catch (err) {
-    alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + err.message)
+    showEmailError('로그인하지 못했어요. 잠시 후 다시 시도해 주세요.')
+  } finally {
+    btn.textContent = was
+    btn.disabled = false
   }
+}
+
+document.getElementById('btn-email-login').addEventListener('click', doEmailLogin)
+document.getElementById('password-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doEmailLogin()
 })
 
 function showSetup() {
-  document.getElementById('welcome-name').textContent = currentUser.name || '환영합니다'
-  document.getElementById('welcome-email').textContent = currentUser.email || `UID: ${currentUser.uid}`
+  document.getElementById('welcome-name').textContent = currentUser.name || '반가워요'
+  document.getElementById('welcome-email').textContent = currentUser.email || ''
   if (selectedFolder) updateFolderDisplay(selectedFolder)
   showScreen('setup-screen')
 }
@@ -149,7 +170,8 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   await window.api.saveConfig({ uid: '', watchDir: '', name: '', email: '', idToken: '', refreshToken: '' })
   currentUser = null
   selectedFolder = null
-  document.getElementById('uid-input').value = ''
+  document.getElementById('email-input').value = ''
+  document.getElementById('password-input').value = ''
   showScreen('login-screen')
 })
 

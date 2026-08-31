@@ -354,12 +354,17 @@
       <span style="font-size:10px;color:#bbb;font-weight:600">또는</span>
       <div style="flex:1;height:1px;background:#ddd"></div>
     </div>
-    <div id="uid-form" style="width:100%;display:flex;flex-direction:column;gap:10px">
-      <input id="uid-input" type="text" placeholder="연결 코드 붙여넣기"
-        style="width:100%;padding:14px 18px;border:1px solid #ddd;border-radius:16px;font-size:13px;outline:none;background:white;text-align:center;font-family:monospace">
-      <button class="btn-google" id="btn-login" style="width:100%;justify-content:center;background:#F4F3EE;border-color:#ddd;font-size:13px;color:#666">
-        코드로 연결하기
+    <!-- 이메일 로그인. 예전엔 여기에 'UID 직접 입력' 칸이 있었는데
+         UID 는 우리끼리 쓰는 말이고 고객이 자기 UID 를 알 방법도 없었다. -->
+    <div id="email-form" style="width:100%;display:flex;flex-direction:column;gap:8px">
+      <input id="email-input" type="email" autocomplete="username" placeholder="이메일"
+        style="width:100%;padding:13px 18px;border:1px solid #ddd;border-radius:16px;font-size:13px;outline:none;background:white">
+      <input id="password-input" type="password" autocomplete="current-password" placeholder="비밀번호"
+        style="width:100%;padding:13px 18px;border:1px solid #ddd;border-radius:16px;font-size:13px;outline:none;background:white">
+      <button class="btn-google" id="btn-email-login" style="width:100%;justify-content:center;background:#F4F3EE;border-color:#ddd;font-size:13px;color:#444">
+        이메일로 로그인
       </button>
+      <div id="email-error" style="display:none;font-size:11.5px;color:#b0624a;text-align:center;padding:2px 4px;line-height:1.5"></div>
     </div>
   </div>
 
