@@ -579,8 +579,10 @@ function renderExplorerGrid(nodes, root) {
       </aside>
       <div class="exp-main">
         <div class="exp-path">
-          ${expCat ? `<button class="exp-back" data-go="">← 전체</button><b>${expCat}</b>`
-                   : '<b>전체 프로젝트</b>'}
+          <button class="exp-back" id="exp-backbtn" ${expBack.length ? '' : 'disabled'} title="뒤로">←</button>
+          <button class="exp-crumb" data-go="">전체 프로젝트</button>
+          ${expCat ? `<span class="exp-sep">›</span><b>${expCat}</b>` : ''}
+          <span id="exp-selinfo" class="exp-selinfo"></span>
         </div>
         <div class="exp-grid">
           ${shown.length ? shown.map(n => folderCard(n, root, !!cat)).join('')
@@ -590,13 +592,143 @@ function renderExplorerGrid(nodes, root) {
     </div>`
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   파인더처럼 — 2026-09-01
+   "데스크톱의 폴더랑 똑같은 경험" 이 목표다. 맥 파인더의 약속 다섯 가지:
+     ① 한 번 누르면 고르고, 두 번 누르면 연다 (전엔 한 번에 열려서 실수가 잦았다)
+     ② 고른 것이 파랗게 보인다 · ⌘/Shift 로 여러 개
+     ③ 우클릭에 할 수 있는 일이 나온다
+     ④ 방향키로 옮기고 Enter 로 열고 ⌘↑ 로 위로
+     ⑤ 어디 있는지(경로)와 되돌아갈 길(뒤로)이 늘 보인다
+   ⚠️ 끌어놓기·이름변경은 기존 처리기가 .tree-node 에 붙는다. 건드리지 않는다.
+   ══════════════════════════════════════════════════════════ */
+let expSel = new Set()     // 고른 것들의 경로
+let expLast = null         // Shift 범위의 기준
+let expBack = []           // 뒤로 갈 길
+
+function expCards() { return [...document.querySelectorAll('.exp-card')] }
+
+function expPaint() {
+  expCards().forEach(c => {
+    const on = expSel.has(c.dataset.path)
+    c.classList.toggle('on', on)
+  })
+  const bar = document.getElementById('exp-selinfo')
+  if (bar) bar.textContent = expSel.size ? `${expSel.size}개 선택` : ''
+}
+
+function expPick(card, e) {
+  const cards = expCards()
+  const path = card.dataset.path
+  if (e && (e.metaKey || e.ctrlKey)) {
+    expSel.has(path) ? expSel.delete(path) : expSel.add(path)
+  } else if (e && e.shiftKey && expLast) {
+    const a = cards.findIndex(c => c.dataset.path === expLast)
+    const b = cards.indexOf(card)
+    if (a >= 0 && b >= 0) for (let i = Math.min(a, b); i <= Math.max(a, b); i++) expSel.add(cards[i].dataset.path)
+  } else {
+    expSel = new Set([path])
+  }
+  expLast = path
+  expPaint()
+}
+
+/** 여는 동작 — 분류면 안으로, 프로젝트면 파인더에서 */
+function expOpen(card) {
+  if (card.dataset.depth === '0') { expBack.push(expCat); expCat = card.dataset.cat; expSel.clear(); refreshExplorer() }
+  else window.api.openInExplorer(card.dataset.path)
+}
+
+function expMenu(card, x, y) {
+  document.getElementById('exp-menu')?.remove()
+  const isProject = card.dataset.depth === '1'
+  const m = document.createElement('div')
+  m.id = 'exp-menu'
+  m.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:300;background:#fff;border:1px solid #dcdbe2;
+    border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:4px;min-width:158px;font-size:12px`
+  const item = (label, fn, danger) => {
+    const b = document.createElement('button')
+    b.textContent = label
+    b.style.cssText = `display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;
+      padding:7px 10px;font-size:12px;cursor:pointer;color:${danger ? '#c0392b' : '#333'}`
+    b.onmouseenter = () => b.style.background = '#f1f0f5'
+    b.onmouseleave = () => b.style.background = 'none'
+    b.onclick = () => { m.remove(); fn() }
+    m.appendChild(b)
+  }
+  item(isProject ? '열기' : '안으로 들어가기', () => expOpen(card))
+  item('Finder 에서 보기', () => window.api.openInExplorer(card.dataset.path))
+  if (isProject) {
+    item('이름 바꾸기', () => startRenameProject(card, card.dataset.projectKey))
+    item('이 폴더 지우기', () => deleteSyncedFolder(card.dataset.projectKey), true)
+  }
+  document.body.appendChild(m)
+  const r = m.getBoundingClientRect()
+  if (r.bottom > innerHeight) m.style.top = `${y - r.height}px`
+  if (r.right > innerWidth) m.style.left = `${x - r.width}px`
+  const close = ev => { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('mousedown', close) } }
+  setTimeout(() => document.addEventListener('mousedown', close), 0)
+}
+
+function expKeys(e) {
+  const pane = document.getElementById('explorer-pane')
+  if (!pane || pane.style.display === 'none') return
+  if (document.querySelector('.rename-input')) return   // 이름 고치는 중에는 비켜준다
+  const cards = expCards()
+  if (!cards.length) return
+  const i = cards.findIndex(c => c.dataset.path === expLast)
+  const cols = Math.max(1, Math.round(pane.querySelector('.exp-grid')?.clientWidth / 92) || 1)
+  let next = null
+  if (e.key === 'ArrowRight') next = Math.min(cards.length - 1, i + 1)
+  else if (e.key === 'ArrowLeft') next = Math.max(0, i - 1)
+  else if (e.key === 'ArrowDown') next = Math.min(cards.length - 1, i + cols)
+  else if (e.key === 'ArrowUp') next = Math.max(0, i - cols)
+  else if (e.key === 'Enter') { const c = cards[i]; if (c) { e.preventDefault(); expOpen(c) } return }
+  else if (e.key === 'Escape') { expSel.clear(); expPaint(); return }
+  else if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') { e.preventDefault(); expUp(); return }
+  else return
+  e.preventDefault()
+  const c = cards[Math.max(0, next)]
+  if (c) { expPick(c, e.shiftKey ? e : null); c.scrollIntoView({ block: 'nearest' }) }
+}
+
+function expUp() {
+  if (!expCat) return
+  expBack.push(expCat)
+  expCat = null
+  expSel.clear()
+  refreshExplorer()
+}
+
 function attachGridNav() {
   document.querySelectorAll('[data-go]').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); expCat = b.dataset.go || null; refreshExplorer() }))
-  /* 분류 카드를 누르면 그 안으로 들어간다 (프로젝트 카드는 기존 처리기가 맡는다) */
-  document.querySelectorAll('.exp-card[data-depth="0"]').forEach(c =>
-    c.addEventListener('click', () => { expCat = c.dataset.cat; refreshExplorer() }))
+    b.addEventListener('click', e => {
+      e.stopPropagation(); expBack.push(expCat)
+      expCat = b.dataset.go || null; expSel.clear(); refreshExplorer()
+    }))
+  document.getElementById('exp-backbtn')?.addEventListener('click', () => {
+    expCat = expBack.pop() ?? null; expSel.clear(); refreshExplorer()
+  })
+  expCards().forEach(c => {
+    c.addEventListener('click', e => {
+      if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+      expPick(c, e)
+    })
+    c.addEventListener('dblclick', e => {
+      if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+      e.stopPropagation(); expOpen(c)
+    })
+    c.addEventListener('contextmenu', e => { e.preventDefault(); expPick(c, null); expMenu(c, e.clientX, e.clientY) })
+  })
+  /* 빈 곳을 누르면 선택 해제 — 파인더와 같다 */
+  document.querySelector('.exp-main')?.addEventListener('mousedown', e => {
+    if (!e.target.closest('.exp-card')) { expSel.clear(); expPaint() }
+  })
+  expPaint()
 }
+
+document.addEventListener('keydown', expKeys)
 
 function badgeHtml(b) {
   const map = {
@@ -700,11 +832,14 @@ function attachExplorerHandlers(root) {
       }
     }
 
-    // 더블클릭 → 파일 탐색기에서 열기
-    el.addEventListener('dblclick', (e) => {
-      if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
-      window.api.openInExplorer(fullPath)
-    })
+    /* ⚠️ 격자 카드에는 attachGridNav 가 더블클릭을 따로 붙인다.
+       여기서 또 붙이면 한 번에 두 번 열린다. 격자가 아닐 때만 붙인다. */
+    if (!el.classList.contains('exp-card')) {
+      el.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
+        window.api.openInExplorer(fullPath)
+      })
+    }
   })
 }
 

@@ -60,6 +60,18 @@
       font-size: 11px; color: #333; text-align: center; width: 100%;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+
+    /* 파인더처럼 — 고른 것, 경로, 뒤로 */
+    .exp-card.on { background: #DCEBFF; border-color: #9CC5F5; }
+    .exp-card.on .exp-name { color: #0B4A9B; font-weight: 700; }
+    .exp-back {
+      background: none; border: 1px solid #e2e1e8; border-radius: 7px;
+      width: 24px; height: 24px; cursor: pointer; color: #555; font-size: 13px; line-height: 1;
+    }
+    .exp-back:disabled { opacity: .35; cursor: default; }
+    .exp-crumb { background: none; border: 0; color: #828DF8; font-size: 12px; cursor: pointer; padding: 0; }
+    .exp-sep { color: #bbb; }
+    .exp-selinfo { margin-left: auto; font-size: 11px; color: #8b8892; }
     /* ── Screens ── */
     .screen { display: none; height: calc(100vh - 36px); flex-direction: column; }
     .screen.active { display: flex; }
