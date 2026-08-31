@@ -46,13 +46,23 @@ function saveConfig(data) {
 }
 
 function createWindow() {
+  /* 창틀 — 2026-08-31
+     ⚠️ 예전에는 맥에서도 창틀을 끄고(frame:false) 동그라미 세 개를 HTML 로
+        직접 그렸다. 색은 진짜 맥과 같은데 자리가 오른쪽이고 순서도 반대여서
+        "맥 창인 줄 알고 봤는데 계속 어긋나는" 느낌이 났다.
+        맥에서는 시스템이 그린 진짜 버튼을 왼쪽 위에 쓴다. */
+  const isMac = process.platform === 'darwin'
   mainWindow = new BrowserWindow({
-    width: 420,
-    height: 640,
-    minWidth: 360,
-    minHeight: 480,
+    /* 420×640 은 휴대폰 비율이라 맥 앱치고 너무 좁았다.
+       휴지통 카드가 잘린 것도 이 폭 때문이었다. */
+    width: 560,
+    height: 720,
+    minWidth: 440,
+    minHeight: 560,
     resizable: true,
-    frame: false,
+    ...(isMac
+      ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 14 } }
+      : { frame: false }),
     transparent: false,
     backgroundColor: '#F4F3EE',
     icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),

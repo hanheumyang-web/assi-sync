@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
+  /* 맥이면 시스템 버튼을 쓰므로 화면이 가짜 버튼을 감춰야 한다 */
+  platform: process.platform,
   // Config
   getConfig: () => ipcRenderer.invoke('get-config'),
   // 휴지통

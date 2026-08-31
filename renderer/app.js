@@ -132,6 +132,10 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
   }
 })
 
+/* 어느 운영체제인지 화면에 표시해 둔다 — 맥이면 가짜 창 버튼을 감춘다.
+   맥에서는 시스템이 진짜 창 버튼을 왼쪽 위에 그린다. */
+document.body.dataset.os = (window.api && window.api.platform) || 'unknown'
+
 // ── Open Web ──
 document.getElementById('btn-open-web').addEventListener('click', () => {
   window.api.openExternal('https://pofol.co')

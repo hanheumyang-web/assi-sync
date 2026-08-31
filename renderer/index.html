@@ -15,6 +15,10 @@
       height: 36px; display: flex; align-items: center; justify-content: space-between;
       padding: 0 12px; background: #F4F3EE;
     }
+    /* 맥 — 시스템이 왼쪽 위에 진짜 버튼을 그린다.
+       가짜 버튼은 감추고, 진짜 버튼이 앉을 자리를 왼쪽에 비워 준다. */
+    body[data-os="darwin"] .titlebar { height: 40px; padding-left: 82px; }
+    body[data-os="darwin"] .titlebar-btns { display: none; }
     .titlebar-title { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #828DF8; }
     .titlebar-btns { -webkit-app-region: no-drag; display: flex; gap: 6px; }
     .titlebar-btns button {
