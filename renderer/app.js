@@ -500,6 +500,8 @@ let dragNode = null
 const TABS = ['activity', 'explorer', 'trash']
 TABS.forEach(t => document.getElementById('tab-' + t).addEventListener('click', () => switchTab(t)))
 
+/* 기본 화면은 탐색기다 — 사람이 제일 먼저 궁금해하는 건
+   '내 폴더가 어떻게 잡혔나' 이지 '지금 뭐가 올라가는 중인가' 가 아니다. */
 function switchTab(tab) {
   TABS.forEach(t => {
     const on = t === tab
@@ -533,8 +535,67 @@ async function refreshExplorer() {
       <span class="thumb-size-label">${currentSize}px</span>
     </div>
   `
-  pane.innerHTML = toolbarHtml + renderTree(data.tree, data.root)
+  /* ⚠️ 끌어놓기·이름변경 처리기가 .tree-node 와 data-* 에 붙는다.
+     모양만 바꾸고 그 둘은 그대로 둔다. 안 그러면 기능이 통째로 죽는다. */
+  pane.innerHTML = toolbarHtml + renderExplorerGrid(data.tree, data.root)
   attachExplorerHandlers(data.root)
+  attachGridNav()
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   탐색기 — 웹의 프로젝트 화면과 같은 방식으로 (2026-09-01)
+   왼쪽에 분류 목록, 오른쪽에 폴더 아이콘 격자.
+   ⚠️ 처리기가 .tree-node · data-path · data-project-key 에 붙어 있다.
+      모양만 바꾸고 그 셋은 반드시 그대로 둔다.
+   ══════════════════════════════════════════════════════════ */
+let expCat = null   // 지금 열어본 분류 (null 이면 분류 목록)
+
+function folderCard(n, root, big) {
+  const isProject = n.depth === 1
+  const key = isProject ? getProjectKey(n.path, root) : ''
+  const cnt = n.fileCount || (n.children || []).length || 0
+  return `<div class="tree-node exp-card" data-path="${n.path.replace(/"/g, '&quot;')}"
+       data-depth="${n.depth}" data-project-key="${key}" draggable="${n.depth !== 0}"
+       data-cat="${n.depth === 0 ? n.name.replace(/"/g, '&quot;') : ''}">
+    <div class="exp-ico">${big ? '📁' : '📂'}<b>${cnt}</b></div>
+    <div class="exp-name">${n.name}</div>
+    ${badgeHtml(n.badge)}
+    ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
+  </div>`
+}
+
+function renderExplorerGrid(nodes, root) {
+  if (!nodes.length) return '<div style="padding:20px;color:#999;font-size:11px">폴더가 없어요</div>'
+  const cat = expCat ? nodes.find(n => n.name === expCat) : null
+  const shown = cat ? (cat.children || []) : nodes
+  const total = nodes.reduce((s, n) => s + (n.children || []).length, 0)
+  return `
+    <div class="exp-wrap">
+      <aside class="exp-side">
+        <button class="exp-side-item ${expCat ? '' : 'on'}" data-go="">전체 프로젝트<em>${total}</em></button>
+        ${nodes.map(n => `<button class="exp-side-item ${expCat === n.name ? 'on' : ''}"
+          data-go="${n.name.replace(/"/g, '&quot;')}">${n.name}<em>${(n.children || []).length}</em></button>`).join('')}
+      </aside>
+      <div class="exp-main">
+        <div class="exp-path">
+          ${expCat ? `<button class="exp-back" data-go="">← 전체</button><b>${expCat}</b>`
+                   : '<b>전체 프로젝트</b>'}
+        </div>
+        <div class="exp-grid">
+          ${shown.length ? shown.map(n => folderCard(n, root, !!cat)).join('')
+                         : '<div style="color:#bbb;font-size:11px;padding:14px">비어 있어요</div>'}
+        </div>
+      </div>
+    </div>`
+}
+
+function attachGridNav() {
+  document.querySelectorAll('[data-go]').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); expCat = b.dataset.go || null; refreshExplorer() }))
+  /* 분류 카드를 누르면 그 안으로 들어간다 (프로젝트 카드는 기존 처리기가 맡는다) */
+  document.querySelectorAll('.exp-card[data-depth="0"]').forEach(c =>
+    c.addEventListener('click', () => { expCat = c.dataset.cat; refreshExplorer() }))
 }
 
 function badgeHtml(b) {
@@ -1206,6 +1267,13 @@ async function openTrash() {
         ${items.slice(0, 200).map(a => `
           <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #eceaf0;
                       border-radius:8px;padding:7px 10px">
+            <!-- ⚠️ 이름만 있으면 어떤 사진인지 알 수 없어 되돌릴지 판단이 안 된다.
+                 서버가 thumb 를 이미 주고 있었는데 안 쓰고 있었다. -->
+            <span style="flex:0 0 auto;width:40px;height:30px;border-radius:5px;overflow:hidden;
+                         background:#eceaf0;display:grid;place-items:center">
+              ${a.thumb ? `<img src="${esc(a.thumb)}" style="width:100%;height:100%;object-fit:cover">`
+                        : `<span style="font-size:13px">${a.isVideo ? '🎬' : '🖼'}</span>`}
+            </span>
             <b style="font-size:11.5px;flex:1;word-break:break-all">${esc(a.fileName)}</b>
             <span style="font-size:10.5px;color:#8b8892;white-space:nowrap">${tMB(a.fileSize)} MB</span>
             <span style="font-size:10.5px;white-space:nowrap;color:${a.daysLeft <= 3 ? '#b0624a' : '#8b8892'}">${a.daysLeft}일 남음</span>
@@ -1571,3 +1639,9 @@ async function applyTrash() {
   }\n30일 안에는 되돌릴 수 있어요.`)
   loadTrash()
 }
+
+/* 기본 화면은 탐색기다 — 사람이 제일 먼저 궁금해하는 건
+   '내 폴더가 어떻게 잡혔나' 이지 '지금 뭐가 올라가는 중인가' 가 아니다.
+   ⚠️ 이 줄은 반드시 파일 맨 끝이어야 한다. 위에 두면 아직 만들어지지 않은
+      변수(explorerRoot 등)를 건드려 앱이 시작하자마자 터진다 — 실제로 그랬다. */
+switchTab('explorer')

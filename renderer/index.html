@@ -28,6 +28,38 @@
     .btn-maximize { background: #28C840; }
     .btn-minimize { background: #FFBD2E; }
 
+
+    /* ── 탐색기 — 웹 프로젝트 화면과 같은 방식 (2026-09-01) ── */
+    .exp-wrap { display: flex; gap: 12px; align-items: flex-start; }
+    .exp-side { flex: 0 0 138px; display: flex; flex-direction: column; gap: 2px; }
+    .exp-side-item {
+      display: flex; align-items: center; gap: 6px; width: 100%;
+      background: none; border: 0; border-radius: 8px; cursor: pointer;
+      padding: 7px 9px; font-size: 11.5px; color: #555; text-align: left;
+    }
+    .exp-side-item em { margin-left: auto; font-style: normal; font-size: 10.5px; color: #aaa; }
+    .exp-side-item:hover { background: #F1F0F5; }
+    .exp-side-item.on { background: #111; color: #fff; font-weight: 700; }
+    .exp-side-item.on em { color: #bbb; }
+    .exp-main { flex: 1; min-width: 0; }
+    .exp-path { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #333; margin: 2px 0 10px; }
+    .exp-back { background: none; border: 0; color: #828DF8; font-size: 11.5px; cursor: pointer; padding: 0; }
+    .exp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px 8px; }
+    .exp-card {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 8px 4px; border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+    }
+    .exp-card:hover { background: #F1F0F5; }
+    .exp-ico { position: relative; font-size: 34px; line-height: 1 }
+    /* 개수를 폴더 위에 얹는다 — 웹과 같은 방식 */
+    .exp-ico b {
+      position: absolute; inset: 42% 0 auto 0; text-align: center;
+      font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35);
+    }
+    .exp-name {
+      font-size: 11px; color: #333; text-align: center; width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
     /* ── Screens ── */
     .screen { display: none; height: calc(100vh - 36px); flex-direction: column; }
     .screen.active { display: flex; }
@@ -456,15 +488,15 @@
       </div>
     </div>
     <div style="display:flex;gap:4px;padding:8px 16px 0 16px">
-      <button id="tab-activity" class="tab-btn active" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:none;background:#111;color:#fff;border-radius:8px;cursor:pointer">활동</button>
-      <button id="tab-explorer" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">탐색기</button>
+      <button id="tab-activity" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">활동</button>
+      <button id="tab-explorer" class="tab-btn active" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:none;background:#111;color:#fff;border-radius:8px;cursor:pointer">탐색기</button>
       <button id="tab-trash" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">중복 파일</button>
     </div>
-    <div id="explorer-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
+    <div id="explorer-pane" style="padding:12px 16px;flex:1;overflow:auto"></div>
     <!-- 휴지통 — 같은 파일이 여러 벌 올라간 것을 찾아 정리한다.
          근거에 따라 말이 다르다: 지문이 같다 / 화면이 같다 / 크기만 같다. -->
     <div id="trash-pane" style="display:none;padding:12px 16px;flex:1;overflow:auto"></div>
-    <div id="activity-pane" style="flex:1;overflow-y:auto;min-height:0">
+    <div id="activity-pane" style="display:none;flex:1;overflow-y:auto;min-height:0">
       <div id="synced-section" class="pending-section" style="display:none">
         <div class="pending-header">올리기 끝</div>
         <div class="synced-toolbar" id="synced-toolbar">
