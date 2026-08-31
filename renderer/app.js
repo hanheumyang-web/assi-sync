@@ -134,7 +134,7 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
 
 // ── Open Web ──
 document.getElementById('btn-open-web').addEventListener('click', () => {
-  window.api.openExternal('https://assifolio.com')
+  window.api.openExternal('https://pofol.co')
 })
 
 // ── Logout ──
