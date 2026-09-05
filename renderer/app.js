@@ -469,15 +469,18 @@ window.api.onSyncedFoldersUpdated((folders) => {
 // chokidar 가 unlinkDir 감지하면 main 이 'folder-deletion-requested' 이벤트 보냄.
 // 사용자에게 "웹에서도 삭제할래?" 확인 받음. 자동 삭제 안 함.
 window.api.onFolderDeletionRequested(async (info) => {
-  const { folderName, projectId, fileCount } = info
+  const { folderName, projectId, fileCount, folderKey, whileClosed } = info
   if (!projectId) {
     console.warn('[folder-deletion] projectId 없음, 다이얼로그 스킵')
     return
   }
-  const msg = `동기화된 폴더 "${folderName}" 가 삭제되었습니다.\n` +
+  const head = whileClosed
+    ? `앱이 꺼져 있는 동안 "${folderName}" 폴더가 없어졌어요.`
+    : `동기화된 폴더 "${folderName}" 가 삭제되었습니다.`
+  const msg = `${head}\n` +
               `웹에서도 삭제할까요? (${fileCount}개 파일)\n\n` +
               `※ 삭제해도 휴지통에 30일간 보관됩니다.\n` +
-              `※ 취소하면 다음 동기화 때 자동으로 다시 받아집니다.`
+              `※ 취소하면 다음 동기화 때 다시 받아집니다.`
   const ok = window.confirm(msg)
   if (ok) {
     const r = await window.api.confirmFolderDeletion({ projectId })
@@ -487,7 +490,7 @@ window.api.onFolderDeletionRequested(async (info) => {
       alert(`삭제 실패: ${r?.error || '알 수 없는 문제가 생겼어요'}`)
     }
   } else {
-    await window.api.cancelFolderDeletion()
+    await window.api.cancelFolderDeletion({ folderKey })
     console.log(`[folder-deletion] 취소됨 — 다음 폴링에서 ${folderName} 자동 복구`)
   }
 })

@@ -815,8 +815,11 @@ ipcMain.handle('confirm-folder-deletion', async (_, { projectId }) => {
 })
 
 // 사용자가 "취소" 누르면 — 그대로 두고 다음 폴링에서 자동 재다운로드되게 다운로드 트리거
-ipcMain.handle('cancel-folder-deletion', async () => {
+ipcMain.handle('cancel-folder-deletion', async (_e, info) => {
   if (!syncEngine) return { ok: false }
+  /* ⚠️ '치웠다' 표시를 먼저 지워야 한다. 안 지우면 폴링이 그 자산들을 건너뛴다 —
+        취소했는데 아무것도 안 돌아오는 꼴이 된다. (2026-09-04) */
+  syncEngine.restoreLocallyRemoved?.(info?.folderKey)
   await syncEngine.triggerDownloadPollNow?.().catch(() => {})
   return { ok: true }
 })

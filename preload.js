@@ -42,7 +42,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // 폴더 삭제 confirm — Finder 에서 동기화 폴더 삭제 시 사용자에게 확인 받는 흐름
   confirmFolderDeletion: (info) => ipcRenderer.invoke('confirm-folder-deletion', info),
-  cancelFolderDeletion: () => ipcRenderer.invoke('cancel-folder-deletion'),
+  cancelFolderDeletion: (info) => ipcRenderer.invoke('cancel-folder-deletion', info),
   onFolderDeletionRequested: (cb) => ipcRenderer.on('folder-deletion-requested', (_, data) => cb(data)),
 
   // Events from main
