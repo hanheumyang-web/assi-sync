@@ -466,6 +466,31 @@ window.api.onSyncedFoldersUpdated((folders) => {
 })
 
 // ── Finder 폴더 삭제 confirm 다이얼로그 ──
+// ── 웹 → 로컬 받기 ─────────────────────────────────────────────
+// 평소에는 로컬이 기준이라 웹에서 뭘 고쳐도 로컬은 그대로다.
+// 이 버튼만 반대 방향이고, 로컬을 덮어쓰므로 반드시 먼저 경고한다.
+document.getElementById('btn-pull-web')?.addEventListener('click', async () => {
+  const ok = window.confirm(
+    '웹에 있는 폴더 구조를 로컬에 그대로 받아옵니다.\n\n' +
+    '· 로컬에서 지웠던 파일도 다시 내려옵니다\n' +
+    '· 로컬에서 옮기거나 이름을 바꾼 것은 웹 기준으로 다시 만들어집니다\n' +
+    '· 로컬에만 있고 웹에 없는 파일은 그대로 둡니다\n\n' +
+    '계속할까요?'
+  )
+  if (!ok) return
+  const btn = document.getElementById('btn-pull-web')
+  const label = btn.textContent
+  btn.disabled = true
+  btn.textContent = '받는 중...'
+  try {
+    const r = await window.api.pullFromWeb()
+    if (!r?.ok) alert(`받기 실패: ${r?.error || '알 수 없는 문제가 생겼어요'}`)
+  } finally {
+    btn.disabled = false
+    btn.textContent = label
+  }
+})
+
 // chokidar 가 unlinkDir 감지하면 main 이 'folder-deletion-requested' 이벤트 보냄.
 // 사용자에게 "웹에서도 삭제할래?" 확인 받음. 자동 삭제 안 함.
 window.api.onFolderDeletionRequested(async (info) => {

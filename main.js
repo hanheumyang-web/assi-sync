@@ -744,20 +744,25 @@ ipcMain.handle('retry-all-failed', async () => {
   return true
 })
 
+/* 새로고침 — **로컬만** 다시 훑는다 (로컬 → 웹 방향).
+   ⚠️ 예전엔 여기서 웹의 것을 통째로 내려받기까지 했다. 로컬이 기준이므로 그 부분은 뗐다.
+      웹 → 로컬은 'pull-from-web' 뿐이고, 그건 경고를 보고 사람이 누른다. */
 ipcMain.handle('rescan', async () => {
   if (!syncEngine) return false
-  // 1) 로컬 폴더 재스캔 (기존 — 업로드용)
   await syncEngine.rescan()
-  // 2) 다운로드 풀스캔 — downloadSince/cursor 리셋 후 즉시 폴링 트리거.
-  //    웹에 있는데 데스크탑에 없는 누락 자산 회수.
-  if (syncEngine.state) {
-    syncEngine.state.downloadSince = null
-    syncEngine.state.downloadCursor = null
-    syncEngine.saveState?.()
-    console.log('[rescan] 다운로드 풀스캔 ─ downloadSince/cursor null 리셋')
-  }
-  await syncEngine.triggerDownloadPollNow?.().catch(e => console.warn('[rescan] download poll error:', e?.message))
   return true
+})
+
+/* 웹 → 로컬 받기. **로컬을 덮어쓴다.** 부르는 쪽(렌더러)이 먼저 경고를 띄운다. */
+ipcMain.handle('pull-from-web', async () => {
+  if (!syncEngine) return { ok: false, error: '동기화가 시작되지 않았습니다' }
+  try {
+    await syncEngine.pullFromWebNow()
+    return { ok: true }
+  } catch (e) {
+    console.error('[pull-from-web] 실패:', e?.message)
+    return { ok: false, error: e?.message || '알 수 없는 문제' }
+  }
 })
 
 ipcMain.handle('check-shares', async () => {

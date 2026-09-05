@@ -509,7 +509,9 @@
         <!-- ⚠️ 지우면 어디로 가는지 보이는 자리가 있어야 한다.
                예전엔 중복 정리 탭 안에 묻혀 있어 찾을 수가 없었다. -->
           <button class="btn-stop" id="btn-trash" title="휴지통 — 지운 파일은 30일 동안 여기 있어요">🗑</button>
-          <button class="btn-stop" id="btn-rescan" title="새로고침 — 누락된 파일 재확인">🔄</button>
+          <button class="btn-stop" id="btn-rescan" title="새로고침 — 로컬 폴더를 다시 훑어 웹에 올립니다">🔄</button>
+          <!-- ⚠️ 이 버튼만 웹 → 로컬 방향이다. 로컬을 덮어쓰므로 누르기 전에 경고를 띄운다. -->
+          <button class="btn-stop" id="btn-pull-web" title="웹의 폴더 구조를 로컬에 그대로 받아옵니다 (로컬을 덮어씀)">⬇︎ 웹→로컬</button>
         <button class="btn-stop" id="btn-change-folder" title="폴더 변경">📂</button>
         <button class="btn-stop" id="btn-stop">중지</button>
       </div>
