@@ -7,9 +7,10 @@
   "author": "ASSI",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
+    "build": "electron-builder && bash tools/verify-signature.sh",
     "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac"
+    "build:mac": "electron-builder --mac && bash tools/verify-signature.sh",
+    "verify:sign": "bash tools/verify-signature.sh"
   },
   "build": {
     "appId": "com.assi.sync",
@@ -91,7 +92,8 @@
         "width": 570,
         "height": 400
       }
-    }
+    },
+    "afterSign": "tools/notarize.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.99",
