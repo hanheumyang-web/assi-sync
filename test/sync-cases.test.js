@@ -31,6 +31,7 @@ function fresh() {
   for (const f of fs.readdirSync(ORIG)) fs.copyFileSync(path.join(ORIG, f), path.join(proj, f))
   return { root, proj, state: path.join(root, '.state.json') }
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
 const ls = p => fs.existsSync(p) ? fs.readdirSync(p).filter(n => n !== '.DS_Store').sort() : []
 const sizes = p => Object.fromEntries(ls(p).map(f => [f, fs.statSync(path.join(p, f)).size]))
 const NAMES = fs.readdirSync(ORIG)
@@ -163,6 +164,7 @@ head('앱이 꺼진 사이 사용자가 로컬에서 지웠다 — 되살리지 
   let asked = null
   e.onFolderDeletionRequested = i => { asked = i }
   const r = e.reconcileLocalDeletions()
+  await sleep(80)   // 묻기 전에 서버에 아직 있는지 확인하므로 한 박자 늦다
   ok('사라진 1장을 알아챘다', r.missing === 1)
   ok('사람에게 물어봤다', !!asked, asked ? `(${asked.folderName} ${asked.fileCount}개)` : '')
   ok('다시 안 받도록 표시했다', !!e.state.locallyRemoved && Object.keys(e.state.locallyRemoved).length === 1)

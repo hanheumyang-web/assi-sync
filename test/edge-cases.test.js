@@ -242,6 +242,46 @@ head("잘못 남은 '치웠다' 표시 걷어내기 — 있는 것만 걷고 없
   fs.rmSync(root, { recursive: true, force: true })
 }
 
+;(async () => {
+// ────────────────────────────────────────────────────────────
+head('웹에도 이미 없는 프로젝트면 "웹에서도 지울까요?" 를 묻지 않는다')
+{
+  const { root, e } = mk()
+  const rel = 'AD/이미없는프로젝트/a.jpg'
+  const sz = put(root, rel, 700)
+  put(root, 'AD/살아있는프로젝트/b.jpg', 800)   // 보이는 파일이 있어야 판단이 돈다
+  track(e, rel, 'assetA', 'GONE', sz)
+  track(e, 'AD/살아있는프로젝트/b.jpg', 'assetB', 'ALIVE', 800)
+  fs.unlinkSync(path.join(root, rel))
+  /* 서버에는 ALIVE 만 있고 GONE 은 없다 */
+  e.api = { getProjectsByUid: async () => ({ projects: [{ id: 'ALIVE', name: '살아있는프로젝트' }] }) }
+  let asked = null
+  e.onFolderDeletionRequested = i => { asked = i }
+  e.reconcileLocalDeletions()
+  await new Promise(r => setTimeout(r, 50))
+  ok('묻지 않았다 (이미 웹에도 없으니까)', !asked, asked ? JSON.stringify(asked.folderKey) : '')
+}
+
+// ────────────────────────────────────────────────────────────
+head('서버를 못 물어보면 예전처럼 묻는다 (조용히 넘기지 않는다)')
+{
+  const { root, e } = mk()
+  const rel = 'AD/어떤프로젝트/a.jpg'
+  const sz = put(root, rel, 700)
+  put(root, 'AD/다른프로젝트/b.jpg', 800)
+  track(e, rel, 'assetA', 'P1', sz)
+  track(e, 'AD/다른프로젝트/b.jpg', 'assetB', 'P2', 800)
+  fs.unlinkSync(path.join(root, rel))
+  e.api = { getProjectsByUid: async () => { throw new Error('통신 안 됨') } }
+  let asked = null
+  e.onFolderDeletionRequested = i => { asked = i }
+  e.reconcileLocalDeletions()
+  await new Promise(r => setTimeout(r, 50))
+  ok('물어봤다', !!asked, asked ? asked.folderKey : '없음')
+}
+
+
 console.log('\n' + '━'.repeat(64))
 console.log(fail ? `실패 ${fail}건` : `${n}가지 까다로운 경우 전부 통과`)
-process.exit(fail ? 1 : 0)
+  process.exit(fail ? 1 : 0)
+})()
