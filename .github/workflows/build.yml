@@ -49,9 +49,13 @@ jobs:
       #    키체인은 우리가 만든 것 하나만 쓰고, 인증서는 자동 탐색으로 찾게 둔다.
       - name: Build & sign macOS
         run: npx electron-builder --mac --publish never
-        timeout-minutes: 15
+        timeout-minutes: 30
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
+          # 공증은 빌드 안에서 한다 (tools/notarize.js) — 도장까지 앱에 박아야 한다
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: List build artifacts
         run: ls -la dist/

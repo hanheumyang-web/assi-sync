@@ -425,7 +425,11 @@ window.batchResync = batchResync
 async function batchDelete() {
   const keys = getSelectedKeys()
   if (!keys.length) return
-  if (!confirm(`${keys.length}개 폴더를 지울게요. 서버에 올라간 것도 함께 삭제됩니다.`)) return
+  if (!confirm(
+    `${keys.length}개 폴더를 휴지통으로 보냅니다.\n\n` +
+    '※ 30일 안에는 언제든 되돌릴 수 있어요.\n\n' +
+    '계속할까요?'
+  )) return
   for (const key of keys) {
     const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
     if (el) {
@@ -451,7 +455,12 @@ async function resyncFolder(key) {
 window.resyncFolder = resyncFolder
 
 async function deleteSyncedFolder(key) {
-  if (!confirm('이 폴더의 올린 기록과 서버에 있는 것을 지울게요. 계속할까요?')) return
+  if (!confirm(
+    '이 폴더를 휴지통으로 보냅니다.\n\n' +
+    '※ 30일 안에는 언제든 되돌릴 수 있어요.\n' +
+    '※ 컴퓨터의 원본도 폴더 안 _Trash 로 옮겨지고, 되살리면 제자리로 돌아옵니다.\n\n' +
+    '계속할까요?'
+  )) return
   const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {
     const btn = el.querySelector('.btn-pending.remove')
