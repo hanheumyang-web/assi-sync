@@ -11,7 +11,8 @@
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac && bash tools/verify-signature.sh",
     "verify:sign": "bash tools/verify-signature.sh",
-    "test": "for f in test/*.test.js; do echo \"── $f\"; node \"$f\" || exit 1; done"
+    "test": "for f in test/*.test.js; do echo \"── $f\"; node \"$f\" || exit 1; done",
+    "test:journey": "node test/journey/run.js"
   },
   "build": {
     "appId": "com.assi.sync",
