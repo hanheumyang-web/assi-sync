@@ -649,6 +649,23 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
     syncEngine.stop()
   }
 
+  /* ⚠️ 감시 폴더가 바뀌면 동기화 기록을 비운다. — 2026-09-07
+     sync-state.json 은 폴더별이 아니라 하나뿐이다. 폴더만 바꾸고 기록을 그대로 두면
+     옛 폴더의 경로·판단이 새 폴더에 그대로 적용된다:
+       · syncedFiles — 없는 경로를 가리켜 "사라졌다" 고 오판한다
+       · locallyRemoved — 옛 폴더에서 치운 것이 새 폴더에서도 안 받아진다
+       · trashedProjects — 새 폴더에서 진짜로 지워야 할 것을 건너뛴다
+     새 폴더는 처음부터 시작하는 게 맞다. (계정이 바뀔 때 비우는 것과 같은 이유다) */
+  const prev = loadConfig()
+  if (prev.watchDir && prev.watchDir !== watchDir) {
+    try {
+      if (fs.existsSync(STATE_PATH)) fs.unlinkSync(STATE_PATH)
+      console.log(`[start-sync] 감시 폴더가 바뀌어 동기화 기록을 비웠다: ${prev.watchDir} → ${watchDir}`)
+    } catch (e) {
+      console.warn('[start-sync] 동기화 기록 비우기 실패:', e.message)
+    }
+  }
+
   saveConfig({ uid, watchDir })
 
   // Load tokens from config
@@ -763,6 +780,27 @@ ipcMain.handle('pull-from-web', async () => {
     console.error('[pull-from-web] 실패:', e?.message)
     return { ok: false, error: e?.message || '알 수 없는 문제' }
   }
+})
+
+/* 휴지통 영구 비우기 — 되돌릴 수 없다.
+   ⚠️ 부르는 쪽(렌더러)이 먼저 두 겹으로 확인을 받는다. 여기서는 묻지 않는다.
+   ⚠️ 한 건이라도 실패하면 어디까지 됐는지 그대로 돌려준다. 조용히 반쯤 지우고 끝내지 않는다. */
+ipcMain.handle('purge-trashed', async (_e, { assetIds } = {}) => {
+  if (!syncEngine?.api) return { ok: false, error: '동기화가 시작되지 않았습니다' }
+  const ids = Array.isArray(assetIds) ? assetIds : []
+  if (!ids.length) return { ok: true, deleted: 0, failed: [] }
+  let deleted = 0
+  const failed = []
+  for (const id of ids) {
+    try {
+      await syncEngine.api.deleteAsset(id)
+      deleted++
+    } catch (e) {
+      console.warn('[purge-trashed] 실패', id, e?.message)
+      failed.push(id)
+    }
+  }
+  return { ok: true, deleted, failed }
 })
 
 ipcMain.handle('check-shares', async () => {

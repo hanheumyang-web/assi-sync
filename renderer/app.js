@@ -1531,8 +1531,13 @@ async function openTrash() {
                      font-size:11px;cursor:pointer;white-space:nowrap">되돌리기</button>
           </div>`).join('')}
       </div>
-      <button onclick="restoreAll()" style="margin-top:10px;border:1px solid #dcdbe2;background:#fff;
-        border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer">전부 되돌리기</button>`
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="restoreAll()" style="border:1px solid #dcdbe2;background:#fff;
+          border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer">전부 되돌리기</button>
+        <!-- ⚠️ 되돌릴 수 없는 동작이라 색으로도 구분한다 -->
+        <button onclick="purgeAll()" style="margin-left:auto;border:1px solid #e6c4b8;background:#fff;
+          border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:#b0624a">휴지통 비우기</button>
+      </div>`
       : '<div style="padding:26px 0;text-align:center;color:#8b8892">휴지통이 비어 있어요</div>'}
     ${hiddenCount ? `
       <div style="margin-top:14px;border-top:1px solid #e6e5ea;padding-top:12px">
@@ -1855,6 +1860,37 @@ async function restoreAll() {
   if (r?.error) { alert(r.error); return }
   alert(`${r.restored}개를 되돌렸어요.`)
   loadTrash()
+}
+
+/* 휴지통 영구 비우기.
+   ⚠️ 되돌릴 수 없다. 그래서 확인을 두 겹으로 둔다 — 한 번 묻고, 개수를 손으로 적게 한다.
+      「예」 한 번으로 사진 수백 장이 영구히 사라지면 안 된다.
+   ⚠️ 컴퓨터 안 _Trash 폴더는 건드리지 않는다. 그건 사용자가 직접 보고 지울 몫이다 —
+      우리가 두 곳을 한꺼번에 지우면 되돌릴 방법이 아예 없어진다. */
+async function purgeAll() {
+  const items = trashedList?.items || []
+  const n = items.length
+  if (!n) return
+  const gb = tGB(trashedList?.bytes || 0)
+  if (!confirm(
+    `휴지통의 파일 ${n}개(${gb}GB)를 영구히 지울까요?\n\n` +
+    '되돌릴 수 없어요.\n' +
+    '컴퓨터 안 _Trash 폴더의 원본은 그대로 남아 있어요.'
+  )) return
+  const typed = prompt(`정말 지우려면 아래에 ${n} 을(를) 입력해주세요.`, '')
+  if (String(typed || '').trim() !== String(n)) {
+    if (typed !== null) alert('숫자가 달라서 취소했어요.')
+    return
+  }
+  const r = await window.api.purgeTrashed(items.map(a => a.id))
+  if (!r?.ok) { alert(`비우기 실패: ${r?.error || '알 수 없는 문제'}`); return }
+  if (r.failed?.length) {
+    alert(`${r.deleted}개를 지웠어요.\n${r.failed.length}개는 실패했습니다. 잠시 후 다시 시도해주세요.`)
+  } else {
+    alert(`${r.deleted}개를 영구히 지웠어요.`)
+  }
+  loadTrash()
+  openTrash()
 }
 
 async function applyTrash() {

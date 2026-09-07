@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
   findDuplicates: () => ipcRenderer.invoke('find-duplicates'),
   trashAssets: (ids) => ipcRenderer.invoke('trash-assets', ids),
   listTrashed: () => ipcRenderer.invoke('list-trashed'),
+  /* 휴지통 영구 비우기 — 되돌릴 수 없다. 부르기 전에 반드시 확인받을 것. */
+  purgeTrashed: (assetIds) => ipcRenderer.invoke('purge-trashed', { assetIds }),
   untrashAssets: (ids) => ipcRenderer.invoke('untrash-assets', ids),
   revealInFolder: (loc) => ipcRenderer.invoke('reveal-in-folder', loc),
   saveConfig: (data) => ipcRenderer.invoke('save-config', data),
