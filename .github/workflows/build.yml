@@ -42,13 +42,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ⚠️ 여기에 CSC_LINK / CSC_KEY_PASSWORD 를 넘기면 안 된다 — 2026-09-07.
+      #    바로 위에서 키체인을 직접 만들어 인증서를 넣어뒀는데, 이 값들을 또 주면
+      #    electron-builder 가 자기 임시 키체인을 새로 만들면서 충돌해서
+      #    "SecKeychainUnlock: passphrase you entered is not correct" 로 죽는다.
+      #    키체인은 우리가 만든 것 하나만 쓰고, 인증서는 자동 탐색으로 찾게 둔다.
       - name: Build & sign macOS
         run: npx electron-builder --mac --publish never
         timeout-minutes: 15
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
       - name: List build artifacts
         run: ls -la dist/
