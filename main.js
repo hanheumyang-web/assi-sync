@@ -873,9 +873,16 @@ const DEFAULT_CATS = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSO
 const IMG_RE = /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tif|tiff|avif|cr2|nef|arw|dng|raf|mp4|mov|avi|mkv|webm|m4v|wmv|flv)$/i
 
 ipcMain.handle('scan-folder-tree', async () => {
-  if (!syncEngine) return null
+  /* ⚠️ '아직 준비 안 됨' 과 '폴더를 안 골랐음' 은 다르다 — 2026-09-08.
+     예전엔 둘 다 null 이라 화면에 "아직 연결한 폴더가 없어요" 가 떴다.
+     앱을 막 켜서 동기화가 시작되기 전이었을 뿐인데 고장난 것처럼 보였다.
+     (테스터 화면에서도 '동기화 중 241개' 와 '연결된 폴더 없어요' 가 같이 떠 있었다) */
+  const cfg = loadConfig()
+  if (!syncEngine) {
+    return cfg.watchDir ? { notReady: true, root: cfg.watchDir } : null
+  }
   const root = syncEngine.watchDir
-  if (!root) return null
+  if (!root) return cfg.watchDir ? { notReady: true, root: cfg.watchDir } : null
   const synced = new Set(Object.keys(syncEngine.state.syncedFiles).map(k => k.split('/').slice(0, -1).join('/')))
 
   async function readDir(dir, depth) {

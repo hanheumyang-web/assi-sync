@@ -561,6 +561,13 @@ async function refreshExplorer() {
   const pane = document.getElementById('explorer-pane')
   pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">스캔 중...</div>'
   const data = await window.api.scanFolderTree()
+  /* 아직 준비가 안 된 것뿐이면 "폴더 없어요" 라고 하지 않는다 — 잠깐 뒤에 다시 본다 */
+  if (data && data.notReady) {
+    pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">폴더를 읽는 중이에요...</div>'
+    clearTimeout(window._explorerRetry)
+    window._explorerRetry = setTimeout(() => { refreshExplorer() }, 1500)
+    return
+  }
   if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">아직 연결한 폴더가 없어요</div>'; return }
   explorerRoot = data.root
   expandedProjects.clear()
@@ -1314,6 +1321,16 @@ window.api.onUpdateStatus((data) => {
         <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
       </div>
     `
+    /* ⚠️ 스스로 사라지게 한다 — 2026-09-08.
+       이 알림은 목록 위에 떠서 폴더 서너 줄을 가린다. 그런데 닫기를 누르기 전엔
+       영영 안 사라져서, 몇 분째 화면을 덮고 있었다.
+       알려주기만 하면 되는 내용이라 잠깐 보이고 물러나는 게 맞다.
+       (오류 알림은 이미 그렇게 하고 있었다) */
+    clearTimeout(window._upToDateTimer)
+    window._upToDateTimer = setTimeout(() => {
+      const b = document.getElementById('update-banner')
+      if (b && b.textContent.includes('최신 버전입니다')) b.style.display = 'none'
+    }, 4000)
   } else if (data.status === 'installing') {
     banner.style.display = 'block'
     banner.innerHTML = `
