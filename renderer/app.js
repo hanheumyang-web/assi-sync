@@ -1701,6 +1701,13 @@ function renderTrash() {
         프로젝트에 있는 쪽을 남기는 게 좋아요</span>`
     }
     const delBtn = a => {
+      /* ⚠️ **두 프로젝트에 걸친 것은 지우지 못하게 한다** — 2026-09-08 대표님 결정.
+            실제 사고: 테스터가 여기서 영상을 지웠는데 남긴 짝이 다른 프로젝트 것이라
+            원래 프로젝트가 통째로 비었다. 본인은 지운 줄도 몰라 "누락" 으로 제보했다.
+            "중복이니 하나만 남겨라" 라고 해놓고 작업물이 빠지면 말과 동작이 갈라진 것이다.
+            애초에 지울 이유도 없다 — 저장 공간이 줄지도 않는다. */
+      if (g.kind === 'shared') return `<span style="border:1px solid #cfe0cd;border-radius:6px;padding:4px 10px;
+        font-size:11px;color:#4a7a44;background:#f2f8f1">그대로 둡니다</span>`
       const on = del.has(a.id)
       /* 짝이 되는 말이어야 한다 — 하기 ↔ 되돌리기.
          '지울 예정 / 그냥 두기' 는 짝이 안 맞아 뭘 누르는 건지 헷갈렸다. */
@@ -1760,8 +1767,8 @@ function renderTrash() {
       ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;padding:9px 11px;
                      margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55;
                      display:flex;gap:8px;align-items:flex-start">
-           <span style="flex:1"><b>두 프로젝트에 모두</b> 들어 있어요.
-           지워도 저장 공간은 안 줄고, <b>그 프로젝트에서만 사진이 없어져요.</b></span>
+           <span style="flex:1"><b>두 프로젝트에서 같이 쓰는 사진이에요</b> — 중복이 아니에요.
+           지워도 저장 공간은 안 줄고 <b>그 프로젝트에서만 사진이 없어지기</b> 때문에, 지우지 않습니다.</span>
            <button onclick="hideWarn('${groupKey(g)}')"
              style="flex:0 0 auto;background:#fff;border:1px solid #e6cdbc;border-radius:6px;
                     padding:3px 9px;font-size:11px;color:#8a4a2c;cursor:pointer;
@@ -1782,11 +1789,11 @@ function renderTrash() {
           <i style="width:8px;height:8px;border-radius:50%;background:${lv.c};display:inline-block"></i>
           <b style="font-size:13px">${lv.t}</b>
           <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
-          <button onclick="toggleWholeGroup(${i})"
+          ${g.kind === 'shared' ? '' : `<button onclick="toggleWholeGroup(${i})"
             style="border:1px solid ${allGone ? '#dcdbe2' : '#e2c4bb'};border-radius:6px;padding:3px 9px;
                    font-size:11px;cursor:pointer;white-space:nowrap;background:#fff;
                    color:${allGone ? '#6c6976' : '#a3402c'}">${allGone
-                     ? '되돌리기' : (g.items.length === 2 ? '둘 다 삭제' : `${g.items.length}개 모두 삭제`)}</button>
+                     ? '되돌리기' : (g.items.length === 2 ? '둘 다 삭제' : `${g.items.length}개 모두 삭제`)}</button>`}
         </div>
         ${allGone ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;
              padding:8px 10px;margin:8px 0 0;font-size:11.5px;color:#8a4a2c;line-height:1.5">
