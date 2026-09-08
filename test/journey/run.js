@@ -134,6 +134,7 @@ function loadCfg() {
 
   let broke = null
   const history = []
+  const startedAt = Date.now()
 
   for (let step = 1; step <= STEPS; step++) {
     /* 지금 할 수 있는 행동 중에서 가중치대로 하나 고른다 */
@@ -174,6 +175,23 @@ function loadCfg() {
   } catch {}
   if (!broke) fs.rmSync(root, { recursive: true, force: true })
   fs.rmSync(statePath, { force: true })
+
+  /* 결과를 웹 시험과 **같은 형식**으로 남긴다 — 한 요약 페이지에서 같이 본다.
+     npm run test:report (저장소 루트) */
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const outDir = path.join(__dirname, '..', '..', '..', '.test-results', `${stamp}-mac-desktop`)
+    fs.mkdirSync(outDir, { recursive: true })
+    fs.writeFileSync(path.join(outDir, 'result.json'), JSON.stringify({
+      seed: SEED,
+      source: 'mac-desktop',
+      totalActions: STEPS,
+      completedActions: broke ? broke.step - 1 : STEPS,
+      brokenRules: broke ? broke.broken.map(b => ({ name: b.name, detail: b.detail })) : [],
+      actions: history,
+      durationMs: Date.now() - startedAt,
+    }, null, 2))
+  } catch (e) { console.warn('결과 남기기 실패:', e.message) }
 
   console.log('\n' + '━'.repeat(64))
   if (!broke) {

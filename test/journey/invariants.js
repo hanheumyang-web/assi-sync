@@ -73,8 +73,13 @@ const RULES = [
   {
     name: '기록이 가리키는 파일은 디스크에 있다',
     why: '기록과 디스크가 어긋나면 앱이 "없어졌다" 고 오해해 헛된 삭제 확인을 띄운다.',
-    check({ root, state }) {
-      const missing = Object.keys(state.syncedFiles || {}).filter(r => !fs.existsSync(path.join(root, r)))
+    check({ root, state, expected }) {
+      /* ⚠️ 방금 사용자가 지운 파일은 넘어간다 — 2026-09-08.
+         지운 직후엔 감시기가 아직 기록을 정리하기 전이라 잠깐 어긋나 있다.
+         그건 정상이고, 그때 잘못 판단하는지는 '헛된 삭제 확인' 규칙이 따로 본다.
+         여기서 잡을 것은 **있어야 할 파일을 앱이 놓친 경우** 다. */
+      const missing = Object.keys(state.syncedFiles || {})
+        .filter(r => expected.files.has(r) && !fs.existsSync(path.join(root, r)))
       return missing.length ? `기록에만 있는 것 ${missing.length}개: ${missing.slice(0, 3).join(', ')}` : true
     },
   },
