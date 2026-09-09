@@ -575,6 +575,19 @@
       <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#999;font-weight:700;margin-bottom:8px">지금 버전</div>
       <div style="font-size:12px;color:#666" id="settings-version">-</div>
     </div>
+    <!-- 폴더를 정리한 뒤 웹이 어긋났을 때 쓰는 길. 맥 폴더는 손대지 않는다. -->
+    <div style="margin:16px 0;padding-top:16px;border-top:1px solid #eee">
+      <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#999;font-weight:700;margin-bottom:6px">웹이 폴더와 다를 때</div>
+      <div style="font-size:11.5px;color:#777;line-height:1.6;margin-bottom:9px">
+        폴더 이름을 바꾸거나 옮긴 뒤 웹에 옛 프로젝트가 남아 있으면,
+        <b style="color:#555">웹을 지금 폴더 모양으로 다시 그립니다.</b><br>
+        맥 폴더의 파일은 하나도 건드리지 않아요. 웹 쪽은 휴지통으로 가서 30일 안에 되돌릴 수 있어요.
+      </div>
+      <button id="btn-resync" onclick="resetAndResync()" style="width:100%;padding:10px;border:1px solid #E4C9C0;background:#FCF4F2;border-radius:10px;font-size:12px;font-weight:700;color:#B0624A;cursor:pointer">
+        웹을 폴더 기준으로 다시 연결
+      </button>
+      <div id="resync-msg" style="font-size:11.5px;color:#777;line-height:1.6;margin-top:8px"></div>
+    </div>
     <button onclick="resetUiScale()" style="width:100%;padding:10px;border:1px solid #ddd;background:#F4F3EE;border-radius:10px;font-size:12px;font-weight:600;color:#666;cursor:pointer">처음 크기로 되돌리기</button>
   </div>
 

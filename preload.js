@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('api', {
   // 휴지통
   findDuplicates: () => ipcRenderer.invoke('find-duplicates'),
   trashAssets: (ids) => ipcRenderer.invoke('trash-assets', ids),
+  resetAndResync: (opts) => ipcRenderer.invoke('reset-and-resync', opts),
+  resetAndResyncPreview: () => ipcRenderer.invoke('reset-and-resync-preview'),
   listTrashed: () => ipcRenderer.invoke('list-trashed'),
   /* 휴지통 영구 비우기 — 되돌릴 수 없다. 부르기 전에 반드시 확인받을 것. */
   purgeTrashed: (assetIds) => ipcRenderer.invoke('purge-trashed', { assetIds }),

@@ -279,6 +279,28 @@ ipcMain.handle('trash-assets', async (_, assetIds) => {
   catch (e) { return { error: e.message } }
 })
 
+/* 웹을 비우고 내 폴더 기준으로 다시 올리기 — 폴더 정리 뒤 어긋난 것을 바로잡는 길.
+   맥 폴더는 손대지 않는다. 웹 쪽은 휴지통으로 가므로 30일 안에 되돌릴 수 있다. */
+ipcMain.handle('reset-and-resync', async (_, opts) => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try {
+    const r = await syncEngine.폴더기준으로다시(opts || {})
+    if (r?.막힘 || r?.error) return r
+    /* 기록을 비웠으니 감시를 다시 켜서 폴더를 처음부터 읽는다 */
+    try { await syncEngine.stop?.() } catch {}
+    await syncEngine.start()
+    return r
+  } catch (e) {
+    return { error: e?.message || '다시 연결하지 못했습니다' }
+  }
+})
+
+ipcMain.handle('reset-and-resync-preview', async () => {
+  if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
+  try { return await syncEngine.api.resetProjectsForResync({ apply: false }) }
+  catch (e) { return { error: e?.message || '확인하지 못했습니다' } }
+})
+
 ipcMain.handle('list-trashed', async () => {
   if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
   try { return await syncEngine.api.listTrashedAssets() }

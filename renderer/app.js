@@ -1963,3 +1963,57 @@ async function applyTrash() {
    ⚠️ 이 줄은 반드시 파일 맨 끝이어야 한다. 위에 두면 아직 만들어지지 않은
       변수(explorerRoot 등)를 건드려 앱이 시작하자마자 터진다 — 실제로 그랬다. */
 switchTab('explorer')
+
+/* ── 웹을 폴더 기준으로 다시 연결 ──
+   폴더를 정리한 뒤 웹에 옛 프로젝트가 남아 어긋나는 경우를 바로잡는다.
+   ⚠️ 맥 폴더는 손대지 않는다. 웹 쪽만 휴지통으로 보내고 폴더를 처음부터 다시 읽는다.
+   ⚠️ 되돌릴 수 있다는 점을 반드시 먼저 말한다 — 사람이 겁먹고 못 누르면 없는 기능이다. */
+async function resetAndResync() {
+  const btn = document.getElementById('btn-resync')
+  const msg = document.getElementById('resync-msg')
+  if (!btn || btn.disabled) return
+  msg.style.color = '#777'
+  msg.textContent = '웹에 무엇이 있는지 보는 중…'
+  btn.disabled = true
+
+  const 미리 = await window.api.resetAndResyncPreview().catch(e => ({ error: e?.message }))
+  if (!미리 || 미리.error) { msg.style.color = '#B0624A'; msg.textContent = 미리?.error || '확인하지 못했어요.'; btn.disabled = false; return }
+
+  const 수 = 미리.프로젝트수 || 0
+  const 예시 = (미리.이름들 || []).slice(0, 5).join(', ')
+  const 물음 =
+    `웹의 프로젝트 ${수}개를 휴지통으로 보내고, 지금 폴더를 처음부터 다시 올립니다.\n\n` +
+    (예시 ? `예: ${예시}${수 > 5 ? ' 외 ' + (수 - 5) + '개' : ''}\n\n` : '') +
+    `• 맥 폴더의 파일은 하나도 지우지 않아요\n` +
+    `• 폴더에 있는 프로젝트는 그대로 되살아나요\n` +
+    `• 폴더에 없는 것만 휴지통에 남아요 (30일 안에 되돌릴 수 있어요)\n\n` +
+    `계속할까요?`
+  if (!confirm(물음)) { msg.textContent = ''; btn.disabled = false; return }
+
+  msg.textContent = '웹을 비우고 폴더를 다시 읽는 중… 창을 닫지 마세요.'
+  const r = await window.api.resetAndResync({}).catch(e => ({ error: e?.message }))
+
+  if (r?.막힘) {
+    msg.style.color = '#B0624A'
+    msg.textContent = r.안내
+    if (confirm(r.안내 + '\n\n그래도 계속할까요?')) {
+      msg.style.color = '#777'
+      msg.textContent = '웹을 비우고 폴더를 다시 읽는 중…'
+      const r2 = await window.api.resetAndResync({ 강행: true }).catch(e => ({ error: e?.message }))
+      finishResync(r2, btn, msg)
+      return
+    }
+    btn.disabled = false
+    return
+  }
+  finishResync(r, btn, msg)
+}
+
+function finishResync(r, btn, msg) {
+  btn.disabled = false
+  if (!r || r.error) { msg.style.color = '#B0624A'; msg.textContent = r?.error || '다시 연결하지 못했어요.'; return }
+  msg.style.color = '#3B7A57'
+  msg.textContent = `끝났어요. 프로젝트 ${r.프로젝트 || 0}개를 휴지통으로 보내고 폴더를 다시 읽는 중이에요. `
+    + '잠시 뒤 웹을 새로고침하면 폴더와 같아져 있어요.'
+}
+window.resetAndResync = resetAndResync
