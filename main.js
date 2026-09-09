@@ -937,15 +937,18 @@ ipcMain.handle('scan-folder-tree', async () => {
   function annotate(nodes) {
     for (const n of nodes) {
       if (n.depth === 0) {
-        const norm = n.name.trim().toUpperCase()
-        n.badge = DEFAULT_CATS.includes(norm) ? 'category' : 'category-custom'
+        /* ⚠️ '분류 / 커스텀' 으로 갈라 붙이던 것을 없앤다 — 2026-09-09 대표님 지적.
+              동작이 똑같은데 이름만 갈라 놓으니 "커스텀이면 뭐가 다른 거지" 만 남았다.
+              지금 필요한 건 **이 폴더가 무엇으로 쓰이는지** 다 — 카테고리냐 프로젝트냐. */
+        n.badge = 'category'
         n.fileCount = 0  // 카테고리 직속 파일은 무시
       } else {
         const isLeaf = !n.children || n.children.length === 0
         if (isLeaf) {
-          // 리프 폴더 = 프로젝트
+          // 리프 폴더 = 프로젝트. 올라갔는지는 두 번째 딱지로 따로 보여준다.
           const rel = require('path').relative(root, n.path).split(require('path').sep).join('/')
-          n.badge = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
+          n.badge = 'project'
+          n.badge2 = synced.has(rel) ? 'uploaded' : (n.fileCount > 0 ? 'pending' : 'empty')
         }
         // 중간 폴더(자식 있음)는 뱃지 없이 그대로 표시
       }

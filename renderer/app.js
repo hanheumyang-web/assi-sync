@@ -606,7 +606,7 @@ function folderCard(n, root, big) {
        data-cat="${n.depth === 0 ? n.name.replace(/"/g, '&quot;') : ''}">
     <div class="exp-ico">${big ? '📁' : '📂'}<b>${cnt}</b></div>
     <div class="exp-name">${n.name}</div>
-    ${badgeHtml(n.badge)}
+    ${badgeHtml(n.badge)}${badgeHtml(n.badge2)}
     ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
   </div>`
 }
@@ -862,8 +862,8 @@ document.addEventListener('keydown', expKeys)
 
 function badgeHtml(b) {
   const map = {
-    'category': '<span style="font-size:9px;color:#3B82F6;font-weight:700">✅ 분류</span>',
-    'category-custom': '<span style="font-size:9px;color:#8B5CF6;font-weight:700">✨ 커스텀</span>',
+    'category': '<span style="font-size:9px;color:#3B82F6;font-weight:700">📂 카테고리</span>',
+    'project': '<span style="font-size:9px;color:#8B5CF6;font-weight:700">🗂 프로젝트</span>',
     'misplaced': '<span style="font-size:9px;color:#F59E0B;font-weight:700">⚠️ 위치 오류</span>',
     'uploaded': '<span style="font-size:9px;color:#10B981;font-weight:700">🟢 업로드됨</span>',
     'pending': '<span style="font-size:9px;color:#9CA3AF;font-weight:700">⏳ 대기</span>',
@@ -900,7 +900,7 @@ function renderNode(n, root) {
          style="padding:6px 8px;margin-left:${indent}px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:${isCat ? 'default' : 'pointer'};border:1px solid transparent">
       <span>${icon}</span>
       <span class="node-name" style="font-weight:${isCat ? '700' : '600'};color:${isCat ? '#111' : '#444'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.name}</span>
-      ${badgeHtml(n.badge)}
+      ${badgeHtml(n.badge)}${badgeHtml(n.badge2)}
       <span style="font-size:9px;color:#bbb">${n.fileCount || 0}</span>
       ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
     </div>
