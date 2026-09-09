@@ -297,8 +297,12 @@ ipcMain.handle('reset-and-resync', async (_, opts) => {
 
 ipcMain.handle('reset-and-resync-preview', async () => {
   if (!syncEngine?.api) return { error: '동기화가 시작되지 않았습니다' }
-  try { return await syncEngine.api.resetProjectsForResync({ apply: false }) }
-  catch (e) { return { error: e?.message || '확인하지 못했습니다' } }
+  try {
+    const 웹 = await syncEngine.api.resetProjectsForResync({ apply: false })
+    /* 다시 올라갈 파일 수까지 같이 준다 — 사람이 용량 걱정 없이 정할 수 있게 */
+    const 셈 = await syncEngine.포맷미리보기().catch(() => null)
+    return { ...웹, ...(셈 || {}) }
+  } catch (e) { return { error: e?.message || '확인하지 못했습니다' } }
 })
 
 ipcMain.handle('list-trashed', async () => {
