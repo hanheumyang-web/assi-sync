@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.9.67",
+  "version": "1.9.68",
   "productName": "Pofol Sync",
   "description": "ASSI 포트폴리오 자동 동기화",
   "main": "main.js",
@@ -42,9 +42,9 @@
       "target": "nsis",
       "icon": "assets/icon.ico",
       "signAndEditExecutable": true,
-      "artifactName": "ASSI-Sync-Windows-${version}.${ext}"
+      "artifactName": "Pofol-Sync-Windows-${version}.${ext}"
     },
-    "forceCodeSigning": false,
+    "forceCodeSigning": true,
     "mac": {
       "target": [
         {
@@ -67,7 +67,7 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "artifactName": "ASSI-Sync-Mac-${version}-${arch}.${ext}"
+      "artifactName": "Pofol-Sync-Mac-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": true,

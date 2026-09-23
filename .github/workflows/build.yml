@@ -57,13 +57,17 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      # ⚠️ 서명 검사 — 2026-09-22 검수. 로컬 `npm run build` 에만 있던 검사를 CI 에도 둔다.
+      #    서명 안 된 앱이 릴리즈되면 **모든 사용자의 자동 업데이트가 죽는다** (9/7 사고). 검사에 걸리면 릴리즈까지 못 간다.
+      - name: Verify code signature
+        run: bash tools/verify-signature.sh
       - name: List build artifacts
         run: ls -la dist/
 
       - name: Submit notarization (non-blocking)
         continue-on-error: true
         run: |
-          for ZIP in dist/ASSI-Sync-Mac-*.zip dist/Pofol-Sync-Mac-*.dmg; do
+          for ZIP in dist/Pofol-Sync-Mac-*.zip dist/Pofol-Sync-Mac-*.dmg; do
             echo "=== Submitting $ZIP ==="
             xcrun notarytool submit "$ZIP" \
               --apple-id "$APPLE_ID" \
@@ -82,7 +86,7 @@ jobs:
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ASSI-Sync-Mac
+          name: Pofol-Sync-Mac
           path: |
             dist/*.zip
             dist/*.dmg
@@ -106,7 +110,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: ASSI-Sync-Windows
+          name: Pofol-Sync-Windows
           path: |
             dist/*.exe
             dist/latest.yml
@@ -126,13 +130,13 @@ jobs:
       - name: Download Mac artifact
         uses: actions/download-artifact@v4
         with:
-          name: ASSI-Sync-Mac
+          name: Pofol-Sync-Mac
           path: release-assets
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: ASSI-Sync-Windows
+          name: Pofol-Sync-Windows
           path: release-assets
 
       - name: List release assets
@@ -146,9 +150,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: ASSI Sync v${{ steps.version.outputs.version }}
+          name: Pofol Sync v${{ steps.version.outputs.version }}
           body: |
-            ASSI Sync v${{ steps.version.outputs.version }}
+            Pofol Sync v${{ steps.version.outputs.version }}
           files: release-assets/**/*
           make_latest: true
         env:

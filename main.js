@@ -424,7 +424,7 @@ function buildAuthHandler(providerKind) {
 
     const authHTML = `<!DOCTYPE html><html><head>
       <meta charset="UTF-8">
-      <title>ASSI Login</title>
+      <title>Pofol 로그인</title>
       <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Pretendard Variable',sans-serif; }
@@ -441,7 +441,7 @@ function buildAuthHandler(providerKind) {
       <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     </head><body>
       <div class="card">
-        <div class="logo">ASSI</div>
+        <div class="logo">pofol</div>
         <div class="sub">${subLabel}</div>
         <div class="spinner" id="spinner"></div>
         <p class="status" id="status">${statusText}</p>

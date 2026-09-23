@@ -19,6 +19,8 @@ function mk(apiCalls) {
     deleteProject: async id => { apiCalls.push(['deleteProject', id]); return { ok: true } },
     deleteAsset: async id => { apiCalls.push(['deleteAsset', id]); return { ok: true } },
     deleteFile: async p => { apiCalls.push(['deleteFile', p]); return { ok: true } },
+    trashAssets: async ids => { apiCalls.push(['trashAssets', ids]); return { ok: true } },
+    updateProject: async (id, d) => { apiCalls.push(['updateProject', id, d]); return { ok: true } },
     getProject: async () => null,
   }
   const e = new Engine({ uid: 'u1', watchDir: root, statePath: path.join(root, '.s.json'), api })
@@ -81,6 +83,36 @@ head('프로젝트를 못 찾은 사진 — 정체불명 폴더를 지어내지 
 }
 
 console.log('\n' + '━'.repeat(64))
+head("Finder 에서 사진 한 장을 지우면 휴지통행이다 — 영구 삭제·파일 삭제 금지 (2026-09-22)")
+{
+  const calls = []
+  const { root, e } = mk(calls)
+  const rel = 'AD/프로젝트/a.jpg'
+  const abs = path.join(root, rel)
+  fs.mkdirSync(path.dirname(abs), { recursive: true }); fs.writeFileSync(abs, 'x'.repeat(100))
+  e.state.syncedFiles[rel] = { assetId: 'as_a', projectId: 'P1', storagePath: 'u/a.jpg', fileSize: 100 }
+  e.onFileStatus = () => {}; e.onError = () => {}
+  fs.unlinkSync(abs)
+  await e.handleDelete(abs)
+  ok('휴지통(trashAssets)으로 보낸다', calls.some(c => c[0] === 'trashAssets' && c[1][0] === 'as_a'))
+  ok('영구 삭제(deleteAsset)는 부르지 않는다', !calls.some(c => c[0] === 'deleteAsset'))
+  ok('저장소 파일(deleteFile)은 지우지 않는다', !calls.some(c => c[0] === 'deleteFile'))
+  ok('기록에서는 빠진다', !e.state.syncedFiles[rel])
+}
+
+head("감시 폴더가 통째로 사라지면(외장하드 빠짐) 웹을 건드리지 않는다")
+{
+  const calls = []
+  const { root, e } = mk(calls)
+  const rel = 'AD/프로젝트/b.jpg'
+  e.state.syncedFiles[rel] = { assetId: 'as_b', projectId: 'P1', storagePath: 'u/b.jpg', fileSize: 100 }
+  e.onFileStatus = () => {}; e.onError = () => {}
+  fs.rmSync(root, { recursive: true, force: true })
+  await e.handleDelete(path.join(root, rel))
+  ok('아무 서버 호출도 없다', calls.length === 0, JSON.stringify(calls))
+  ok('기록도 그대로다 (다시 꽂으면 그대로 이어진다)', !!e.state.syncedFiles[rel])
+}
+
 console.log(fail ? `실패 ${fail}건` : `${n}가지 전부 통과`)
 process.exit(fail ? 1 : 0)
 })().catch(e => { console.error('터짐:', e); process.exit(1) })
