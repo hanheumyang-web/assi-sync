@@ -1,10 +1,10 @@
 {
   "name": "assi-sync",
-  "version": "1.9.69",
+  "version": "1.9.70",
   "productName": "Pofol Sync",
-  "description": "ASSI 포트폴리오 자동 동기화",
+  "description": "pofol — 작업 폴더를 포트폴리오 사이트로",
   "main": "main.js",
-  "author": "ASSI",
+  "author": "pofol",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder && bash tools/verify-signature.sh",
@@ -103,6 +103,7 @@
     "electron-updater": "^6.3.0",
     "ffmpeg-static": "^5.3.0",
     "ffprobe-static": "^3.1.0",
+    "heic-convert": "^2.1.0",
     "pdfjs-dist": "^5.6.205",
     "sharp": "^0.34.5",
     "yauzl": "^3.3.0"

@@ -424,6 +424,8 @@
         이메일로 로그인
       </button>
       <div id="email-error" style="display:none;font-size:11.5px;color:#b0624a;text-align:center;padding:2px 4px;line-height:1.5"></div>
+      <!-- 앱에는 가입이 없다 — 이메일로 처음 온 사람이 "맞지 않아요" 에서 멈추지 않게 웹으로 보낸다 (2026-09-25) -->
+      <div style="font-size:11px;color:#999;text-align:center;padding-top:2px">처음이에요? <a href="#" id="link-web-signup" style="color:#3B82F6;font-weight:700;text-decoration:none">웹에서 가입하기</a></div>
     </div>
   </div>
 
@@ -441,8 +443,10 @@
     </div>
     <div class="folder-box">
       <div class="folder-label">동기화 폴더</div>
-      <div class="folder-path empty" id="folder-display">동기화할 폴더를 골라 주세요</div>
-      <button class="btn-select-folder" id="btn-folder">📂 폴더 선택</button>
+      <div class="folder-path empty" id="folder-display">바탕화면에 pofol 폴더를 만드는 중이에요</div>
+      <!-- 바탕화면 pofol 폴더가 기본 — 처음 온 사람이 폴더를 찾아 고르지 않아도 된다 (2026-09-25) -->
+      <div style="font-size:10.5px;color:#999;margin:-4px 0 8px;line-height:1.5">이 폴더 안에 <b style="color:#666">분류 폴더 → 프로젝트 폴더</b>로 넣으면 그대로 올라가요</div>
+      <button class="btn-select-folder" id="btn-folder">📂 다른 폴더 고르기</button>
     </div>
     <div style="background:white;border-radius:20px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden">
       <!-- Finder bar -->
@@ -494,7 +498,9 @@
       <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#999" id="sync-user-label"></span>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="btn-stop" id="btn-settings" style="font-size:10px;color:#666;border-color:#ddd;padding:4px 10px;border-radius:6px" title="설정">⚙️ 설정</button>
-        <button class="btn-stop" id="btn-open-web" style="font-size:10px;color:#828DF8;border-color:#C7D2FE;padding:4px 10px;border-radius:6px" title="포폴 웹사이트 열기">🌐 포폴</button>
+        <!-- 내 사이트: 발행된 주소가 있을 때만. 웹에서 꾸미기: 로그인이 이어진 채 웹 대시보드가 열린다 (2026-09-25) -->
+        <button class="btn-stop" id="btn-my-site" style="display:none;font-size:10px;color:#16A34A;border-color:#BBF7D0;padding:4px 10px;border-radius:6px" title="발행된 내 사이트 열기">🌐 내 사이트</button>
+        <button class="btn-stop" id="btn-open-web" style="font-size:10px;color:#2563EB;border-color:#BFDBFE;padding:4px 10px;border-radius:6px" title="로그인된 채 웹에서 사이트를 꾸며요">웹에서 꾸미기</button>
         <button class="btn-stop" id="btn-logout" style="font-size:10px;color:#EF4444;border-color:#FCA5A5;padding:4px 10px;border-radius:6px">로그아웃</button>
       </div>
     </div>
@@ -516,6 +522,8 @@
         <button class="btn-stop" id="btn-stop">중지</button>
       </div>
     </div>
+    <!-- 알림 줄 — 사이트가 생겼을 때 · 요금제 상한 · 로그인 만료 같은 **사람이 읽어야 하는** 일. 예전엔 개발자 콘솔에만 남았다 (2026-09-25) -->
+    <div id="sync-notice" style="display:none;margin:0 16px 4px;padding:9px 12px;border-radius:10px;font-size:11.5px;line-height:1.5;align-items:center;gap:10px"></div>
     <div style="display:flex;gap:4px;padding:8px 16px 0 16px">
       <button id="tab-activity" class="tab-btn" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;border-radius:8px;cursor:pointer">활동</button>
       <button id="tab-explorer" class="tab-btn active" style="flex:1;padding:8px;font-size:11px;font-weight:700;border:none;background:#111;color:#fff;border-radius:8px;cursor:pointer">탐색기</button>

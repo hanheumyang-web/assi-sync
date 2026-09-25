@@ -257,6 +257,44 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('open-external', (_, url) => shell.openExternal(url))
 
+/* ── 웹과 잇기 (2026-09-25 검수) ──
+   · 기본 폴더: 바탕화면에 pofol 폴더를 만들어 미리 골라 둔다 — 로그인 화면이 "바탕화면 폴더에 넣기만 하면" 이라고 약속한다.
+   · 웹에서 꾸미기: 서버에서 1회용 열쇠를 받아 주소 뒤(#dt=)에 실어 연다 → 웹이 로그인된 채 열린다. 못 받으면 그냥 연다.
+   · 내 사이트: 발행된 주소가 있으면 돌려준다. */
+function apiFromConfig() {
+  const config = loadConfig()
+  if (!config.idToken) return null
+  const { ApiClient } = require('./lib/api-client.js')
+  return new ApiClient({
+    idToken: config.idToken, refreshToken: config.refreshToken,
+    onTokenRefreshed: (t) => saveConfig({ idToken: t.idToken, refreshToken: t.refreshToken }),
+  })
+}
+
+ipcMain.handle('ensure-default-folder', () => {
+  const dir = path.join(app.getPath('desktop'), 'pofol')
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }) } catch (e) { return null }
+  return dir
+})
+
+ipcMain.handle('open-web-authed', async (_, to) => {
+  const dest = typeof to === 'string' && to.startsWith('/') ? to : '/'
+  const api = syncEngine?.api || apiFromConfig()
+  try {
+    const token = await api.webLoginToken()
+    await shell.openExternal(`https://pofol.co${dest}?from=desktop#dt=${encodeURIComponent(token)}`)
+  } catch (e) {
+    await shell.openExternal(`https://pofol.co${dest}`)
+  }
+  return true
+})
+
+ipcMain.handle('get-my-site', async () => {
+  const api = syncEngine?.api || apiFromConfig()
+  if (!api) return null
+  try { return await api.getMySite() } catch (_) { return null }
+})
+
 // ── 휴지통 ──
 // ⚠️ 중복 판정은 서버가 한다. 여기서는 서버에 묻고 결과를 넘기기만 한다.
 //    파일 위치를 Finder/탐색기에서 열어주는 건 여기서만 할 수 있다.
@@ -516,7 +554,7 @@ function buildAuthHandler(providerKind) {
               saveConfig(userData)
               resolve(userData)
             } else {
-              resolve({ error: data.error || 'Login failed' })
+              resolve({ error: data.error || '로그인하지 못했어요' })
             }
           }, 500)
         })
@@ -543,7 +581,7 @@ function buildAuthHandler(providerKind) {
             saveConfig(userData)
             resolve(userData)
           } else {
-            resolve({ error: error || 'Login failed' })
+            resolve({ error: error || '로그인하지 못했어요' })
           }
         }, 500)
       } else {
@@ -567,7 +605,7 @@ function buildAuthHandler(providerKind) {
       authWindow.on('closed', () => {
         authWindow = null
         server.close()
-        resolve({ error: 'Window closed' })
+        resolve({ error: '로그인 창이 닫혔어요' })
       })
     })
   })
@@ -616,7 +654,7 @@ ipcMain.handle('apple-login', () => new Promise((resolve) => {
   authWindow.webContents.on('did-navigate-in-page', handleNavigate)
 
   authWindow.on('closed', () => {
-    if (!captured) resolve({ error: 'Window closed' })
+    if (!captured) resolve({ error: '로그인 창이 닫혔어요' })
     authWindow = null
   })
 
@@ -644,7 +682,7 @@ ipcMain.handle('save-config', (_, data) => {
 ipcMain.handle('select-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
-    title: '감시할 폴더 선택',
+    title: '동기화할 폴더 고르기',
   })
   if (result.canceled) return null
   return result.filePaths[0]

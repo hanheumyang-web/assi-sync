@@ -84,6 +84,10 @@ contextBridge.exposeInMainWorld('api', {
 
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  // 웹과 잇기
+  ensureDefaultFolder: () => ipcRenderer.invoke('ensure-default-folder'),
+  openWebAuthed: (to) => ipcRenderer.invoke('open-web-authed', to),
+  getMySite: () => ipcRenderer.invoke('get-my-site'),
 
   // Window controls
   minimize: () => ipcRenderer.invoke('minimize-window'),

@@ -96,7 +96,20 @@ function showSetup() {
   document.getElementById('welcome-email').textContent = currentUser.email || ''
   if (selectedFolder) updateFolderDisplay(selectedFolder)
   showScreen('setup-screen')
+  /* 고른 폴더가 없으면 바탕화면 pofol 폴더를 만들어 미리 골라 둔다 — 처음 온 사람이 폴더 찾기에서 멈추지 않게 */
+  if (!selectedFolder && window.api.ensureDefaultFolder) {
+    window.api.ensureDefaultFolder().then((dir) => {
+      if (dir && !selectedFolder) { selectedFolder = dir; updateFolderDisplay(dir) }
+      else if (!dir && !selectedFolder) document.getElementById('folder-display').textContent = '동기화할 폴더를 골라 주세요'
+    })
+  }
 }
+
+/* 웹에서 가입 — 앱에는 가입 화면이 없다 */
+document.getElementById('link-web-signup')?.addEventListener('click', (e) => {
+  e.preventDefault()
+  window.api.openExternal('https://pofol.co')
+})
 
 // ── Folder Selection ──
 document.getElementById('btn-folder').addEventListener('click', async () => {
@@ -123,6 +136,7 @@ document.getElementById('btn-start').addEventListener('click', async () => {
   renderFileList()
   await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })
     setTimeout(peekTrashOnce, 4000)
+  refreshMySite()
 })
 
 function updateSyncUserLabel() {
@@ -157,10 +171,48 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
    맥에서는 시스템이 진짜 창 버튼을 왼쪽 위에 그린다. */
 document.body.dataset.os = (window.api && window.api.platform) || 'unknown'
 
-// ── Open Web ──
+// ── 웹과 잇기 ──
+/* 웹에서 꾸미기: 로그인이 이어진 채 대시보드가 열린다 (예전엔 로그인 안 된 첫 화면이 열렸다) */
 document.getElementById('btn-open-web').addEventListener('click', () => {
-  window.api.openExternal('https://pofol.co')
+  if (window.api.openWebAuthed) window.api.openWebAuthed('/')
+  else window.api.openExternal('https://pofol.co')
 })
+let mySiteSlug = null
+document.getElementById('btn-my-site').addEventListener('click', () => {
+  if (mySiteSlug) window.api.openExternal(`https://pofol.co/p/${mySiteSlug}`)
+})
+function showMySite(slug) {
+  mySiteSlug = slug || null
+  document.getElementById('btn-my-site').style.display = mySiteSlug ? '' : 'none'
+}
+async function refreshMySite() {
+  try { const s = await window.api.getMySite?.(); showMySite(s?.slug) } catch (_) {}
+}
+
+/* 알림 줄 — kind: ok · warn · error. actions: [{ label, run }] */
+function showNotice(kind, html, actions = []) {
+  const el = document.getElementById('sync-notice')
+  const look = kind === 'ok' ? 'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0'
+    : kind === 'warn' ? 'background:#FFFBEB;color:#92400E;border:1px solid #FDE68A'
+    : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA'
+  el.style.cssText = `display:flex;margin:0 16px 4px;padding:9px 12px;border-radius:10px;font-size:11.5px;line-height:1.5;align-items:center;gap:10px;${look}`
+  el.innerHTML = `<span style="flex:1;min-width:0">${html}</span>`
+  actions.forEach(({ label, run }) => {
+    const b = document.createElement('button')
+    b.className = 'btn-stop'
+    b.style.cssText = 'font-size:10.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;color:inherit;border-color:currentColor;background:transparent'
+    b.textContent = label
+    b.addEventListener('click', run)
+    el.appendChild(b)
+  })
+  const x = document.createElement('button')
+  x.style.cssText = 'border:none;background:none;color:inherit;opacity:.6;cursor:pointer;font-size:14px;line-height:1'
+  x.textContent = '×'
+  x.addEventListener('click', hideNotice)
+  el.appendChild(x)
+}
+function hideNotice() { document.getElementById('sync-notice').style.display = 'none' }
+let limitNoticeOn = false
 
 // ── Logout ──
 /* 로그아웃은 두 화면에 있다 — 준비 화면과 동기화 화면.
@@ -182,6 +234,7 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 // ── Retry ──
 document.getElementById('btn-retry-all').addEventListener('click', () => {
+  if (limitNoticeOn) { hideNotice(); limitNoticeOn = false }
   window.api.retryAllFailed()
 })
 
@@ -216,9 +269,19 @@ window.api.onSyncProgress((data) => {
     statusEl.innerHTML = '<span class="dot syncing"></span>동기화 중...'
     infoEl.textContent = `${data.completed} / ${data.total}`
   } else if (data.phase === 'watching') {
-    statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
-    infoEl.textContent = `파일 ${data.total}개를 맞췄어요`
+    /* 올리는 중과 끝난 뒤가 같은 글이라 끝났는지 알 수 없었다 (2026-09-25) */
+    statusEl.innerHTML = '<span class="dot watching"></span>올리기 끝 · 폴더를 지켜보고 있어요'
+    infoEl.textContent = `파일 ${data.total}개를 맞췄어요 · 폴더에 넣으면 바로 올라가요`
     refreshSyncedFolders()
+  } else if (data.phase === 'site_ready') {
+    /* 첫 동기화 뒤 서버가 사이트를 만들었다(또는 새 것을 실었다) */
+    showMySite(data.slug)
+    const n = data.madePublic ? ` · 최신 ${data.madePublic}개를 실었어요` : ''
+    showNotice('ok', data.created
+      ? `<b>내 사이트가 생겼어요</b> pofol.co/p/${data.slug}${n}`
+      : `<b>내 사이트에 올렸어요</b> pofol.co/p/${data.slug}${n}`,
+      [{ label: '내 사이트 보기', run: () => window.api.openExternal(`https://pofol.co/p/${data.slug}`) },
+       { label: '웹에서 꾸미기', run: () => window.api.openWebAuthed?.('/') }])
   } else if (data.phase === 'share_uploading') {
     statusEl.innerHTML = '<span class="dot syncing"></span>원본을 그대로 올리는 중'
     infoEl.textContent = `${data.projectName || '공유'} · ${data.completed} / ${data.total}`
@@ -242,6 +305,22 @@ window.api.onFileStatus((data) => {
 
 window.api.onSyncError((data) => {
   console.error('Sync error:', data)
+  /* 사람이 읽어야 하는 오류는 화면에 — 예전엔 개발자 콘솔에만 남아 "동기화 중…" 에서 멈춘 것처럼 보였다 (2026-09-25) */
+  if (data?.kind === 'project-limit') {
+    limitNoticeOn = true
+    const 지금 = data.current != null ? ` (지금 ${data.current}개)` : ''
+    showNotice('warn', `<b>무료는 프로젝트 ${data.limit ?? 20}개까지예요</b>${지금} · 올릴 폴더만 남기거나 요금제를 올려 주세요`,
+      [{ label: '요금제 보기', run: () => window.api.openWebAuthed ? window.api.openWebAuthed('/pricing') : window.api.openExternal('https://pofol.co/pricing') },
+       { label: '다시 확인', run: () => { hideNotice(); limitNoticeOn = false; window.api.retryAllFailed() } }])
+    updateSummary()
+    return
+  }
+  const msg = String(data?.message || data?.error || '알 수 없는 문제')
+  if (/토큰|로그인/.test(msg)) {
+    showNotice('error', `<b>로그인이 풀렸어요</b> · 다시 로그인해 주세요`, [{ label: '다시 로그인', run: () => document.getElementById('btn-logout').click() }])
+  } else {
+    showNotice('error', `<b>문제가 생겼어요</b> · ${msg.slice(0, 120)}`)
+  }
 })
 
 // ── New Folder Auto-Sync Notification ──
@@ -1246,6 +1325,8 @@ function updateSummary() {
   text.innerHTML = parts.join(' · ')
 
   retryBtn.style.display = failed > 0 ? 'block' : 'none'
+  /* 상한에 걸린 실패는 눌러도 같은 답이다 — 버튼 말을 바꾼다 */
+  retryBtn.textContent = limitNoticeOn ? '요금제 바꿨어요 · 다시 확인' : '전부 다시 시도'
 }
 
 // ── Tray Menu Actions ──
@@ -1426,6 +1507,7 @@ document.getElementById('btn-settings').addEventListener('click', openSettings)
       renderFileList()
       await window.api.startSync({ uid: currentUser.uid, watchDir: selectedFolder })
     setTimeout(peekTrashOnce, 4000)
+      refreshMySite()
     } else {
       showSetup()
     }
