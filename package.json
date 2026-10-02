@@ -1,6 +1,6 @@
 {
   "name": "assi-sync",
-  "version": "1.9.70",
+  "version": "1.9.71",
   "productName": "Pofol Sync",
   "description": "pofol — 작업 폴더를 포트폴리오 사이트로",
   "main": "main.js",
