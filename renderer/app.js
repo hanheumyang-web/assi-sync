@@ -37,6 +37,9 @@ async function handleOAuthLogin(providerKind) {
     }
     currentUser = { uid: result.uid, name: result.name || '', email: result.email || '' }
     selectedFolder = (await window.api.getConfig()).watchDir || null
+    /* 단추를 되돌려 둔다 — 「다시 로그인」으로 이 화면에 돌아오면 「로그인 중...」 인 채 눌리지 않았다 (2026-10-13) */
+    btn.disabled = false
+    btn.innerHTML = originalHTML
     showSetup()
   } catch (err) {
     alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + err.message)
@@ -92,6 +95,14 @@ document.getElementById('password-input').addEventListener('keydown', e => {
 })
 
 function showSetup() {
+  /* 다시 로그인한 같은 계정이면 고르기 화면 없이 바로 이어서 올린다 (켜면서 폴더를 다시 훑어 못 올린 파일부터 올린다) */
+  if (다시로그인중 && currentUser?.uid === 다시로그인중 && selectedFolder) {
+    다시로그인중 = null
+    document.getElementById('btn-start').disabled = false
+    document.getElementById('btn-start').click()
+    return
+  }
+  다시로그인중 = null
   document.getElementById('welcome-name').textContent = currentUser.name || '반가워요'
   document.getElementById('welcome-email').textContent = currentUser.email || ''
   if (selectedFolder) updateFolderDisplay(selectedFolder)
@@ -232,6 +243,21 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   showScreen('login-screen')
 })
 
+/* 다시 로그인 — 로그아웃과 달리 고른 폴더·동기화 기록을 지우지 않는다. 같은 계정으로 들어오면 바로 이어서 올린다 (showSetup).
+   다른 계정으로 들어오면 main.js saveConfig 가 폴더·기록을 비운다 (남의 파일이 섞이지 않게) */
+let 다시로그인중 = null
+async function 다시로그인() {
+  hideNotice()
+  await window.api.stopSync()
+  다시로그인중 = currentUser?.uid || null
+  await window.api.saveConfig({ idToken: '', refreshToken: '' })
+  const config = await window.api.getConfig()
+  document.getElementById('email-input').value = config.email || ''
+  document.getElementById('password-input').value = ''
+  showScreen('login-screen')
+}
+window.다시로그인 = 다시로그인
+
 // ── Retry ──
 document.getElementById('btn-retry-all').addEventListener('click', () => {
   if (limitNoticeOn) { hideNotice(); limitNoticeOn = false }
@@ -316,8 +342,13 @@ window.api.onSyncError((data) => {
     return
   }
   const msg = String(data?.message || data?.error || '알 수 없는 문제')
-  if (/토큰|로그인/.test(msg)) {
-    showNotice('error', `<b>로그인이 풀렸어요</b> · 다시 로그인해 주세요`, [{ label: '다시 로그인', run: () => document.getElementById('btn-logout').click() }])
+  /* 로그인이 끝났다 (2026-10-13) — 파일마다 실패시키지 않고 이 알림 하나. 「다시 로그인」은 폴더·동기화 기록을 지우지 않는다 */
+  if (data?.kind === 'auth-expired' || /토큰|로그인/.test(msg)) {
+    const statusEl = document.getElementById('sync-status')
+    const infoEl = document.getElementById('sync-info')
+    if (statusEl) statusEl.innerHTML = '<span class="dot" style="background:#EF4444"></span>로그인이 끝났어요'
+    if (infoEl) infoEl.textContent = '다시 로그인하면 멈춘 파일부터 이어서 올려요'
+    showNotice('error', `<b>로그인이 끝났어요</b> · 다시 로그인하면 멈춘 파일부터 이어서 올려요`, [{ label: '다시 로그인', run: 다시로그인 }])
   } else {
     showNotice('error', `<b>문제가 생겼어요</b> · ${msg.slice(0, 120)}`)
   }
@@ -1282,6 +1313,9 @@ function updateFileItem(data) {
     statusHtml = '<span class="file-status" style="color:#828DF8">이름 변경</span>'
   } else if (data.status === 'deleted') {
     statusHtml = '<span class="file-status" style="color:#999">삭제됨</span>'
+  } else if (data.status === 'held') {
+    /* 로그인이 끝나 붙들어 둔 파일 — 다시 로그인하면 올라간다 */
+    statusHtml = '<span class="file-status" style="color:#999">대기</span>'
   }
 
   item.innerHTML = `
@@ -1306,15 +1340,16 @@ function updateSummary() {
   const text = document.getElementById('summary-text')
   const retryBtn = document.getElementById('btn-retry-all')
 
-  let done = 0, failed = 0, uploading = 0, encoding = 0
+  let done = 0, failed = 0, uploading = 0, encoding = 0, held = 0
   for (const [, data] of fileStatuses) {
     if (data.status === 'done') done++
     else if (data.status === 'failed') failed++
     else if (data.status === 'uploading') uploading++
     else if (data.status === 'encoding') encoding++
+    else if (data.status === 'held') held++
   }
 
-  const total = done + failed + uploading + encoding
+  const total = done + failed + uploading + encoding + held
   if (total === 0) { bar.style.display = 'none'; return }
 
   bar.style.display = 'flex'
@@ -1322,6 +1357,7 @@ function updateSummary() {
   if (encoding > 0) parts.push(`<span style="color:#A78BFA">${encoding} 인코딩 중</span>`)
   if (uploading > 0) parts.push(`${uploading} 업로드 중`)
   if (failed > 0) parts.push(`<span style="color:#EF4444">${failed} 실패</span>`)
+  if (held > 0) parts.push(`${held} 로그인 기다림`)
   text.innerHTML = parts.join(' · ')
 
   retryBtn.style.display = failed > 0 ? 'block' : 'none'

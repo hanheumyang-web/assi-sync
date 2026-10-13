@@ -7,6 +7,8 @@ const crypto = require('crypto')
 
 let mainWindow = null
 let tray = null
+/* 시험용 — 다른 설정 폴더로 띄운다 (진짜 사용자 설정·동기화 기록을 안 건드리게, 2026-10-13). 배포한 앱에서는 아무도 이 값을 넣지 않는다 */
+if (process.env.POFOL_TEST_USER_DATA) app.setPath('userData', process.env.POFOL_TEST_USER_DATA)
 const STATE_PATH = path.join(app.getPath('userData'), 'sync-state.json')
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json')
 
@@ -261,6 +263,12 @@ ipcMain.handle('open-external', (_, url) => shell.openExternal(url))
    · 기본 폴더: 바탕화면에 pofol 폴더를 만들어 미리 골라 둔다 — 로그인 화면이 "바탕화면 폴더에 넣기만 하면" 이라고 약속한다.
    · 웹에서 꾸미기: 서버에서 1회용 열쇠를 받아 주소 뒤(#dt=)에 실어 연다 → 웹이 로그인된 채 열린다. 못 받으면 그냥 연다.
    · 내 사이트: 발행된 주소가 있으면 돌려준다. */
+/* 로그인이 끝났다 (2026-10-13) — 화면에 「다시 로그인」 알림 하나. 동기화 엔진은 파일을 붙들어 두고 서버를 더 두드리지 않는다 */
+function 로그인끝남알리기() {
+  console.warn('[Auth] 로그인이 끝났다 — 다시 로그인할 때까지 올리기를 멈춘다')
+  mainWindow?.webContents.send('sync-error', { kind: 'auth-expired', message: '로그인이 끝났어요' })
+}
+
 function apiFromConfig() {
   const config = loadConfig()
   if (!config.idToken) return null
@@ -268,6 +276,7 @@ function apiFromConfig() {
   return new ApiClient({
     idToken: config.idToken, refreshToken: config.refreshToken,
     onTokenRefreshed: (t) => saveConfig({ idToken: t.idToken, refreshToken: t.refreshToken }),
+    onAuthExpired: 로그인끝남알리기,
   })
 }
 
@@ -751,6 +760,7 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
       // Persist refreshed tokens
       saveConfig({ idToken: tokens.idToken, refreshToken: tokens.refreshToken })
     },
+    onAuthExpired: 로그인끝남알리기,
   })
 
   // [v1.9.15] main process 의 console.log/warn 을 renderer DevTools 로 forward.
@@ -785,7 +795,13 @@ ipcMain.handle('start-sync', async (_, { uid, watchDir }) => {
     },
   })
 
-  await syncEngine.start()
+  try {
+    await syncEngine.start()
+  } catch (e) {
+    /* 켤 때부터 로그인이 끝나 있으면 서버 맞추기에서 바로 걸린다 — 알림은 이미 나갔다 (로그인끝남알리기) */
+    if (e?.code === 'auth-expired') return false
+    throw e
+  }
   return true
 })
 
