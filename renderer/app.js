@@ -116,10 +116,11 @@ function showSetup() {
   }
 }
 
-/* 웹에서 가입 — 앱에는 가입 화면이 없다 */
+/* 웹에서 가입 — 앱에는 가입 화면이 없다.
+   2026-10-16 대표님 결정: 첫 화면이 아니라 로그인(가입) 창이 바로 열리게 (/?login=1). 앱을 깐 사람에게 필요한 다음 걸음은 가입이다 */
 document.getElementById('link-web-signup')?.addEventListener('click', (e) => {
   e.preventDefault()
-  window.api.openExternal('https://pofol.co')
+  window.api.openExternal('https://pofol.co/?login=1')
 })
 
 // ── Folder Selection ──
