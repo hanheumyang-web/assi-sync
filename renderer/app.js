@@ -19,16 +19,22 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active')
 }
 
-// ── OAuth Login (Google + Apple) ──
+// ── OAuth Login (Google + Apple + 카카오 11/10) ──
 async function handleOAuthLogin(providerKind) {
-  const btnId = providerKind === 'apple' ? 'btn-apple-login' : 'btn-google-login'
+  const btnId = { apple: 'btn-apple-login', google: 'btn-google-login', kakao: 'btn-kakao-login' }[providerKind]
   const btn = document.getElementById(btnId)
   const originalHTML = btn.innerHTML
   btn.disabled = true
   btn.innerHTML = '<span style="font-size:13px">로그인 중...</span>'
   try {
-    const apiCall = providerKind === 'apple' ? window.api.appleLogin : window.api.googleLogin
+    const apiCall = { apple: window.api.appleLogin, google: window.api.googleLogin, kakao: window.api.kakaoLogin }[providerKind]
     const result = await apiCall()
+    /* 카카오 창을 사람이 닫았으면 아무 말 없이 단추만 되돌린다 */
+    if (result.error && result.그만둠) {
+      btn.disabled = false
+      btn.innerHTML = originalHTML
+      return
+    }
     if (result.error) {
       alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + result.error)
       btn.disabled = false
@@ -50,6 +56,7 @@ async function handleOAuthLogin(providerKind) {
 
 document.getElementById('btn-google-login').addEventListener('click', () => handleOAuthLogin('google'))
 document.getElementById('btn-apple-login').addEventListener('click', () => handleOAuthLogin('apple'))
+document.getElementById('btn-kakao-login').addEventListener('click', () => handleOAuthLogin('kakao'))
 
 // ── UID Login (fallback) ──
 /* ⚠️ 예전엔 여기서 UID 를 그대로 받아 저장했다. 비밀번호 확인 없이

@@ -671,6 +671,17 @@ ipcMain.handle('apple-login', () => new Promise((resolve) => {
 }))
 
 
+/* 카카오 — 웹 · 아이폰과 같은 서버 길 (11/10 대표님 「가 하고 카카오로그인까지 붙여서 업뎃한번하자」).
+   같은 카카오면 웹 · 아이폰과 같은 pofol 계정, 설정에서 연결한 카카오도 그 계정. 순서 · 지키는 것은 lib/kakao-login.js 머리글 */
+const { 카카오로그인 } = require('./lib/kakao-login')
+ipcMain.handle('kakao-login', async () => {
+  const r = await 카카오로그인({ BrowserWindow, session, shell, 부모: mainWindow, apiKey: FIREBASE_API_KEY })
+  if (!r?.uid) return r
+  const userData = { uid: r.uid, name: r.name, email: r.email, photo: r.photo, idToken: r.idToken, refreshToken: r.refreshToken }
+  saveConfig(userData)
+  return userData
+})
+
 // sync-state.json 청소 — 로그아웃 시 호출. 다음 계정으로 fresh sync 시작.
 ipcMain.handle('clear-sync-state', () => {
   try {
