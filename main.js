@@ -144,7 +144,7 @@ function createWindow() {
       ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 14 } }
       : { frame: false }),
     transparent: false,
-    backgroundColor: '#F4F3EE',
+    backgroundColor: require('electron').nativeTheme.shouldUseDarkColors ? '#0F0F11' : '#F1F1F2',   // 새 디자인 바탕(--ui-bg, 후보 a) · 어둡게 짝 — 화면이 그려지기 전 한순간 보이는 색 (11/13)
     icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

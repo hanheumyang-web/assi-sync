@@ -13,10 +13,153 @@ if (window.api?.onMainLog) {
   })
 }
 
+/* ══════════════════════════════════════════════════════════
+   새 디자인 한 벌 (11/13) — 웹 새 디자인(ui2)과 같은 아이콘 · 같은 앱 안 창.
+   값 · 부품 꼴은 index.html <style> 에 있다(웹 ui-tokens.css · ui2/parts.css 를 옮김).
+   ══════════════════════════════════════════════════════════ */
+
+/* 아이콘 한 벌 — 웹 src/components/ui2/icons.jsx 의 길을 그대로 옮겼다(선 2.3 · 끝 둥글게 · 색은 글자색).
+   웹 한 벌에 없던 꼴(새로고침 · 멈춤 · 시계 · 느낌표 · 내려받기)은 같은 굵기 · 같은 끝으로 더했다. */
+const 아이콘길 = {
+  globe: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.3 2.3 3.4 5.1 3.4 8.5s-1.1 6.2-3.4 8.5M12 3.5C9.7 5.8 8.6 8.6 8.6 12s1.1 6.2 3.4 8.5',
+  gear: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.3 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5.5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z',
+  search: 'M10.5 4.5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM15 15l4.5 4.5',
+  check: 'M6 12.5l4 4 8-9',
+  folder: 'M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V17A1.5 1.5 0 0 1 19 18.5H5A1.5 1.5 0 0 1 3.5 17z',
+  grid: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+  back: 'M15 5l-7 7 7 7',
+  next: 'M9 5l7 7-7 7',
+  x: 'M6 6l12 12M18 6L6 18',
+  star: 'M12 3.8l2.5 5.1 5.6.8-4 3.9 1 5.6-5.1-2.7-5 2.7.9-5.6-4-3.9 5.6-.8z',
+  pencil: 'M15.6 4.9a2 2 0 0 1 2.9 0l.6.6a2 2 0 0 1 0 2.9L8.6 18.9 4.5 19.5l.6-4.1zM13.8 6.7l3.5 3.5',
+  trash: 'M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7M6.5 7l.9 12a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12M10 11v5.5M14 11v5.5',
+  upload: 'M12 15.5V4.5M7.5 9 12 4.5 16.5 9M5 14.5v3A2 2 0 0 0 7 19.5h10a2 2 0 0 0 2-2v-3',
+  image: 'M5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-11A1.5 1.5 0 0 1 5.5 5zM4.5 16l4.2-4.2 3.3 3.3 2.2-2.2 5.3 5.1M15.5 9.3h.01',
+  play: 'M8 5.5v13l10.5-6.5z',
+  frame: 'M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M10 9.5v5l4.2-2.5z',
+  arrowL: 'M19 12H5.5M11 6l-6 6 6 6',
+  out: 'M8 16 16.5 7.5M9.5 7.5h7v7',
+  mail: 'M5 6h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 6zM4 7.5l8 5.5 8-5.5',
+  move: 'M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V17A1.5 1.5 0 0 1 19 18.5H5A1.5 1.5 0 0 1 3.5 17zM10 13.4h5.5M13.4 11l2.4 2.4-2.4 2.4',
+  undo: 'M9 7.5 5 11.5l4 4M5.5 11.5h8.5a4.5 4.5 0 0 1 0 9H11',
+  /* 더한 꼴 (11/13) */
+  refresh: 'M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.2h-4.2',
+  pause: 'M9 6v12M15 6v12',
+  clock: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2',
+  alert: 'M12 6.5v7M12 17.3h.01',
+  download: 'M12 4.5v11M7.5 11 12 15.5 16.5 11M5 14.5v3A2 2 0 0 0 7 19.5h10a2 2 0 0 0 2-2v-3',
+}
+const 채운아이콘 = new Set(['play'])
+/** 아이콘 하나 — 글로 끼워 넣는다(innerHTML 판). 크기는 px */
+function ic(name, size = 20, cls = '') {
+  const 꽉 = 채운아이콘.has(name)
+  return `<svg class="ic ${cls}" data-ui-icon="${name}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${꽉 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${아이콘길[name] || ''}"/></svg>`
+}
+/** index.html 의 <i data-ic="이름" data-s="크기"> 를 아이콘으로 바꾼다 */
+function 아이콘칠하기(root = document) {
+  root.querySelectorAll('i[data-ic]').forEach(el => {
+    const cls = el.className || ''
+    el.outerHTML = ic(el.dataset.ic, Number(el.dataset.s) || 20, cls)
+  })
+}
+아이콘칠하기()
+
+/* 앱 안 창 — 브라우저 기본 창(alert · confirm · prompt) 대신. 웹 ui2/Ask.jsx 와 같은 동작이다.
+     await 묻기({ 제목, 글, 예, 아니오, 위험 })      → true / false
+     await 맞춰쓰기({ 제목, 글, 맞출글, 예, 위험 })  → 맞출글을 그대로 써야 「예」 가 눌린다(휴지통 비우기)
+     await 알리기({ 제목, 글, 예 })                  → 단추 하나(「확인」)
+     await 실패알림({ 제목, 어떻게, 오류 })          → 무엇이 안 됐는지(제목) + 어떻게 하면 되는지(어떻게). 오류 글은 우리말일 때만
+   위험이면 빨간 단추에 첫 초점은 「취소」. Esc · 바깥 누름 = 닫기(아니오). 컴퓨터라서 가운데 카드. */
+const 묻기나누기 = o => {
+  if (typeof o !== 'string') return o || {}
+  const [첫, ...나머지] = o.split('\n')
+  return { 제목: 첫, 글: 나머지.join('\n').trim() }
+}
+document.body.dataset.screen = 'login-screen'
+function 창띄우기({ 제목, 글, 예 = '확인', 아니오 = '취소', 위험, 맞출글 }) {
+  return new Promise(resolve => {
+    const 앞 = document.activeElement
+    const 판 = document.createElement('div')
+    판.className = 'u2-ask u2-conf' + (맞출글 != null ? ' u2-conf-top' : '') + (아니오 ? '' : ' u2-conf-one')
+    판.setAttribute('data-u2-conf', '')
+    판.innerHTML = `
+      <form class="u2-ask-card u2-conf-card" role="alertdialog" aria-modal="true" aria-labelledby="u2-conf-t" ${글 ? 'aria-describedby="u2-conf-b"' : ''}>
+        <h3 id="u2-conf-t" class="u2-conf-title"></h3>
+        ${글 ? '<p id="u2-conf-b" class="u2-conf-body"></p>' : ''}
+        ${맞출글 != null ? `<input autocomplete="off" spellcheck="false" placeholder="여기에 써 주세요" ${/^\d+$/.test(String(맞출글)) ? 'inputmode="numeric"' : ''} aria-label="${esc(String(맞출글))} 쓰기">` : ''}
+        <div class="u2-ask-foot">
+          ${아니오 ? '<button type="button" class="u2-btn u2-btn-sm" data-no></button>' : ''}
+          <button type="submit" class="u2-btn u2-btn-sm ${위험 ? 'u2-btn-red' : 'u2-btn-blue'}" data-yes></button>
+        </div>
+      </form>`
+    판.querySelector('.u2-conf-title').textContent = 제목 || ''
+    if (글) 판.querySelector('.u2-conf-body').textContent = 글
+    const 예단추 = 판.querySelector('[data-yes]')
+    const 아니오단추 = 판.querySelector('[data-no]')
+    const 칸 = 판.querySelector('input')
+    예단추.textContent = 예
+    if (아니오단추) 아니오단추.textContent = 아니오
+    const 됨 = () => 맞출글 == null || String(칸.value).trim() === String(맞출글)
+    if (칸) { 예단추.disabled = true; 칸.addEventListener('input', () => { 예단추.disabled = !됨() }) }
+    let 끝남 = false
+    const 닫기 = v => {
+      if (끝남) return
+      끝남 = true
+      판.remove()
+      if (앞 && document.contains(앞)) { try { 앞.focus({ preventScroll: true }) } catch {} }
+      resolve(v)
+    }
+    판.addEventListener('mousedown', e => { if (e.target === 판) 닫기(false) })
+    판.querySelector('form').addEventListener('submit', e => { e.preventDefault(); if (됨()) 닫기(true) })
+    아니오단추?.addEventListener('click', () => 닫기(false))
+    판.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); 닫기(false) } }, true)
+    document.body.appendChild(판)
+    if (칸) 칸.focus()
+    else (위험 && 아니오단추 ? 아니오단추 : 예단추).focus({ preventScroll: true })
+  })
+}
+function 묻기(o) { return 창띄우기(묻기나누기(o)) }
+function 맞춰쓰기(o) { return 창띄우기(o) }
+function 알리기(o) { return 창띄우기({ ...묻기나누기(o), 아니오: null }).then(() => {}) }
+/* 오류 글 고르기 — 우리말 오류는 보여 주고, 영어 기술 오류는 손님 말로 바꾸거나 숨긴다(개발자 콘솔에는 남는다) */
+function 오류까닭(e) {
+  const 글 = String(e?.message ?? e ?? '').trim()
+  if (!글) return ''
+  if (/[가-힣]/.test(글)) return 글
+  console.warn('[오류 원문]', 글)
+  if (/network|fetch|offline|unavailable|timed? ?out|deadline|ENOTFOUND|ECONN/i.test(글)) return '인터넷 연결이 불안정해요.'
+  if (/quota|storage limit|ENOSPC/i.test(글)) return '저장 공간이 가득 찼어요. 휴지통을 비우거나 안 쓰는 파일을 지운 뒤 다시 해 주세요.'
+  if (/permission|unauth|auth\/|EPERM|EACCES/i.test(글)) return /EPERM|EACCES/.test(글) ? '이 컴퓨터가 파일을 바꾸지 못하게 막았어요. 파일이 다른 앱에서 열려 있는지 봐 주세요.' : '로그인이 풀렸어요. 다시 로그인한 뒤 해 주세요.'
+  if (/EEXIST/i.test(글)) return '같은 이름이 이미 있어요.'
+  if (/ENOENT/i.test(글)) return '폴더나 파일을 찾지 못했어요.'
+  return ''
+}
+function 실패알림({ 제목, 어떻게 = '잠시 뒤 다시 해 주세요.', 오류 }) {
+  const 까닭 = 오류까닭(오류)
+  const 글 = 까닭 && /주세요/.test(까닭) ? 까닭 : [까닭, 어떻게].filter(Boolean).join('\n')
+  return 알리기({ 제목, 글 })
+}
+/* 진행 글 — 동기화 엔진이 쓰는 속말(서비스 이름 · 영어)을 손님 말로 */
+function 진행말(p) {
+  if (!p) return ''
+  return String(p)
+    .replace(/Bunny 업로드 중\.\.\./, '영상 올리는 중')
+    .replace(/Firestore 기록 중\.\.\./, '기록하는 중')
+    .replace(/동기화 에코 — 스킵|재사용 — 재업로드 없음/, '이미 올라가 있어요')
+    .replace(/Figma 썸네일 추출 중\.\.\./, '미리보기 만드는 중')
+    .replace(/\.fig 업로드 중\.\.\./, '파일 올리는 중')
+    .replace(/Figma 파일 \+ 썸네일 완료|Figma 파일 완료 \(썸네일 없음\)/, '다 올렸어요')
+    .replace(/메타\/자켓 추출 중\.\.\./, '정보 읽는 중')
+    .replace(/자켓 업로드 중\.\.\./, '표지 올리는 중')
+    .replace(/\.\.\.$/, '')
+}
+
 // ── Screen Navigation ──
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
   document.getElementById(id).classList.add('active')
+  document.body.dataset.screen = id
+  closeWebMenu()
 }
 
 // ── OAuth Login (Google + Apple + 카카오 11/10) ──
@@ -25,7 +168,7 @@ async function handleOAuthLogin(providerKind) {
   const btn = document.getElementById(btnId)
   const originalHTML = btn.innerHTML
   btn.disabled = true
-  btn.innerHTML = '<span style="font-size:13px">로그인 중...</span>'
+  btn.innerHTML = '<span class="lg-spin" aria-hidden="true"></span>로그인 중이에요'
   try {
     const apiCall = { apple: window.api.appleLogin, google: window.api.googleLogin, kakao: window.api.kakaoLogin }[providerKind]
     const result = await apiCall()
@@ -36,9 +179,9 @@ async function handleOAuthLogin(providerKind) {
       return
     }
     if (result.error) {
-      alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + result.error)
       btn.disabled = false
       btn.innerHTML = originalHTML
+      실패알림({ 제목: '로그인하지 못했어요', 어떻게: '잠시 뒤 다시 해 주세요.', 오류: result.error })
       return
     }
     currentUser = { uid: result.uid, name: result.name || '', email: result.email || '' }
@@ -48,9 +191,9 @@ async function handleOAuthLogin(providerKind) {
     btn.innerHTML = originalHTML
     showSetup()
   } catch (err) {
-    alert('로그인하지 못했어요. 다시 시도해 주세요.\n' + err.message)
     btn.disabled = false
     btn.innerHTML = originalHTML
+    실패알림({ 제목: '로그인하지 못했어요', 어떻게: '잠시 뒤 다시 해 주세요.', 오류: err })
   }
 }
 
@@ -77,7 +220,7 @@ async function doEmailLogin() {
   if (!password) { document.getElementById('password-input').focus(); return }
 
   const was = btn.textContent
-  btn.textContent = '로그인 중...'
+  btn.textContent = '로그인 중이에요'
   btn.disabled = true
   try {
     const r = await window.api.emailLogin(email, password)
@@ -100,6 +243,20 @@ document.getElementById('btn-email-login').addEventListener('click', doEmailLogi
 document.getElementById('password-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doEmailLogin()
 })
+document.getElementById('email-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('password-input').focus()
+})
+/* 「이메일로 로그인」 을 누르면 칸이 펼쳐진다(새 디자인 판 3절 3번) — 예전엔 늘 펼쳐져 있었다 */
+function 이메일칸열기(열기 = true) {
+  document.getElementById('btn-email-open').hidden = 열기
+  document.getElementById('email-form').hidden = !열기
+  if (!열기) showEmailError('')
+}
+document.getElementById('btn-email-open').addEventListener('click', () => {
+  이메일칸열기(true)
+  const 칸 = document.getElementById('email-input')
+  ;(칸.value ? document.getElementById('password-input') : 칸).focus()
+})
 
 function showSetup() {
   /* 다시 로그인한 같은 계정이면 고르기 화면 없이 바로 이어서 올린다 (켜면서 폴더를 다시 훑어 못 올린 파일부터 올린다) */
@@ -110,7 +267,8 @@ function showSetup() {
     return
   }
   다시로그인중 = null
-  document.getElementById('welcome-name').textContent = currentUser.name || '반가워요'
+  /* 웹 홈과 같은 인사(「안녕하세요, 하늘님」) — 예전엔 이름만 덩그러니 떴다 */
+  document.getElementById('welcome-name').textContent = currentUser.name ? `안녕하세요, ${currentUser.name}님` : '반가워요'
   document.getElementById('welcome-email').textContent = currentUser.email || ''
   if (selectedFolder) updateFolderDisplay(selectedFolder)
   showScreen('setup-screen')
@@ -142,14 +300,45 @@ document.getElementById('btn-folder').addEventListener('click', async () => {
 function updateFolderDisplay(folder) {
   const el = document.getElementById('folder-display')
   el.textContent = folder
+  el.title = folder
   el.classList.remove('empty')
   document.getElementById('btn-start').disabled = false
 }
+
+/* 동기화 위 카드 — 왼쪽 폴더 이름(경로 끝) · 가운데 상태 원 · 오른쪽 맞춘 파일 수 */
+function setHeroFolder(folder) {
+  const 이름 = String(folder || '').split(/[\\/]/).filter(Boolean).pop() || '폴더'
+  const el = document.getElementById('hero-folder-name')
+  if (el) { el.textContent = 이름; el.parentElement.title = folder || '' }
+}
+/** state: syncing · scanning · watching · error · idle  /  status: 굵은 짧은 말  /  info: 옆 작은 말  /  count: 오른쪽 아래 수 */
+function setSync(state, status, info, count) {
+  const 원 = document.getElementById('hero-state')
+  const 판 = document.getElementById('hero')
+  if (원) { 원.dataset.state = state; 원.setAttribute('aria-label', status || '') }
+  if (판) { if (state === 'syncing' || state === 'scanning') 판.dataset.busy = ''; else delete 판.dataset.busy }
+  document.getElementById('sync-status').textContent = status || ''
+  document.getElementById('sync-info').textContent = info || ''
+  if (count != null) document.getElementById('hero-count').textContent = Number(count).toLocaleString('ko-KR')
+}
+document.getElementById('hero-folder').addEventListener('click', e => {
+  if (e.target.closest('#btn-change-folder')) return
+  if (selectedFolder) window.api.openInExplorer(selectedFolder)
+})
+document.getElementById('hero-folder').addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.click() })
+document.getElementById('hero-site').addEventListener('click', () => {
+  if (mySiteSlug) window.api.openExternal(`https://pofol.co/p/${mySiteSlug}`)
+  else if (window.api.openWebAuthed) window.api.openWebAuthed('/')
+  else window.api.openExternal('https://pofol.co')
+})
+document.getElementById('hero-site').addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.click() })
 
 // ── Start Sync ──
 document.getElementById('btn-start').addEventListener('click', async () => {
   if (!currentUser || !selectedFolder) return
   showScreen('sync-screen')
+  setHeroFolder(selectedFolder)
+  setSync('syncing', '동기화 시작', '')
   updateSyncUserLabel()
   fileStatuses.clear()
   renderFileList()
@@ -179,6 +368,8 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
     selectedFolder = folder
     await window.api.saveConfig({ watchDir: folder })
     showScreen('sync-screen')
+    setHeroFolder(folder)
+    setSync('syncing', '동기화 시작', '')
     fileStatuses.clear()
     renderFileList()
     await window.api.startSync({ uid: currentUser.uid, watchDir: folder })
@@ -191,18 +382,43 @@ document.getElementById('btn-change-folder').addEventListener('click', async () 
 document.body.dataset.os = (window.api && window.api.platform) || 'unknown'
 
 // ── 웹과 잇기 ──
+/* 지구 단추 — 작은 메뉴(웹 포트폴리오 보기 · 웹에서 꾸미기). 예전엔 머리줄에 단추 둘이 따로 있었다 */
+function closeWebMenu() {
+  const m = document.getElementById('web-menu')
+  if (m && !m.hidden) { m.hidden = true; document.getElementById('btn-web')?.setAttribute('aria-expanded', 'false') }
+}
+document.getElementById('btn-web').addEventListener('click', e => {
+  e.stopPropagation()
+  const m = document.getElementById('web-menu')
+  if (!m.hidden) { closeWebMenu(); return }
+  const r = e.currentTarget.getBoundingClientRect()
+  m.hidden = false
+  m.style.top = `${r.bottom + 8}px`
+  m.style.left = `${Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, r.right - m.offsetWidth))}px`
+  e.currentTarget.setAttribute('aria-expanded', 'true')
+  m.querySelector('button:not([style*="none"])')?.focus({ preventScroll: true })
+})
+document.addEventListener('mousedown', e => { if (!e.target.closest('#web-menu, #btn-web')) closeWebMenu() })
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWebMenu() })
+
 /* 웹에서 꾸미기: 로그인이 이어진 채 대시보드가 열린다 (예전엔 로그인 안 된 첫 화면이 열렸다) */
 document.getElementById('btn-open-web').addEventListener('click', () => {
+  closeWebMenu()
   if (window.api.openWebAuthed) window.api.openWebAuthed('/')
   else window.api.openExternal('https://pofol.co')
 })
 let mySiteSlug = null
 document.getElementById('btn-my-site').addEventListener('click', () => {
+  closeWebMenu()
   if (mySiteSlug) window.api.openExternal(`https://pofol.co/p/${mySiteSlug}`)
 })
 function showMySite(slug) {
   mySiteSlug = slug || null
   document.getElementById('btn-my-site').style.display = mySiteSlug ? '' : 'none'
+  const 주소 = document.getElementById('my-site-addr')
+  if (주소) 주소.textContent = mySiteSlug ? `pofol.co/p/${mySiteSlug}` : ''
+  const 판 = document.getElementById('hero-site')
+  if (판) 판.title = mySiteSlug ? `웹 포트폴리오 열기 — pofol.co/p/${mySiteSlug}` : '웹에서 꾸미기'
 }
 async function refreshMySite() {
   try { const s = await window.api.getMySite?.(); showMySite(s?.slug) } catch (_) {}
@@ -211,24 +427,23 @@ async function refreshMySite() {
 /* 알림 줄 — kind: ok · warn · error. actions: [{ label, run }] */
 function showNotice(kind, html, actions = []) {
   const el = document.getElementById('sync-notice')
-  const look = kind === 'ok' ? 'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0'
-    : kind === 'warn' ? 'background:#FFFBEB;color:#92400E;border:1px solid #FDE68A'
-    : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA'
-  el.style.cssText = `display:flex;margin:0 16px 4px;padding:9px 12px;border-radius:10px;font-size:11.5px;line-height:1.5;align-items:center;gap:10px;${look}`
-  el.innerHTML = `<span style="flex:1;min-width:0">${html}</span>`
-  actions.forEach(({ label, run }) => {
+  el.dataset.kind = kind
+  el.style.display = 'flex'
+  el.innerHTML = `<span class="n-ico">${ic(kind === 'ok' ? 'check' : 'alert', 16)}</span><span class="n-text">${html}</span><span class="n-acts"></span>`
+  const 단추칸 = el.querySelector('.n-acts')
+  actions.forEach(({ label, run, out }) => {
     const b = document.createElement('button')
-    b.className = 'btn-stop'
-    b.style.cssText = 'font-size:10.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;color:inherit;border-color:currentColor;background:transparent'
-    b.textContent = label
+    b.className = 'n-act'
+    b.innerHTML = esc(label) + (out ? ic('out', 14) : '')
     b.addEventListener('click', run)
-    el.appendChild(b)
+    단추칸.appendChild(b)
   })
   const x = document.createElement('button')
-  x.style.cssText = 'border:none;background:none;color:inherit;opacity:.6;cursor:pointer;font-size:14px;line-height:1'
-  x.textContent = '×'
+  x.className = 'n-x'
+  x.setAttribute('aria-label', '알림 닫기')
+  x.innerHTML = ic('x', 16)
   x.addEventListener('click', hideNotice)
-  el.appendChild(x)
+  단추칸.appendChild(x)
 }
 function hideNotice() { document.getElementById('sync-notice').style.display = 'none' }
 let limitNoticeOn = false
@@ -248,6 +463,14 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   selectedFolder = null
   document.getElementById('email-input').value = ''
   document.getElementById('password-input').value = ''
+  closeSettings()
+  이메일칸열기(false)
+  /* 앞 계정의 흔적을 지운다 — 예전엔 다른 계정으로 들어와도 앞 사람의 「사이트가 생겼어요」 알림 · 내 사이트 단추 · 중복 용량이 남았다 */
+  hideNotice()
+  showMySite(null)
+  document.getElementById('hero-count').textContent = ''
+  trashData = null; trashPeeked = false; trashDel.clear()
+  document.getElementById('tab-trash').textContent = '중복'
   showScreen('login-screen')
 })
 
@@ -262,6 +485,7 @@ async function 다시로그인() {
   const config = await window.api.getConfig()
   document.getElementById('email-input').value = config.email || ''
   document.getElementById('password-input').value = ''
+  closeSettings()
   showScreen('login-screen')
 }
 window.다시로그인 = 다시로그인
@@ -278,7 +502,7 @@ document.getElementById('btn-trash')?.addEventListener('click', openTrash)
 document.getElementById('btn-rescan').addEventListener('click', async () => {
   const btn = document.getElementById('btn-rescan')
   btn.disabled = true
-  btn.textContent = '⏳'
+  btn.classList.add('spin')   // 예전엔 글자 그림(⏳ · 🔄)을 바꿔 끼웠다 — 아이콘이 돈다
   try {
     await window.api.rescan()
     // rescan 후 공유 대기 건도 확인
@@ -288,46 +512,44 @@ document.getElementById('btn-rescan').addEventListener('click', async () => {
     }
   } catch {}
   btn.disabled = false
-  btn.textContent = '🔄'
+  btn.classList.remove('spin')
 })
 
 // ── Event Handlers ──
+/* 상태는 가운데 원 하나(초록 체크 = 다 맞춤 · 파랑 = 올리는 중 · 빨강 = 멈춤)와 아래 한 줄 글로 (새 디자인 판 4절) */
 window.api.onSyncProgress((data) => {
-  const statusEl = document.getElementById('sync-status')
   const infoEl = document.getElementById('sync-info')
 
   if (data.phase === 'scanning') {
-    statusEl.innerHTML = '<span class="dot syncing"></span>스캔 중...'
-    infoEl.textContent = `파일 ${data.total}개를 찾았어요`
+    setSync('scanning', '파일 찾는 중', `${data.total}개를 찾았어요`)
   } else if (data.phase === 'syncing') {
-    statusEl.innerHTML = '<span class="dot syncing"></span>동기화 중...'
-    infoEl.textContent = `${data.completed} / ${data.total}`
+    setSync('syncing', '올리는 중', `${data.completed} / ${data.total}`)
   } else if (data.phase === 'watching') {
     /* 올리는 중과 끝난 뒤가 같은 글이라 끝났는지 알 수 없었다 (2026-09-25) */
-    statusEl.innerHTML = '<span class="dot watching"></span>올리기 끝 · 폴더를 지켜보고 있어요'
-    infoEl.textContent = `파일 ${data.total}개를 맞췄어요 · 폴더에 넣으면 바로 올라가요`
+    setSync('watching', '올리기 끝', '폴더에 넣으면 바로 올라가요', data.total)
+    document.getElementById('hero-state').title = `파일 ${data.total}개를 맞췄어요 · 폴더를 지켜보고 있어요`
     refreshSyncedFolders()
   } else if (data.phase === 'site_ready') {
-    /* 첫 동기화 뒤 서버가 사이트를 만들었다(또는 새 것을 실었다) */
+    /* 첫 동기화 뒤 서버가 웹 포트폴리오를 만들었다(또는 새 것을 실었다) */
     showMySite(data.slug)
     const n = data.madePublic ? ` · 최신 ${data.madePublic}개를 실었어요` : ''
     showNotice('ok', data.created
-      ? `<b>내 사이트가 생겼어요</b> pofol.co/p/${data.slug}${n}`
-      : `<b>내 사이트에 올렸어요</b> pofol.co/p/${data.slug}${n}`,
-      [{ label: '내 사이트 보기', run: () => window.api.openExternal(`https://pofol.co/p/${data.slug}`) },
-       { label: '웹에서 꾸미기', run: () => window.api.openWebAuthed?.('/') }])
+      ? `<b>내 웹 포트폴리오가 생겼어요</b> pofol.co/p/${esc(data.slug)}${n}`
+      : `<b>내 웹 포트폴리오에 올렸어요</b> pofol.co/p/${esc(data.slug)}${n}`,
+      [{ label: '보기', out: true, run: () => window.api.openExternal(`https://pofol.co/p/${data.slug}`) },
+       { label: '웹에서 꾸미기', out: true, run: () => window.api.openWebAuthed?.('/') }])
   } else if (data.phase === 'share_uploading') {
-    statusEl.innerHTML = '<span class="dot syncing"></span>원본을 그대로 올리는 중'
-    infoEl.textContent = `${data.projectName || '공유'} · ${data.completed} / ${data.total}`
+    /* 이름 칸에 실려 오는 글 속 ❌ 같은 글자 그림은 뺀다 */
+    const 이름 = String(data.projectName || '공유').replace(/❌\s*/g, '못 올림 · ')
+    setSync('syncing', '원본을 그대로 올리는 중', `${이름} · ${data.completed} / ${data.total}`)
   } else if (data.phase === 'share_complete') {
-    statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
-    infoEl.textContent = `원본 ${data.total}개를 올렸어요`
+    setSync('watching', '올리기 끝', `원본 ${data.total}개를 올렸어요`)
     setTimeout(() => {
       infoEl.textContent = `파일 ${Object.keys(window._lastSyncTotal || {}).length || data.total}개를 맞췄어요`
     }, 3000)
   } else if (data.phase === 'share_error') {
-    statusEl.innerHTML = '<span class="dot watching"></span>동기화 중'
-    infoEl.textContent = `공유 오류: ${data.message || '알 수 없음'}`
+    const 까닭 = 오류까닭(data.message)
+    setSync('watching', '원본을 올리지 못했어요', 까닭 || '잠시 뒤 다시 해요')
   }
 })
 
@@ -344,7 +566,7 @@ window.api.onSyncError((data) => {
     limitNoticeOn = true
     const 지금 = data.current != null ? ` (지금 ${data.current}개)` : ''
     showNotice('warn', `<b>무료는 프로젝트 ${data.limit ?? 20}개까지예요</b>${지금} · 올릴 폴더만 남기거나 요금제를 올려 주세요`,
-      [{ label: '요금제 보기', run: () => window.api.openWebAuthed ? window.api.openWebAuthed('/pricing') : window.api.openExternal('https://pofol.co/pricing') },
+      [{ label: '요금제 보기', out: true, run: () => window.api.openWebAuthed ? window.api.openWebAuthed('/pricing') : window.api.openExternal('https://pofol.co/pricing') },
        { label: '다시 확인', run: () => { hideNotice(); limitNoticeOn = false; window.api.retryAllFailed() } }])
     updateSummary()
     return
@@ -352,13 +574,12 @@ window.api.onSyncError((data) => {
   const msg = String(data?.message || data?.error || '알 수 없는 문제')
   /* 로그인이 끝났다 (2026-10-13) — 파일마다 실패시키지 않고 이 알림 하나. 「다시 로그인」은 폴더·동기화 기록을 지우지 않는다 */
   if (data?.kind === 'auth-expired' || /토큰|로그인/.test(msg)) {
-    const statusEl = document.getElementById('sync-status')
-    const infoEl = document.getElementById('sync-info')
-    if (statusEl) statusEl.innerHTML = '<span class="dot" style="background:#EF4444"></span>로그인이 끝났어요'
-    if (infoEl) infoEl.textContent = '다시 로그인하면 멈춘 파일부터 이어서 올려요'
+    setSync('error', '로그인이 끝났어요', '다시 로그인하면 멈춘 파일부터 이어서 올려요')
     showNotice('error', `<b>로그인이 끝났어요</b> · 다시 로그인하면 멈춘 파일부터 이어서 올려요`, [{ label: '다시 로그인', run: 다시로그인 }])
   } else {
-    showNotice('error', `<b>문제가 생겼어요</b> · ${msg.slice(0, 120)}`)
+    /* 영어 기술 오류는 손님 말로 바꾸거나 숨긴다(웹 오류까닭과 같은 규칙) */
+    const 까닭 = 오류까닭(msg)
+    showNotice('error', `<b>올리다가 문제가 생겼어요</b> · ${esc((까닭 || '새로고침을 눌러 다시 해 주세요').slice(0, 120))}`)
   }
 })
 
@@ -368,13 +589,14 @@ window.api.onNewFolder((data) => {
   const container = document.getElementById('folder-toasts')
   const toast = document.createElement('div')
   toast.className = 'folder-toast'
-  toast.style.cssText = 'padding:12px 20px;width:340px'
-
-  const fileText = data.fileCount > 0 ? `${data.fileCount}개 파일` : ''
+  toast.setAttribute('role', 'status')
+  const fileText = data.fileCount > 0 ? ` · ${data.fileCount}개` : ''
   toast.innerHTML = `
-    <div class="toast-title">📁 ${data.name} ${fileText ? '· ' + fileText : ''}</div>
-    <div class="toast-desc" style="color:#4ADE80;font-weight:600">자동 동기화 시작</div>
-  `
+    <span class="tile tile-folder tile-sm" aria-hidden="true">${ic('folder', 22)}</span>
+    <div class="toast-main">
+      <div class="toast-title">${esc(data.name)}${fileText}</div>
+      <div class="toast-desc">올리기 시작했어요</div>
+    </div>`
   container.appendChild(toast)
   setTimeout(() => toast.remove(), 3000)
 })
@@ -395,27 +617,28 @@ function renderPendingFolders(folders) {
   }
 
   section.style.display = 'block'
+  /* 줄 하나 = 흰 카드(높이 64 · 둥글기 16) · 단추는 작은 단추(40 · 둥글기 12) — 예전 📦 · 📁 글자 그림은 아이콘으로 */
   list.innerHTML = (folders.length > 1 ? `
-    <div class="pending-item" style="border-bottom:1px solid rgba(0,0,0,0.04)">
-      <div class="pending-icon">📦</div>
+    <div class="pending-item">
+      <div class="pending-icon all">${ic('upload', 20)}</div>
       <div class="pending-info">
-        <div class="pending-name">전체 ${folders.length}개 폴더</div>
-        <div class="pending-meta">한번에 모두 업로드</div>
+        <div class="pending-name">폴더 ${folders.length}개 모두</div>
+        <div class="pending-meta">한 번에 모두 올려요</div>
       </div>
       <div class="pending-actions">
-        <button class="btn-pending upload" onclick="approveAllPendingFolders()">전체 업로드</button>
+        <button class="sm-btn blue btn-pending upload" onclick="approveAllPendingFolders()">모두 올리기</button>
       </div>
     </div>
   ` : '') + folders.map(f => `
     <div class="pending-item" id="pending-${f.key.replace(/[^a-zA-Z0-9]/g, '_')}">
-      <div class="pending-icon">📁</div>
+      <div class="pending-icon wait">${ic('clock', 20)}</div>
       <div class="pending-info">
-        <div class="pending-name">${f.name}</div>
-        <div class="pending-meta">${f.fileCount}개 파일 · 대기 중</div>
+        <div class="pending-name" title="${esc(f.key)}">${esc(f.name)}</div>
+        <div class="pending-meta">${f.fileCount}개 · 기다리는 중</div>
       </div>
       <div class="pending-actions">
-        <button class="btn-pending remove" onclick="removePendingFolder('${f.key}')">지우기</button>
-        <button class="btn-pending upload" onclick="approvePendingFolder('${f.key}')">업로드</button>
+        <button class="sm-btn red btn-pending remove" onclick="removePendingFolder('${jsq(f.key)}')">지우기</button>
+        <button class="sm-btn blue btn-pending upload" onclick="approvePendingFolder('${jsq(f.key)}')">올리기</button>
       </div>
     </div>
   `).join('')
@@ -426,7 +649,7 @@ async function approvePendingFolder(key) {
   const el = document.getElementById('pending-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {
     const btn = el.querySelector('.btn-pending.upload')
-    if (btn) { btn.textContent = '업로드 중...'; btn.disabled = true }
+    if (btn) { btn.textContent = '올리는 중'; btn.disabled = true }
   }
   await window.api.approvePendingFolder(key)
 }
@@ -472,16 +695,16 @@ function renderSyncedFolders(folders) {
   updateBatchButtons()
 
   list.innerHTML = folders.map(f => `
-    <div class="pending-item" id="synced-${f.key.replace(/[^a-zA-Z0-9]/g, '_')}" data-folder-key="${f.key}">
-      <input type="checkbox" class="item-cb" data-key="${f.key}" onchange="onItemCheckChange()">
-      <div class="pending-icon">📁</div>
+    <div class="pending-item" id="synced-${f.key.replace(/[^a-zA-Z0-9]/g, '_')}" data-folder-key="${esc(f.key)}">
+      <input type="checkbox" class="cb item-cb" data-key="${esc(f.key)}" onchange="onItemCheckChange()" aria-label="${esc(f.name)} 고르기">
+      <div class="pending-icon">${ic('folder', 20)}</div>
       <div class="pending-info">
-        <div class="pending-name">${f.name}</div>
-        <div class="pending-meta">${f.fileCount}개 파일 · <span class="synced-badge">업로드 됨</span></div>
+        <div class="pending-name" title="${esc(f.key)}">${esc(f.name)}</div>
+        <div class="pending-meta">${f.fileCount}개 · <span class="synced-badge">${ic('check', 14)}올라감</span></div>
       </div>
       <div class="pending-actions">
-        <button class="btn-pending resync" onclick="resyncFolder('${f.key}')">다시 올리기</button>
-        <button class="btn-pending remove" onclick="deleteSyncedFolder('${f.key}')">지우기</button>
+        <button class="sm-btn btn-pending resync" onclick="resyncFolder('${jsq(f.key)}')">다시 올리기</button>
+        <button class="sm-btn red btn-pending remove" onclick="deleteSyncedFolder('${jsq(f.key)}')">지우기</button>
       </div>
     </div>
   `).join('')
@@ -491,7 +714,7 @@ function renderSyncedFolders(folders) {
 function toggleSelectAll(cb) {
   const checkboxes = document.querySelectorAll('#synced-list .item-cb')
   checkboxes.forEach(c => c.checked = cb.checked)
-  updateBatchButtons()
+  onItemCheckChange()
 }
 window.toggleSelectAll = toggleSelectAll
 
@@ -501,18 +724,19 @@ function onItemCheckChange() {
   const cbAll = document.getElementById('cb-select-all')
   const label = document.getElementById('select-all-label')
   if (cbAll) cbAll.checked = all.length > 0 && checked.length === all.length
-  if (label) label.textContent = checked.length > 0 ? `${checked.length}개 선택됨` : '전체선택'
+  /* 처음 글(index.html)은 「전부 고르기」 인데 여기서 「전체선택」 으로 바꿔 써서 두 말이 섞였다 — 한 말로 */
+  if (label) label.textContent = checked.length > 0 ? `${checked.length}개 고름` : '전부 고르기'
   updateBatchButtons()
 }
 window.onItemCheckChange = onItemCheckChange
 
+/* 고른 폴더가 있을 때만 아래에 검은 막대(웹 .u2-bar 꼴)가 뜬다 — 예전엔 머리줄 끝에 작은 단추 둘이 나타났다 */
 function updateBatchButtons() {
   const checked = document.querySelectorAll('#synced-list .item-cb:checked')
-  const hasSelection = checked.length > 0
-  const btnResync = document.getElementById('btn-batch-resync')
-  const btnRemove = document.getElementById('btn-batch-remove')
-  if (btnResync) btnResync.style.display = hasSelection ? 'block' : 'none'
-  if (btnRemove) btnRemove.style.display = hasSelection ? 'block' : 'none'
+  const bar = document.getElementById('sel-bar')
+  if (bar) bar.classList.toggle('on', checked.length > 0)
+  const n = document.getElementById('sel-count')
+  if (n) n.textContent = `${checked.length}개 고름`
 }
 
 function getSelectedKeys() {
@@ -525,12 +749,12 @@ function getSelectedKeys() {
 async function batchResync() {
   const keys = getSelectedKeys()
   if (!keys.length) return
-  if (!confirm(`${keys.length}개 폴더를 다시 올릴게요. 계속할까요?`)) return
+  if (!await 묻기({ 제목: `폴더 ${keys.length}개를 다시 올릴까요?`, 예: '다시 올리기' })) return
   for (const key of keys) {
     const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
     if (el) {
       const btn = el.querySelector('.btn-pending.resync')
-      if (btn) { btn.textContent = '대기 중...'; btn.disabled = true }
+      if (btn) { btn.textContent = '기다리는 중'; btn.disabled = true }
     }
   }
   for (const key of keys) {
@@ -543,16 +767,16 @@ window.batchResync = batchResync
 async function batchDelete() {
   const keys = getSelectedKeys()
   if (!keys.length) return
-  if (!confirm(
-    `${keys.length}개 폴더를 휴지통으로 보냅니다.\n\n` +
-    '※ 30일 안에는 언제든 되돌릴 수 있어요.\n\n' +
-    '계속할까요?'
-  )) return
+  if (!await 묻기({
+    제목: `폴더 ${keys.length}개를 휴지통으로 옮길까요?`,
+    글: '30일 안에는 언제든 되돌릴 수 있어요.',
+    예: '휴지통으로 옮기기', 위험: true,
+  })) return
   for (const key of keys) {
     const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
     if (el) {
       const btn = el.querySelector('.btn-pending.remove')
-      if (btn) { btn.textContent = '삭제 중...'; btn.disabled = true }
+      if (btn) { btn.textContent = '옮기는 중'; btn.disabled = true }
     }
   }
   for (const key of keys) {
@@ -566,23 +790,23 @@ async function resyncFolder(key) {
   const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {
     const btn = el.querySelector('.btn-pending.resync')
-    if (btn) { btn.textContent = '업로드 중...'; btn.disabled = true }
+    if (btn) { btn.textContent = '올리는 중'; btn.disabled = true }
   }
   await window.api.resyncFolder(key)
 }
 window.resyncFolder = resyncFolder
 
 async function deleteSyncedFolder(key) {
-  if (!confirm(
-    '이 폴더를 휴지통으로 보냅니다.\n\n' +
-    '※ 30일 안에는 언제든 되돌릴 수 있어요.\n' +
-    '※ 컴퓨터의 원본도 폴더 안 _Trash 로 옮겨지고, 되살리면 제자리로 돌아옵니다.\n\n' +
-    '계속할까요?'
-  )) return
+  const 이름 = String(key || '').split('/').pop()
+  if (!await 묻기({
+    제목: 이름 ? `「${이름}」 폴더를 휴지통으로 옮길까요?` : '이 폴더를 휴지통으로 옮길까요?',
+    글: '30일 안에는 언제든 되돌릴 수 있어요.\n컴퓨터의 원본도 폴더 안 _Trash 로 옮겨지고, 되살리면 제자리로 돌아와요.',
+    예: '휴지통으로 옮기기', 위험: true,
+  })) return
   const el = document.getElementById('synced-' + key.replace(/[^a-zA-Z0-9]/g, '_'))
   if (el) {
     const btn = el.querySelector('.btn-pending.remove')
-    if (btn) { btn.textContent = '삭제 중...'; btn.disabled = true }
+    if (btn) { btn.textContent = '옮기는 중'; btn.disabled = true }
   }
   await window.api.deleteSyncedFolder(key)
 }
@@ -596,25 +820,26 @@ window.api.onSyncedFoldersUpdated((folders) => {
 // ── 웹 → 로컬 받기 ─────────────────────────────────────────────
 // 평소에는 로컬이 기준이라 웹에서 뭘 고쳐도 로컬은 그대로다.
 // 이 버튼만 반대 방향이고, 로컬을 덮어쓰므로 반드시 먼저 경고한다.
+/* 단추는 설정 창 안으로 옮겼다(11/13 새 디자인 — 판 4절 「웹→로컬 받기 · 웹에서 꾸미기 · 로그아웃은 설정 안으로」) */
 document.getElementById('btn-pull-web')?.addEventListener('click', async () => {
-  const ok = window.confirm(
-    '웹에 있는 폴더 구조를 로컬에 그대로 받아옵니다.\n\n' +
-    '· 로컬에서 지웠던 파일도 다시 내려옵니다\n' +
-    '· 로컬에서 옮기거나 이름을 바꾼 것은 웹 기준으로 다시 만들어집니다\n' +
-    '· 로컬에만 있고 웹에 없는 파일은 그대로 둡니다\n\n' +
-    '계속할까요?'
-  )
+  const ok = await 묻기({
+    제목: '웹의 폴더를 이 컴퓨터로 받아올까요?',
+    글: '· 이 컴퓨터에서 지웠던 파일도 다시 내려와요\n' +
+        '· 이 컴퓨터에서 옮기거나 이름을 바꾼 것은 웹 기준으로 다시 만들어져요\n' +
+        '· 이 컴퓨터에만 있고 웹에 없는 파일은 그대로 둬요',
+    예: '받아오기', 위험: true,
+  })
   if (!ok) return
   const btn = document.getElementById('btn-pull-web')
-  const label = btn.textContent
+  const label = btn.innerHTML
   btn.disabled = true
-  btn.textContent = '받는 중...'
+  btn.innerHTML = `${ic('refresh', 20, 'spin')}받는 중이에요`
   try {
     const r = await window.api.pullFromWeb()
-    if (!r?.ok) alert(`받기 실패: ${r?.error || '알 수 없는 문제가 생겼어요'}`)
+    if (!r?.ok) 실패알림({ 제목: '웹에서 받아오지 못했어요', 오류: r?.error })
   } finally {
     btn.disabled = false
-    btn.textContent = label
+    btn.innerHTML = label
   }
 })
 
@@ -627,19 +852,20 @@ window.api.onFolderDeletionRequested(async (info) => {
     return
   }
   const head = whileClosed
-    ? `앱이 꺼져 있는 동안 "${folderName}" 폴더가 없어졌어요.`
-    : `동기화된 폴더 "${folderName}" 가 삭제되었습니다.`
-  const msg = `${head}\n` +
-              `웹에서도 삭제할까요? (${fileCount}개 파일)\n\n` +
-              `※ 삭제해도 휴지통에 30일간 보관됩니다.\n` +
-              `※ 취소하면 다음 동기화 때 다시 받아집니다.`
-  const ok = window.confirm(msg)
+    ? `앱이 꺼져 있는 동안 「${folderName}」 폴더가 없어졌어요`
+    : `「${folderName}」 폴더를 지웠어요`
+  /* 「아니오」(바깥 누름 · Esc 포함)는 예전 「취소」 와 같다 — 다음 동기화 때 다시 받아진다 */
+  const ok = await 묻기({
+    제목: head,
+    글: `웹에서도 지울까요? (파일 ${fileCount}개)\n지워도 휴지통에 30일 동안 있어요.\n「다시 받기」를 누르면 다음 동기화 때 폴더가 돌아와요.`,
+    예: '웹에서도 지우기', 아니오: '다시 받기', 위험: true,
+  })
   if (ok) {
     const r = await window.api.confirmFolderDeletion({ projectId })
     if (r?.ok) {
       console.log(`[folder-deletion] soft-deleted ${folderName} (assets: ${r.markedAssets})`)
     } else {
-      alert(`삭제 실패: ${r?.error || '알 수 없는 문제가 생겼어요'}`)
+      실패알림({ 제목: '웹에서 지우지 못했어요', 오류: r?.error })
     }
   } else {
     await window.api.cancelFolderDeletion({ folderKey })
@@ -661,14 +887,13 @@ function switchTab(tab) {
   TABS.forEach(t => {
     const on = t === tab
     const btn = document.getElementById('tab-' + t)
-    btn.style.background = on ? '#111' : '#fff'
-    btn.style.color = on ? '#fff' : '#666'
-    btn.style.border = on ? 'none' : '1px solid rgba(0,0,0,0.08)'
+    /* 칸 고르기 알약 — 고른 칸은 옅은 파랑(웹 .u2-seg 와 같다). 예전엔 검은 칸 · 흰 칸을 글자 꼴로 칠했다 */
+    if (on) btn.setAttribute('data-on', ''); else btn.removeAttribute('data-on')
+    btn.setAttribute('aria-selected', on ? 'true' : 'false')
   })
   document.getElementById('explorer-pane').style.display = tab === 'explorer' ? 'block' : 'none'
   document.getElementById('trash-pane').style.display = tab === 'trash' ? 'block' : 'none'
-  document.getElementById('activity-pane').style.display = tab === 'activity' ? 'flex' : 'none'
-  document.getElementById('activity-pane').style.flexDirection = 'column'
+  document.getElementById('activity-pane').style.display = tab === 'activity' ? 'block' : 'none'
   if (tab === 'explorer') refreshExplorer()
   if (tab === 'trash') loadTrash()
 }
@@ -677,31 +902,34 @@ let explorerRoot = ''
 
 async function refreshExplorer() {
   const pane = document.getElementById('explorer-pane')
-  pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">스캔 중...</div>'
+  /* 다시 그릴 때 내려 둔 자리를 지킨다 — 이름을 바꾸거나 옮긴 뒤 맨 위로 튀지 않게 */
+  const 보기 = `${expCat || ''}|${expProj?.key || ''}`
+  const 자리 = pane.dataset.view === 보기 ? pane.scrollTop : 0
+  pane.dataset.view = 보기
+  if (!pane.querySelector('.exp-grid')) pane.innerHTML = '<div class="pane-msg">폴더를 읽는 중이에요</div>'
   const data = await window.api.scanFolderTree()
   /* 아직 준비가 안 된 것뿐이면 "폴더 없어요" 라고 하지 않는다 — 잠깐 뒤에 다시 본다 */
   if (data && data.notReady) {
-    pane.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:11px">폴더를 읽는 중이에요...</div>'
+    pane.innerHTML = '<div class="pane-msg">폴더를 읽는 중이에요</div>'
     clearTimeout(window._explorerRetry)
     window._explorerRetry = setTimeout(() => { refreshExplorer() }, 1500)
     return
   }
-  if (!data) { pane.innerHTML = '<div style="padding:20px;color:#999;font-size:11px">아직 연결한 폴더가 없어요</div>'; return }
+  if (!data) { pane.innerHTML = '<div class="pane-msg">아직 연결한 폴더가 없어요</div>'; return }
   explorerRoot = data.root
   expandedProjects.clear()
-  const currentSize = parseInt(document.documentElement.style.getPropertyValue('--thumb-size')) || 60
+  /* 크기 막대(예전 🔍 + 숫자 px) — 카드 크기를 바꾼다. 값은 예전과 같은 30~200 */
+  const currentSize = 탐색기크기
   const toolbarHtml = `
-    <div class="explorer-toolbar">
-      <span>🔍</span>
-      <input type="range" min="30" max="200" value="${currentSize}" oninput="setThumbSize(this.value)">
-      <span class="thumb-size-label">${currentSize}px</span>
-    </div>
-  `
+    <label class="exp-size" title="카드 크기">${ic('image', 16)}
+      <input type="range" class="u2-range u2-range-sm" min="30" max="200" value="${currentSize}" style="--p:${(currentSize - 30) / 170}" oninput="setThumbSize(this.value)" aria-label="카드 크기">
+      ${ic('image', 22)}</label>`
   /* ⚠️ 끌어놓기·이름변경 처리기가 .tree-node 와 data-* 에 붙는다.
      모양만 바꾸고 그 둘은 그대로 둔다. 안 그러면 기능이 통째로 죽는다. */
-  pane.innerHTML = toolbarHtml + renderExplorerGrid(data.tree, data.root)
+  pane.innerHTML = renderExplorerGrid(data.tree, data.root, toolbarHtml)
   attachExplorerHandlers(data.root)
   attachGridNav()
+  pane.scrollTop = 자리
   if (expProj) fillExplorerFiles()
 }
 
@@ -715,56 +943,67 @@ async function refreshExplorer() {
 let expCat = null    // 지금 열어본 분류 (null 이면 분류 목록)
 let expProj = null   // 지금 열어본 프로젝트 { key, name } — 파일까지 보여준다
 
+/* 카드 한 장 — 웹 정답 그림의 폴더 카드 꼴(흰 카드 24 · 위 정사각 판 · 아래 이름 + 수 · 오른쪽 위 상태 원).
+   ⚠️ 대표 사진은 아직 못 넣는다 — 앱이 폴더 속 사진 주소를 아는 때는 프로젝트를 연 뒤(서버에 묻는다)뿐이다.
+      프로젝트마다 서버에 두 번씩 묻게 되면 폴더가 많은 손님(170개 넘는 분도 있다)에게 무겁다. 그래서 폴더 그림으로 둔다.
+   ⚠️ .node-name · .btn-rename 은 이름 바꾸기 처리기가 찾는 이름이다(예전엔 격자 카드에 .node-name 이 없어 이름 바꾸기가 조용히 깨져 있었다). */
 function folderCard(n, root, big) {
   const isProject = n.depth === 1
   const key = isProject ? getProjectKey(n.path, root) : ''
-  const cnt = n.fileCount || (n.children || []).length || 0
-  return `<div class="tree-node exp-card" data-path="${n.path.replace(/"/g, '&quot;')}"
-       data-depth="${n.depth}" data-project-key="${key}" draggable="${n.depth !== 0}"
-       data-cat="${n.depth === 0 ? n.name.replace(/"/g, '&quot;') : ''}">
-    <div class="exp-ico">${big ? '📁' : '📂'}<b>${cnt}</b></div>
-    <div class="exp-name">${n.name}</div>
-    ${badgeHtml(n.badge)}${badgeHtml(n.badge2)}
-    ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
+  const kids = (n.children || []).length
+  const cnt = n.depth === 0 ? kids : (n.fileCount || kids || 0)
+  const 수 = n.depth === 0
+    ? `<span class="exp-cnt" title="프로젝트 ${kids}개">${kids}</span>`
+    : (n.badge2 === 'empty' && !cnt ? '<span class="exp-cnt dim">비어 있어요</span>' : `<span class="exp-cnt" title="파일 ${cnt}개">${cnt}</span>`)
+  return `<div class="tree-node exp-card" data-path="${esc(n.path)}"
+       data-depth="${n.depth}" data-project-key="${esc(key)}" draggable="${n.depth !== 0}"
+       data-cat="${n.depth === 0 ? esc(n.name) : ''}" tabindex="-1">
+    <div class="exp-thumb">${ic('folder', 64)}${badgeHtml(n.badge2) || badgeHtml(n.badge)}</div>
+    <div class="exp-meta"><span class="exp-name node-name" title="${esc(n.name)}">${esc(n.name)}</span>${수}</div>
+    ${isProject ? `<div class="node-actions"><button class="btn-rename" title="이름 바꾸기" aria-label="이름 바꾸기">${ic('pencil', 16)}</button></div>` : ''}
   </div>`
 }
 
-function renderExplorerGrid(nodes, root) {
-  if (!nodes.length) return '<div style="padding:20px;color:#999;font-size:11px">폴더가 없어요</div>'
+function renderExplorerGrid(nodes, root, tools = '') {
+  if (!nodes.length) return renderExplorerShell(nodes, '<div class="exp-grid"><div class="exp-empty">폴더가 없어요 · 연결한 폴더 안에 분류 폴더를 만들어 주세요</div></div>', tools)
   const cat = expCat ? nodes.find(n => n.name === expCat) : null
   /* 프로젝트를 열었으면 그 안의 파일을 보여준다. 목록은 뒤에 채워 넣는다
      (파일은 서버에서 받아오므로 지금 당장은 없다). */
-  if (expProj) return renderExplorerShell(nodes, `<div class="exp-grid" id="exp-files">
-      <div style="color:#bbb;font-size:11px;padding:14px">불러오는 중…</div></div>`)
+  if (expProj) return renderExplorerShell(nodes, `<div class="exp-grid exp-files" id="exp-files">
+      <div class="exp-empty">불러오는 중이에요</div></div>`, tools)
   const shown = cat ? (cat.children || []) : nodes
   return renderExplorerShell(nodes, `<div class="exp-grid">
       ${shown.length ? shown.map(n => folderCard(n, root, !!cat)).join('')
-                     : '<div style="color:#bbb;font-size:11px;padding:14px">비어 있어요</div>'}
-    </div>`)
+                     : '<div class="exp-empty">비어 있어요</div>'}
+    </div>`, tools)
 }
 
-/** 사이드바 + 경로줄 — 폴더 화면과 파일 화면이 같이 쓴다 */
-function renderExplorerShell(nodes, inner) {
+/** 경로줄(‹ 전체 프로젝트 › 분류 › 프로젝트) + 분류 알약 줄 — 폴더 화면과 파일 화면이 같이 쓴다.
+    예전 왼쪽 기둥(분류 목록)은 창이 좁아 카드가 두 줄로 밀려서, 분류 안에 들어갔을 때 위 알약 줄로 옮겼다(같은 data-go). */
+function renderExplorerShell(nodes, inner, tools = '') {
   const total = nodes.reduce((s, n) => s + (n.children || []).length, 0)
-  return `
-    <div class="exp-wrap">
-      <aside class="exp-side">
-        <button class="exp-side-item ${expCat ? '' : 'on'}" data-go="">전체 프로젝트<em>${total}</em></button>
+  const 알약 = (expCat || expProj) ? `
+      <div class="exp-cats" role="toolbar" aria-label="분류">
+        <button class="exp-side-item ${expCat ? '' : 'on'}" data-go="">전체<em>${total}</em></button>
         ${nodes.map(n => `<button class="exp-side-item ${expCat === n.name ? 'on' : ''}"
-          data-go="${n.name.replace(/"/g, '&quot;')}">${n.name}<em>${(n.children || []).length}</em></button>`).join('')}
-      </aside>
-      <div class="exp-main">
-        <div class="exp-path">
-          <button class="exp-back" id="exp-backbtn" ${expBack.length ? '' : 'disabled'} title="뒤로">←</button>
-          <button class="exp-crumb" data-go="">전체 프로젝트</button>
-          ${expCat ? `<span class="exp-sep">›</span>${expProj
-            ? `<button class="exp-crumb" data-go="${expCat.replace(/"/g, '&quot;')}">${expCat}</button>`
-            : `<b>${expCat}</b>`}` : ''}
-          ${expProj ? `<span class="exp-sep">›</span><b>${expProj.name}</b>` : ''}
-          <span id="exp-selinfo" class="exp-selinfo"></span>
-        </div>
-        ${inner}
+          data-go="${esc(n.name)}">${esc(n.name)}<em>${(n.children || []).length}</em></button>`).join('')}
+      </div>` : ''
+  return `
+    <div class="exp-main">
+      <div class="exp-top">
+        <button class="u2-icon-btn sm exp-back" id="exp-backbtn" ${expBack.length ? '' : 'disabled'} title="뒤로" aria-label="뒤로">${ic('back', 20)}</button>
+        <nav class="exp-path" aria-label="지금 위치">
+          ${expCat ? `<button class="exp-crumb" data-go="">전체 프로젝트</button>` : `<b>전체 프로젝트 <span class="exp-cnt">${total}</span></b>`}
+          ${expCat ? `<span class="exp-sep">${ic('next', 14)}</span>${expProj
+            ? `<button class="exp-crumb" data-go="${esc(expCat)}">${esc(expCat)}</button>`
+            : `<b>${esc(expCat)}</b>`}` : ''}
+          ${expProj ? `<span class="exp-sep">${ic('next', 14)}</span><b>${esc(expProj.name)}</b>` : ''}
+        </nav>
+        <span id="exp-selinfo" class="exp-selinfo"></span>
+        ${tools}
       </div>
+      ${알약}
+      ${inner}
     </div>`
 }
 
@@ -822,45 +1061,62 @@ function expOpen(card) {
   expSel.clear(); refreshExplorer()
 }
 
-function expMenu(card, x, y) {
+/* 오른쪽 누름 메뉴 — 웹 .u2-ctx 꼴(카드 16 · 줄 40 · 아이콘 · 위험 줄은 빨강). 메뉴와 파일 메뉴가 같이 쓴다 */
+function 누름메뉴(x, y, items) {
   document.getElementById('exp-menu')?.remove()
-  const isProject = card.dataset.depth === '1'
   const m = document.createElement('div')
   m.id = 'exp-menu'
-  m.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:300;background:#fff;border:1px solid #dcdbe2;
-    border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:4px;min-width:158px;font-size:12px`
-  const item = (label, fn, danger) => {
+  m.className = 'ctx'
+  m.setAttribute('role', 'menu')
+  m.style.left = `${x}px`; m.style.top = `${y}px`
+  const close = () => { m.remove(); document.removeEventListener('mousedown', 바깥); document.removeEventListener('keydown', 키) }
+  const 바깥 = ev => { if (!m.contains(ev.target)) close() }
+  const 키 = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); close() } }
+  items.forEach(({ label, icon, run, danger }) => {
     const b = document.createElement('button')
-    b.textContent = label
-    b.style.cssText = `display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;
-      padding:7px 10px;font-size:12px;cursor:pointer;color:${danger ? '#c0392b' : '#333'}`
-    b.onmouseenter = () => b.style.background = '#f1f0f5'
-    b.onmouseleave = () => b.style.background = 'none'
-    b.onclick = () => { m.remove(); fn() }
+    b.setAttribute('role', 'menuitem')
+    if (danger) b.className = 'red'
+    b.innerHTML = ic(icon, 18) + esc(label)
+    b.onclick = () => { close(); run() }
     m.appendChild(b)
-  }
-  item(isProject ? '열기' : '안으로 들어가기', () => expOpen(card))
-  item('Finder 에서 보기', () => window.api.openInExplorer(card.dataset.path))
-  if (isProject) {
-    item('이름 바꾸기', () => startRenameProject(card, card.dataset.projectKey))
-    item('이 폴더 지우기', () => deleteSyncedFolder(card.dataset.projectKey), true)
-  }
+  })
   document.body.appendChild(m)
   const r = m.getBoundingClientRect()
-  if (r.bottom > innerHeight) m.style.top = `${y - r.height}px`
-  if (r.right > innerWidth) m.style.left = `${x - r.width}px`
-  const close = ev => { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('mousedown', close) } }
-  setTimeout(() => document.addEventListener('mousedown', close), 0)
+  if (r.bottom > innerHeight - 8) m.style.top = `${Math.max(8, y - r.height)}px`
+  if (r.right > innerWidth - 8) m.style.left = `${Math.max(8, x - r.width)}px`
+  setTimeout(() => { document.addEventListener('mousedown', 바깥); document.addEventListener('keydown', 키, true) }, 0)
+  return m
+}
+
+/* 「Finder 에서 보기」 → 「폴더에서 보기」 — 남의 제품 이름을 빼고, 윈도우(탐색기)에서도 맞는 말로 */
+function expMenu(card, x, y) {
+  const isProject = card.dataset.depth === '1'
+  const items = [
+    { label: isProject ? '열기' : '안으로 들어가기', icon: isProject ? 'frame' : 'next', run: () => expOpen(card) },
+    { label: '폴더에서 보기', icon: 'folder', run: () => window.api.openInExplorer(card.dataset.path) },
+  ]
+  if (isProject) {
+    items.push({ label: '이름 바꾸기', icon: 'pencil', run: () => startRenameProject(card, card.dataset.projectKey) })
+    items.push({ label: '이 폴더 지우기', icon: 'trash', danger: true, run: () => deleteSyncedFolder(card.dataset.projectKey) })
+  }
+  누름메뉴(x, y, items)
 }
 
 function expKeys(e) {
   const pane = document.getElementById('explorer-pane')
   if (!pane || pane.style.display === 'none') return
   if (document.querySelector('.rename-input')) return   // 이름 고치는 중에는 비켜준다
+  /* 앱 안 창 · 설정 · 휴지통 창이 떠 있으면 비켜준다(뒤 탐색기가 Enter · 방향키를 먹지 않게) */
+  if (document.querySelector('.u2-ask, #trash-modal') || document.getElementById('settings-panel')?.style.display === 'block') return
+  if (e.target?.closest?.('input, textarea')) return
+  /* ⌘↑ 는 맨 먼저 — 예전엔 아래 「↑」 줄이 먼저 잡아서 위로 가기가 한 번도 안 됐다(빈 분류 안에서도 안 됐다) */
+  if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') { e.preventDefault(); expUp(); return }
   const cards = expCards()
   if (!cards.length) return
   const i = cards.findIndex(c => c.dataset.path === expLast)
-  const cols = Math.max(1, Math.round(pane.querySelector('.exp-grid')?.clientWidth / 92) || 1)
+  /* 한 줄 칸 수 — 격자가 실제로 그린 칸 수를 센다(예전엔 칸 폭을 92 로 박아 셌다. 새 카드는 더 넓다) */
+  const 격자 = pane.querySelector('.exp-grid')
+  const cols = Math.max(1, 격자 ? getComputedStyle(격자).gridTemplateColumns.split(' ').filter(Boolean).length : 1)
   let next = null
   if (e.key === 'ArrowRight') next = Math.min(cards.length - 1, i + 1)
   else if (e.key === 'ArrowLeft') next = Math.max(0, i - 1)
@@ -868,7 +1124,6 @@ function expKeys(e) {
   else if (e.key === 'ArrowUp') next = Math.max(0, i - cols)
   else if (e.key === 'Enter') { const c = cards[i]; if (c) { e.preventDefault(); expOpen(c) } return }
   else if (e.key === 'Escape') { expSel.clear(); expPaint(); return }
-  else if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') { e.preventDefault(); expUp(); return }
   else return
   e.preventDefault()
   const c = cards[Math.max(0, next)]
@@ -892,21 +1147,24 @@ async function fillExplorerFiles() {
   if (!box || !expProj) return
   const files = await window.api.getProjectFiles(expProj.key).catch(() => [])
   if (!files || !files.length) {
-    box.innerHTML = '<div style="color:#bbb;font-size:11px;padding:14px">이 폴더는 비어 있어요</div>'
+    box.innerHTML = '<div class="exp-empty">이 폴더는 비어 있어요</div>'
     return
   }
+  /* ⚠️ .file-name · .file-order 는 이름 바꾸기 · 순서 바꾸기 처리기가 찾는 이름이다.
+        예전 격자에는 둘 다 없어서 ✏️ 를 눌러도, 끌어 놓아도 조용히 아무 일이 없었다(11/13 단추 눌러 보기에서 찾음). */
   box.innerHTML = files.map((f, i) => {
     const src = f.isVideo ? (f.videoThumbnailUrl || '') : (f.url || '')
     return `<div class="tree-file exp-file" draggable="true"
-         data-asset-id="${f.assetId}" data-rel-path="${(f.relPath || '').replace(/"/g, '&quot;')}" data-index="${i}">
+         data-asset-id="${esc(f.assetId)}" data-rel-path="${esc(f.relPath || '')}" data-index="${i}">
       <div class="exp-fthumb">
-        ${src ? `<img src="${src}" loading="lazy" onerror="this.style.display='none'">`
-              : `<span>${f.isVideo ? '🎬' : '📷'}</span>`}
-        ${f.isThumbnail ? '<em class="exp-fbadge">대표</em>' : ''}
-        <i class="exp-fnum">${i + 1}</i>
+        ${src ? `<img src="${esc(src)}" loading="lazy" draggable="false" alt="" onerror="this.style.display='none'">` : ''}
+        ${src ? '' : ic(f.isVideo ? 'play' : 'image', 28)}
+        ${f.isThumbnail ? `<em class="exp-fbadge">${ic('star', 14)}대표</em>` : ''}
+        ${f.isVideo && src ? `<em class="exp-fvideo" aria-label="영상">${ic('play', 14)}</em>` : ''}
+        <i class="exp-fnum file-order">${i + 1}</i>
       </div>
-      <div class="exp-name" title="${(f.fileName || '').replace(/"/g, '&quot;')}">${f.fileName || ''}</div>
-      <button class="btn-rename" title="이름 바꾸기">✏️</button>
+      <div class="exp-name file-name" title="${esc(f.fileName || '')}">${esc(f.fileName || '')}</div>
+      <button class="btn-rename" title="이름 바꾸기" aria-label="이름 바꾸기">${ic('pencil', 16)}</button>
     </div>`
   }).join('')
   attachFileHandlers(box, expProj.key)
@@ -914,7 +1172,7 @@ async function fillExplorerFiles() {
   box.querySelectorAll('.exp-file').forEach(el => {
     el.addEventListener('dblclick', e => {
       if (e.target.closest('.btn-rename') || e.target.closest('.rename-input')) return
-      window.api.revealInFolder({ folder: expProj.key, fileName: el.querySelector('.exp-name')?.textContent || '' })
+      revealAsset(expProj.key, el.querySelector('.exp-name')?.textContent || '')
     })
     el.addEventListener('contextmenu', e => {
       e.preventDefault()
@@ -924,26 +1182,11 @@ async function fillExplorerFiles() {
 }
 
 function expFileMenu(el, x, y) {
-  document.getElementById('exp-menu')?.remove()
   const name = el.querySelector('.exp-name')?.textContent || ''
-  const m = document.createElement('div')
-  m.id = 'exp-menu'
-  m.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:300;background:#fff;border:1px solid #dcdbe2;
-    border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:4px;min-width:150px;font-size:12px`
-  const item = (label, fn) => {
-    const b = document.createElement('button')
-    b.textContent = label
-    b.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:#333'
-    b.onmouseenter = () => b.style.background = '#f1f0f5'
-    b.onmouseleave = () => b.style.background = 'none'
-    b.onclick = () => { m.remove(); fn() }
-    m.appendChild(b)
-  }
-  item('Finder 에서 보기', () => window.api.revealInFolder({ folder: expProj.key, fileName: name }))
-  item('이름 바꾸기', () => el.querySelector('.btn-rename')?.click())
-  document.body.appendChild(m)
-  const close = ev => { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('mousedown', close) } }
-  setTimeout(() => document.addEventListener('mousedown', close), 0)
+  누름메뉴(x, y, [
+    { label: '폴더에서 보기', icon: 'folder', run: () => revealAsset(expProj.key, name) },
+    { label: '이름 바꾸기', icon: 'pencil', run: () => el.querySelector('.btn-rename')?.click() },
+  ])
 }
 
 function attachGridNav() {
@@ -978,20 +1221,20 @@ function attachGridNav() {
 
 document.addEventListener('keydown', expKeys)
 
+/* 폴더 상태 — 카드 오른쪽 위 원 하나(정답 그림: 초록 체크 = 올라감 · 시계 = 기다림).
+   예전 글자 딱지(📂 카테고리 · 🗂 프로젝트)는 카드 판 색이 말해 줘서 뺐다(분류 = 옅은 파랑 판, 프로젝트 = 회색 판).
+   빈 폴더는 원 대신 카드 아래 수 자리에 「비어 있어요」 */
 function badgeHtml(b) {
   const map = {
-    'category': '<span style="font-size:9px;color:#3B82F6;font-weight:700">📂 카테고리</span>',
-    'project': '<span style="font-size:9px;color:#8B5CF6;font-weight:700">🗂 프로젝트</span>',
-    'misplaced': '<span style="font-size:9px;color:#F59E0B;font-weight:700">⚠️ 위치 오류</span>',
-    'uploaded': '<span style="font-size:9px;color:#10B981;font-weight:700">🟢 업로드됨</span>',
-    'pending': '<span style="font-size:9px;color:#9CA3AF;font-weight:700">⏳ 대기</span>',
-    'empty': '<span style="font-size:9px;color:#D1D5DB;font-weight:700">— 비어있음</span>',
+    'misplaced': `<span class="exp-st warn" title="자리가 맞지 않아요">${ic('alert', 16)}</span>`,
+    'uploaded': `<span class="exp-st" title="올라감">${ic('check', 16)}</span>`,
+    'pending': `<span class="exp-st wait" title="기다리는 중">${ic('clock', 16)}</span>`,
   }
   return map[b] || ''
 }
 
 function renderTree(nodes, root) {
-  if (!nodes.length) return '<div style="padding:20px;color:#999;font-size:11px">폴더가 없습니다</div>'
+  if (!nodes.length) return '<div class="pane-msg">폴더가 없어요</div>'
   return `<div style="font-size:12px">${nodes.map(n => renderNode(n, root)).join('')}</div>`
 }
 
@@ -1008,19 +1251,19 @@ function renderNode(n, root) {
   const isCat = n.depth === 0
   const isProject = n.depth === 1
   const indent = n.depth * 16
-  const icon = isCat ? '📂' : '📁'
+  const icon = ic(isCat ? 'grid' : 'folder', 18)
   const childHtml = n.children?.length
     ? n.children.map(c => renderNode(c, root)).join('')
-    : (isCat ? '<div style="padding:4px 0 4px 32px;color:#D1D5DB;font-size:10px">— 비어 있음 —</div>' : '')
+    : (isCat ? '<div class="pane-msg" style="padding:4px 0 4px 32px;text-align:left">비어 있어요</div>' : '')
   const projectKey = isProject ? getProjectKey(n.path, root) : ''
   return `
     <div class="tree-node" data-path="${n.path.replace(/"/g, '&quot;')}" data-depth="${n.depth}" data-project-key="${projectKey}" draggable="${!isCat}"
          style="padding:6px 8px;margin-left:${indent}px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:${isCat ? 'default' : 'pointer'};border:1px solid transparent">
       <span>${icon}</span>
-      <span class="node-name" style="font-weight:${isCat ? '700' : '600'};color:${isCat ? '#111' : '#444'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.name}</span>
+      <span class="node-name" style="font-weight:${isCat ? '700' : '600'}">${esc(n.name)}</span>
       ${badgeHtml(n.badge)}${badgeHtml(n.badge2)}
-      <span style="font-size:9px;color:#bbb">${n.fileCount || 0}</span>
-      ${isProject ? '<div class="node-actions"><button class="btn-rename" title="이름 변경">✏️</button></div>' : ''}
+      <span class="exp-cnt dim">${n.fileCount || 0}</span>
+      ${isProject ? `<div class="node-actions"><button class="btn-rename" title="이름 바꾸기" aria-label="이름 바꾸기">${ic('pencil', 16)}</button></div>` : ''}
     </div>
     ${isProject ? `<div class="tree-files" id="files-${projectKey.replace(/[^a-zA-Z0-9]/g, '_')}" style="display:none"></div>` : ''}
     ${childHtml}
@@ -1046,19 +1289,22 @@ function attachExplorerHandlers(root) {
     }
 
     if (depth === 0) {
-      el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.border = '1px solid #F4A259'; el.style.background = '#FFF7ED' })
-      el.addEventListener('dragleave', () => { el.style.border = '1px solid transparent'; el.style.background = '' })
+      el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drop-on') })
+      el.addEventListener('dragleave', () => el.classList.remove('drop-on'))
       el.addEventListener('drop', async (e) => {
         e.preventDefault()
-        el.style.border = '1px solid transparent'; el.style.background = ''
+        el.classList.remove('drop-on')
         if (!dragNode) return
         const name = dragNode.split(/[/\\]/).pop()
-        const target = fullPath + (fullPath.endsWith('\\') ? '' : '\\') + name
+        /* ⚠️ 예전엔 사이 글자를 늘 「\」 로 붙였다 — 맥에서는 「인물\봄 인물」 이라는 이름의 폴더가 바깥에 생긴다(11/13 찾음).
+              맥 · 윈도우 저마다의 사이 글자로 */
+        const sep = window.api.platform === 'win32' ? '\\' : '/'
+        const target = fullPath + (fullPath.endsWith(sep) ? '' : sep) + name
         const result = await window.api.moveFolder(dragNode, target)
         if (result.ok) {
           setTimeout(refreshExplorer, 500)
         } else {
-          alert('옮기지 못했어요.\n' + result.error)
+          실패알림({ 제목: '폴더를 옮기지 못했어요', 오류: result.error })
         }
       })
     }
@@ -1105,11 +1351,11 @@ async function toggleProjectFiles(projectKey, root) {
 
   expandedProjects.add(projectKey)
   container.style.display = 'block'
-  container.innerHTML = '<div style="padding:8px;color:#999;font-size:10px">불러오는 중...</div>'
+  container.innerHTML = '<div class="pane-msg">불러오는 중이에요</div>'
 
   const files = await window.api.getProjectFiles(projectKey)
   if (files.length === 0) {
-    container.innerHTML = '<div style="padding:8px;color:#ccc;font-size:10px">이 폴더는 비어 있어요</div>'
+    container.innerHTML = '<div class="pane-msg">이 폴더는 비어 있어요</div>'
     return
   }
 
@@ -1119,18 +1365,18 @@ async function toggleProjectFiles(projectKey, root) {
       : (f.url || '')
     const thumbHtml = thumbSrc
       ? `<img class="file-thumb" src="${thumbSrc}" alt="" loading="lazy" onerror="this.style.display='none'">`
-      : `<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-size:12px">${f.isVideo ? '🎬' : '📷'}</div>`
+      : `<div class="file-thumb" style="display:grid;place-items:center">${ic(f.isVideo ? 'play' : 'image', 18)}</div>`
     const badges = []
     if (f.isThumbnail) badges.push('<span class="badge-thumb">대표</span>')
     if (f.isVideo) badges.push('<span class="badge-video">영상</span>')
     return `
       <div class="tree-file" draggable="true" data-asset-id="${f.assetId}" data-rel-path="${f.relPath.replace(/"/g, '&quot;')}" data-index="${i}">
-        <span class="file-grip">⋮⋮</span>
+        <span class="file-grip">${ic('grid', 14)}</span>
         ${thumbHtml}
         <span class="file-name">${f.fileName}</span>
         ${badges.join('')}
         <span class="file-order">#${i + 1}</span>
-        <button class="btn-rename" title="이름 변경">✏️</button>
+        <button class="btn-rename" title="이름 바꾸기" aria-label="이름 바꾸기">${ic('pencil', 16)}</button>
       </div>
     `
   }).join('')
@@ -1189,7 +1435,8 @@ function attachFileHandlers(container, projectKey) {
       // 순서 번호 업데이트 + Firestore 저장
       const reordered = [...container.querySelectorAll('.tree-file')]
       const orderedIds = reordered.map((f, i) => {
-        f.querySelector('.file-order').textContent = `#${i + 1}`
+        const 번호 = f.querySelector('.file-order')
+        if (번호) 번호.textContent = 번호.classList.contains('exp-fnum') ? String(i + 1) : `#${i + 1}`
         f.dataset.index = i
         return f.dataset.assetId
       })
@@ -1201,21 +1448,27 @@ function attachFileHandlers(container, projectKey) {
 
 function startRenameProject(nodeEl, projectKey) {
   const nameSpan = nodeEl.querySelector('.node-name')
+  if (!nameSpan) return
   const oldName = nameSpan.textContent
   const input = document.createElement('input')
   input.type = 'text'
   input.value = oldName
   input.className = 'rename-input'
+  input.setAttribute('aria-label', '새 이름')
   nameSpan.replaceWith(input)
   input.focus()
   input.select()
 
+  /* ⚠️ Enter 와 칸 벗어남(blur)이 둘 다 끝내기를 부른다 — 한 번만 */
+  let 끝 = false
   const finish = async (save) => {
+    if (끝) return
+    끝 = true
     const newName = input.value.trim()
     if (save && newName && newName !== oldName) {
       const result = await window.api.renameProject(projectKey, newName)
       if (!result.ok) {
-        alert('이름을 바꾸지 못했어요.\n' + result.error)
+        실패알림({ 제목: '이름을 바꾸지 못했어요', 오류: result.error })
       }
     }
     setTimeout(refreshExplorer, 300)
@@ -1230,12 +1483,15 @@ function startRenameProject(nodeEl, projectKey) {
 
 function startRenameFile(fileEl) {
   const nameSpan = fileEl.querySelector('.file-name')
+  if (!nameSpan) return
   const relPath = fileEl.dataset.relPath
   const oldName = nameSpan.textContent
   const input = document.createElement('input')
   input.type = 'text'
   input.value = oldName
   input.className = 'rename-input'
+  input.setAttribute('aria-label', '새 이름')
+  input.draggable = false
   nameSpan.replaceWith(input)
   input.focus()
 
@@ -1244,15 +1500,19 @@ function startRenameFile(fileEl) {
   if (dotIdx > 0) input.setSelectionRange(0, dotIdx)
   else input.select()
 
+  let 끝 = false
   const finish = async (save) => {
+    if (끝) return
+    끝 = true
     const newName = input.value.trim()
     if (save && newName && newName !== oldName) {
       const result = await window.api.renameFile(relPath, newName)
       if (!result.ok) {
-        alert('이름을 바꾸지 못했어요.\n' + result.error)
+        실패알림({ 제목: '이름을 바꾸지 못했어요', 오류: result.error })
       }
     }
-    // 파일 목록 새로고침
+    // 파일 목록 새로고침 — 격자(탐색기)면 격자를, 예전 줄 목록이면 줄을
+    if (expProj && document.getElementById('exp-files')) { fillExplorerFiles(); return }
     const projectKey = relPath.split('/').slice(0, -1).join('/')
     expandedProjects.delete(projectKey)
     toggleProjectFiles(projectKey)
@@ -1266,23 +1526,22 @@ function startRenameFile(fileEl) {
 }
 
 // ── Explorer View Size ──
+/* 크기 막대 — 예전엔 글자 크기 · 칸 여백을 키웠다. 새 꼴에선 카드 폭을 키운다(값 30~200, 60 이 보통).
+   글자 크기는 단계(17 · 13)를 지킨다 */
+let 탐색기크기 = 60
 function setThumbSize(val) {
   val = parseInt(val)
+  탐색기크기 = val
   document.documentElement.style.setProperty('--thumb-size', val + 'px')
-  // 전체 탐색기 폰트/패딩도 비례 조절
-  const scale = val / 60 // 60px 기준
-  const fontSize = Math.max(10, Math.min(16, Math.round(12 * scale)))
-  const nodePad = Math.max(4, Math.round(6 * scale))
-  document.documentElement.style.setProperty('--explorer-font', fontSize + 'px')
-  document.documentElement.style.setProperty('--explorer-pad', nodePad + 'px')
-  document.querySelectorAll('.thumb-size-label').forEach(el => el.textContent = val + 'px')
+  document.documentElement.style.setProperty('--exp-col', Math.round(96 + val * 0.9) + 'px')
+  document.querySelectorAll('.exp-size input').forEach(el => el.style.setProperty('--p', (val - 30) / 170))
 }
 window.setThumbSize = setThumbSize
 
 // ── File List Rendering ──
 function renderFileList() {
   const list = document.getElementById('file-list')
-  list.innerHTML = ''
+  list.innerHTML = `<div class="empty-state"><span class="empty-ico">${ic('search', 26)}</span><p>파일을 찾는 중이에요</p></div>`
 }
 
 function updateFileItem(data) {
@@ -1302,7 +1561,6 @@ function updateFileItem(data) {
   }
 
   const iconClass = data.isVideo ? 'video' : 'image'
-  const iconEmoji = data.isVideo ? '🎬' : '📷'
 
   let statusHtml = ''
   let progressHtml = ''
@@ -1311,26 +1569,30 @@ function updateFileItem(data) {
     statusHtml = `<span class="file-status uploading">${data.progress}%</span>`
     progressHtml = `<div class="file-progress"><div class="file-progress-bar" style="width:${data.progress}%"></div></div>`
   } else if (data.status === 'encoding') {
-    statusHtml = `<span class="file-status" style="color:#A78BFA">인코딩</span>`
-    progressHtml = `<div class="file-progress"><div class="file-progress-bar" style="width:${data.progress}%;background:#A78BFA"></div></div>`
+    /* 「인코딩」 은 손님 말이 아니다 — 영상을 웹에 맞게 바꾸는 중 */
+    statusHtml = `<span class="file-status encoding">바꾸는 중</span>`
+    progressHtml = `<div class="file-progress"><div class="file-progress-bar enc" style="width:${data.progress}%"></div></div>`
   } else if (data.status === 'done') {
-    statusHtml = '<span class="file-status done">✓</span>'
+    statusHtml = `<span class="file-status done" aria-label="올라감">${ic('check', 15)}</span>`
   } else if (data.status === 'failed') {
-    statusHtml = `<button class="btn-retry" onclick="retryFile('${data.path}')">재시도</button>`
+    statusHtml = `<button class="btn-retry" onclick="retryFile('${jsq(data.path)}')">${ic('refresh', 15)}다시 시도</button>`
   } else if (data.status === 'renamed') {
-    statusHtml = '<span class="file-status" style="color:#828DF8">이름 변경</span>'
+    statusHtml = '<span class="file-status">이름 바뀜</span>'
   } else if (data.status === 'deleted') {
-    statusHtml = '<span class="file-status" style="color:#999">삭제됨</span>'
+    statusHtml = '<span class="file-status">지워짐</span>'
   } else if (data.status === 'held') {
     /* 로그인이 끝나 붙들어 둔 파일 — 다시 로그인하면 올라간다 */
-    statusHtml = '<span class="file-status" style="color:#999">대기</span>'
+    statusHtml = '<span class="file-status">기다림</span>'
   }
 
+  /* 실패 까닭은 우리말만 보인다(영어 기술 오류 → 손님 말 또는 「올리지 못했어요」) */
+  const 까닭 = data.status === 'failed' ? (오류까닭(data.error) || '올리지 못했어요') : ''
+  const meta = [data.size || '', 진행말(data.phase), 까닭].filter(Boolean).join(' · ')
   item.innerHTML = `
-    <div class="file-icon ${iconClass}">${iconEmoji}</div>
+    <div class="file-icon ${iconClass}">${ic(data.isVideo ? 'play' : 'image', 20)}</div>
     <div class="file-info">
-      <div class="file-name">${data.fileName}</div>
-      <div class="file-meta">${data.size || ''} ${data.phase ? '— ' + data.phase : ''} ${data.error ? '— ' + data.error : ''}</div>
+      <div class="file-name" title="${esc(data.path)}">${esc(data.fileName)}</div>
+      <div class="file-meta">${esc(meta)}</div>
       ${progressHtml}
     </div>
     ${statusHtml}
@@ -1361,14 +1623,14 @@ function updateSummary() {
   if (total === 0) { bar.style.display = 'none'; return }
 
   bar.style.display = 'flex'
-  let parts = [`<strong>${done}</strong> 완료`]
-  if (encoding > 0) parts.push(`<span style="color:#A78BFA">${encoding} 인코딩 중</span>`)
-  if (uploading > 0) parts.push(`${uploading} 업로드 중`)
-  if (failed > 0) parts.push(`<span style="color:#EF4444">${failed} 실패</span>`)
+  let parts = [`<strong>${done}</strong> 올라감`]
+  if (encoding > 0) parts.push(`<span class="s-enc">${encoding} 영상 바꾸는 중</span>`)
+  if (uploading > 0) parts.push(`${uploading} 올리는 중`)
+  if (failed > 0) parts.push(`<span class="s-fail">${failed} 실패</span>`)
   if (held > 0) parts.push(`${held} 로그인 기다림`)
   text.innerHTML = parts.join(' · ')
 
-  retryBtn.style.display = failed > 0 ? 'block' : 'none'
+  retryBtn.style.display = failed > 0 ? '' : 'none'
   /* 상한에 걸린 실패는 눌러도 같은 답이다 — 버튼 말을 바꾼다 */
   retryBtn.textContent = limitNoticeOn ? '요금제 바꿨어요 · 다시 확인' : '전부 다시 시도'
 }
@@ -1393,14 +1655,16 @@ window.api.onUpdateStatus((data) => {
   // ready 상태면 installing/error 외에는 덮어쓰지 않음
   if (updateReady && data.status !== 'ready' && data.status !== 'installing' && data.status !== 'error') return
 
+  /* 업데이트 창 — 가운데 카드(새 꼴). 글자 그림(⬇️ ✨ ✅ ⏳ ⚠️)은 아이콘 원으로 */
   if (data.status === 'available') {
     banner.style.display = 'block'
     banner.innerHTML = `
-      <div class="update-banner">
-        <span class="update-icon">⬇️</span>
-        <div class="update-text">
-          <strong>v${data.version}</strong> 업데이트 다운로드 중...
-          <div class="update-progress"><div class="update-progress-bar" style="width:0%"></div></div>
+      <div class="upd">
+        <div class="upd-row">
+          <span class="upd-ico">${ic('download', 20)}</span>
+          <div class="update-text">새 버전 v${esc(data.version)} 내려받는 중이에요
+            <div class="update-progress"><div class="update-progress-bar" style="width:0%"></div></div>
+          </div>
         </div>
       </div>
     `
@@ -1419,31 +1683,33 @@ window.api.onUpdateStatus((data) => {
     let notesHtml = ''
     if (data.releaseNotes) {
       const raw = typeof data.releaseNotes === 'string' ? data.releaseNotes : ''
-      const lines = raw.replace(/<[^>]*>/g, '').split(/\n/).map(l => l.trim()).filter(Boolean).slice(0, 5)
+      const lines = raw.replace(/<\/(li|p|div|h\d)>|<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').split(/\n/).map(l => l.trim()).filter(Boolean).slice(0, 5)
       if (lines.length > 0) {
-        notesHtml = `<div style="font-size:10px;color:#777;line-height:1.6;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:8px">${lines.map(l => l.startsWith('•') || l.startsWith('-') || l.startsWith('*') ? l : '• ' + l).join('<br>')}</div>`
+        notesHtml = `<div class="upd-notes">${lines.map(l => esc(l.replace(/^[•\-*]\s*/, ''))).map(l => '· ' + l).join('<br>')}</div>`
       }
     }
     banner.innerHTML = `
-      <div class="update-banner" style="flex-direction:column;align-items:stretch;gap:12px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="update-icon">✨</span>
-          <div class="update-text"><strong>v${data.version}</strong> 업데이트 준비 완료</div>
+      <div class="upd">
+        <div class="upd-row">
+          <span class="upd-ico">${ic('star', 20)}</span>
+          <div class="update-text">새 버전 v${esc(data.version)} 준비됐어요<small>설치하면 앱이 잠깐 꺼졌다 다시 켜져요</small></div>
         </div>
         ${notesHtml}
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none';updateReady=false" style="background:#E5E7EB;color:#555">나중에</button>
-          <button class="btn-update" onclick="window.api.installUpdate()">지금 설치</button>
+        <div class="upd-btns">
+          <button class="u2-btn u2-btn-sm" onclick="document.getElementById('update-banner').style.display='none';updateReady=false">나중에</button>
+          <button class="u2-btn u2-btn-sm u2-btn-blue" onclick="window.api.installUpdate()">지금 설치</button>
         </div>
       </div>
     `
   } else if (data.status === 'up-to-date') {
     banner.style.display = 'block'
     banner.innerHTML = `
-      <div class="update-banner">
-        <span class="update-icon">✅</span>
-        <div class="update-text">최신 버전입니다</div>
-        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
+      <div class="upd">
+        <div class="upd-row">
+          <span class="upd-ico ok">${ic('check', 20)}</span>
+          <div class="update-text">최신 버전이에요</div>
+          <button class="u2-icon-btn sm sh-x" onclick="document.getElementById('update-banner').style.display='none'" aria-label="닫기">${ic('x', 18)}</button>
+        </div>
       </div>
     `
     /* ⚠️ 스스로 사라지게 한다 — 2026-09-08.
@@ -1454,24 +1720,30 @@ window.api.onUpdateStatus((data) => {
     clearTimeout(window._upToDateTimer)
     window._upToDateTimer = setTimeout(() => {
       const b = document.getElementById('update-banner')
-      if (b && b.textContent.includes('최신 버전입니다')) b.style.display = 'none'
+      if (b && b.textContent.includes('최신 버전이에요')) b.style.display = 'none'
     }, 4000)
   } else if (data.status === 'installing') {
     banner.style.display = 'block'
     banner.innerHTML = `
-      <div class="update-banner">
-        <span class="update-icon">⏳</span>
-        <div class="update-text">업데이트 설치 중... 잠시 후 앱이 재시작됩니다</div>
+      <div class="upd">
+        <div class="upd-row">
+          <span class="upd-ico">${ic('refresh', 20, 'spin')}</span>
+          <div class="update-text">업데이트를 설치하고 있어요<small>곧 앱이 다시 켜져요</small></div>
+        </div>
       </div>
     `
   } else if (data.status === 'error') {
     updateReady = false
     banner.style.display = 'block'
+    /* 업데이트 모듈의 오류는 영어다(net::ERR_… 등) — 우리말만 보이고 나머지는 「인터넷 …」 으로 */
+    const 까닭 = 오류까닭(data.message)
     banner.innerHTML = `
-      <div class="update-banner">
-        <span class="update-icon">⚠️</span>
-        <div class="update-text">${data.message || '업데이트를 확인하지 못했어요'}</div>
-        <button class="btn-update" onclick="document.getElementById('update-banner').style.display='none'" style="background:#E5E7EB;color:#555">닫기</button>
+      <div class="upd">
+        <div class="upd-row">
+          <span class="upd-ico bad">${ic('alert', 20)}</span>
+          <div class="update-text">업데이트를 확인하지 못했어요<small>${esc(까닭 || '잠시 뒤 다시 해 주세요.')}</small></div>
+          <button class="u2-icon-btn sm sh-x" onclick="document.getElementById('update-banner').style.display='none'" aria-label="닫기">${ic('x', 18)}</button>
+        </div>
       </div>
     `
     setTimeout(() => { banner.style.display = 'none' }, 5000)
@@ -1480,13 +1752,21 @@ window.api.onUpdateStatus((data) => {
 
 // ── Settings Panel ──
 function openSettings() {
+  closeWebMenu()
   document.getElementById('settings-overlay').style.display = 'block'
   document.getElementById('settings-panel').style.display = 'block'
+  /* 계정 — 예전엔 동기화 화면 왼쪽 위에 이름만 있었다. 로그아웃과 같이 여기로 */
+  updateSyncUserLabel()
+  document.getElementById('set-account').hidden = !currentUser   // 로그인 전(트레이 「설정」)엔 계정 칸을 숨긴다
+  document.getElementById('set-email').textContent = currentUser?.email && currentUser.email !== currentUser.name ? currentUser.email : ''
   // 현재 스케일 값 반영
   const config = window._cachedConfig || {}
   const scale = config.uiScale || 100
-  document.getElementById('ui-scale-slider').value = scale
+  const 막대 = document.getElementById('ui-scale-slider')
+  막대.value = scale
+  막대.style.setProperty('--p', (scale - 50) / 100)
   document.getElementById('ui-scale-label').textContent = scale + '%'
+  document.getElementById('settings-panel').querySelector('.sh-x')?.focus({ preventScroll: true })
   // 앱 버전 표시
   window.api.getAppVersion().then(v => {
     document.getElementById('settings-version').textContent = 'v' + v
@@ -1503,6 +1783,7 @@ window.closeSettings = closeSettings
 function setUiScale(val) {
   val = parseInt(val)
   document.getElementById('ui-scale-label').textContent = val + '%'
+  document.getElementById('ui-scale-slider')?.style.setProperty('--p', (val - 50) / 100)
   // CSS zoom 적용 (titlebar 제외한 전체)
   const factor = val / 100
   document.querySelectorAll('.screen').forEach(s => { s.style.zoom = factor })
@@ -1528,6 +1809,12 @@ function applyUiScale(val) {
 }
 
 document.getElementById('btn-settings').addEventListener('click', openSettings)
+/* 설정 창 · 휴지통 창은 Esc 로 닫힌다(앱 안 창이 떠 있으면 그 창이 먼저 닫힌다) */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || document.querySelector('.u2-ask')) return
+  if (document.getElementById('trash-modal')) { document.getElementById('trash-modal').remove(); return }
+  if (document.getElementById('settings-panel').style.display !== 'none') closeSettings()
+})
 
 // ── Init: check saved config ──
 ;(async () => {
@@ -1546,6 +1833,8 @@ document.getElementById('btn-settings').addEventListener('click', openSettings)
     if (selectedFolder) {
       // UID + 폴더 모두 있으면 바로 동기화 시작
       showScreen('sync-screen')
+      setHeroFolder(selectedFolder)
+      setSync('syncing', '동기화 시작', '')
       updateSyncUserLabel()
       fileStatuses.clear()
       renderFileList()
@@ -1612,13 +1901,15 @@ function hideWarn(key) {
  *   · 말투는 해요체. 소리 내어 읽어서 어색하면 다시 쓴다.
  */
 const LV = {
-  sure:   { t: '중복 파일',        c: '#1f9d55', sub: '' },
-  likely: { t: '같은 영상 같아요', c: '#c08a2e', sub: '재생해서 확인해 주세요' },
-  maybe:  { t: '크기만 같아요',    c: '#b0624a', sub: '내용은 다를 수 있어요' },
+  sure:   { t: '중복 파일',        c: 'var(--ui-green)', sub: '' },
+  likely: { t: '같은 영상 같아요', c: 'var(--ui-yellow)', sub: '재생해서 확인해 주세요' },
+  maybe:  { t: '크기만 같아요',    c: 'var(--ui-orange-b)', sub: '내용은 다를 수 있어요' },
 }
 const tMB = n => (n / 1048576).toFixed(1)
 const tGB = n => (n / 1073741824).toFixed(2)
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+/* 홑따옴표 글(onclick="함수('…')") 안에 넣을 값 — 이름에 ' 나 \ 가 있어도 깨지지 않게 */
+const jsq = t => esc(String(t == null ? '' : t).replace(/\\/g, '\\\\').replace(/'/g, "\\'"))
 
 let trashedList = null   // 이미 휴지통에 넣은 것들
 
@@ -1634,69 +1925,55 @@ async function openTrash() {
   if (!box) {
     box = document.createElement('div')
     box.id = 'trash-modal'
-    box.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(20,19,26,.45);' +
-      'display:flex;align-items:flex-end;justify-content:center'
-    box.addEventListener('click', e => { if (e.target === box) box.remove() })
+    box.innerHTML = '<div class="ov" style="z-index:200"></div><div class="sheet-card tr-card" style="z-index:201" role="dialog" aria-modal="true" aria-labelledby="tr-title"></div>'
+    box.firstChild.addEventListener('click', () => box.remove())
     document.body.appendChild(box)
   }
-  box.innerHTML = '<div style="background:#f7f6f9;width:100%;max-height:86vh;border-radius:16px 16px 0 0;' +
-    'padding:16px;overflow:auto;font-size:12px">불러오는 중…</div>'
+  const inner = box.querySelector('.tr-card')
+  inner.innerHTML = `<div class="sh-head"><h2 id="tr-title">휴지통</h2>
+      <button class="u2-icon-btn sm sh-x" onclick="document.getElementById('trash-modal').remove()" aria-label="닫기">${ic('x', 20)}</button></div>
+    <div class="pane-msg">불러오는 중이에요</div>`
   const t = await window.api.listTrashed().catch(e => ({ error: e?.message || '알 수 없는 문제' }))
   trashedList = t
-  const inner = box.firstChild
+  if (!document.body.contains(inner)) return
 
+  const 머리 = (n, gb) => `
+    <div class="sh-head">
+      <h2 id="tr-title">휴지통${n != null ? `<small>${n}개 · ${gb} GB</small>` : ''}</h2>
+      <button class="u2-icon-btn sm sh-x" onclick="document.getElementById('trash-modal').remove()" aria-label="닫기">${ic('x', 20)}</button>
+    </div>`
   if (t && t.error) {
-    inner.innerHTML = `<div style="color:#8a4a2c;line-height:1.6">휴지통을 불러오지 못했어요.
-      <div style="font-size:10.5px;color:#a8836f;margin-top:4px">${esc(String(t.error).slice(0, 120))}</div></div>`
+    const 까닭 = 오류까닭(t.error)
+    inner.innerHTML = 머리() + `<div class="dp-note red">휴지통을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.${까닭 ? `<small>${esc(까닭.slice(0, 120))}</small>` : ''}</div>`
     return
   }
   const items = (t && t.items) || []
   const hiddenCount = warnHidden.size
-  inner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
-      <b style="font-size:14px">휴지통</b>
-      <span style="font-size:11px;color:#8b8892">${items.length}개 · ${tGB(t?.bytes || 0)} GB</span>
-      <button onclick="document.getElementById('trash-modal').remove()"
-        style="margin-left:auto;border:1px solid #dcdbe2;background:#fff;border-radius:8px;
-               padding:6px 12px;font-size:12px;cursor:pointer">닫기</button>
-    </div>
-    <p style="margin:0 0 12px;color:#78757f;font-size:11.5px;line-height:1.55">
-      30일이 지나면 완전히 지워져요. 그 전에는 언제든 되돌릴 수 있어요.<br>
+  inner.innerHTML = 머리(items.length, tGB(t?.bytes || 0)) + `
+    <p class="set-desc">30일이 지나면 완전히 지워져요. 그 전에는 언제든 되돌릴 수 있어요.<br>
       컴퓨터의 원본은 동기화 폴더 안 <b>_Trash</b> 로 옮겨져 있어요.</p>
     ${items.length ? `
-      <div style="display:flex;flex-direction:column;gap:5px">
+      <div class="tr-list">
         ${items.slice(0, 200).map(a => `
-          <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #eceaf0;
-                      border-radius:8px;padding:7px 10px">
-            <!-- ⚠️ 이름만 있으면 어떤 사진인지 알 수 없어 되돌릴지 판단이 안 된다.
-                 서버가 thumb 를 이미 주고 있었는데 안 쓰고 있었다. -->
-            <span style="flex:0 0 auto;width:40px;height:30px;border-radius:5px;overflow:hidden;
-                         background:#eceaf0;display:grid;place-items:center">
-              ${a.thumb ? `<img src="${esc(a.thumb)}" style="width:100%;height:100%;object-fit:cover">`
-                        : `<span style="font-size:13px">${a.isVideo ? '🎬' : '🖼'}</span>`}
-            </span>
-            <b style="font-size:11.5px;flex:1;word-break:break-all">${esc(a.fileName)}</b>
-            <span style="font-size:10.5px;color:#8b8892;white-space:nowrap">${tMB(a.fileSize)} MB</span>
-            <span style="font-size:10.5px;white-space:nowrap;color:${a.daysLeft <= 3 ? '#b0624a' : '#8b8892'}">${a.daysLeft}일 남음</span>
-            <button onclick="restoreOne('${a.id}')"
-              style="border:1px solid #dcdbe2;background:#fff;border-radius:6px;padding:4px 10px;
-                     font-size:11px;cursor:pointer;white-space:nowrap">되돌리기</button>
+          <div class="tr-row">
+            <!-- ⚠️ 이름만 있으면 어떤 사진인지 알 수 없어 되돌릴지 판단이 안 된다. 서버가 주는 thumb 를 쓴다. -->
+            <span class="tr-thumb">${a.thumb ? `<img src="${esc(a.thumb)}" alt="">` : ic(a.isVideo ? 'play' : 'image', 18)}</span>
+            <span class="tr-main"><b title="${esc(a.fileName)}">${esc(a.fileName)}</b>
+              <span>${tMB(a.fileSize)} MB · </span><span class="${a.daysLeft <= 3 ? 'soon' : ''}">${a.daysLeft}일 남음</span></span>
+            <button class="sm-btn" onclick="restoreOne('${jsq(a.id)}')">${ic('undo', 16)}되돌리기</button>
           </div>`).join('')}
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="restoreAll()" style="border:1px solid #dcdbe2;background:#fff;
-          border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer">전부 되돌리기</button>
+      <div class="tr-foot">
+        <button class="sm-btn" onclick="restoreAll()">전부 되돌리기</button>
         <!-- ⚠️ 되돌릴 수 없는 동작이라 색으로도 구분한다 -->
-        <button onclick="purgeAll()" style="margin-left:auto;border:1px solid #e6c4b8;background:#fff;
-          border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;color:#b0624a">휴지통 비우기</button>
+        <button class="sm-btn red-soft" onclick="purgeAll()">${ic('trash', 18)}휴지통 비우기</button>
       </div>`
-      : '<div style="padding:26px 0;text-align:center;color:#8b8892">휴지통이 비어 있어요</div>'}
+      : `<div class="empty-state"><span class="empty-ico">${ic('trash', 26)}</span><p>휴지통이 비어 있어요</p></div>`}
     ${hiddenCount ? `
-      <div style="margin-top:14px;border-top:1px solid #e6e5ea;padding-top:12px">
-        <b style="font-size:12px">숨긴 제안 ${hiddenCount}개</b>
-        <p style="margin:4px 0 8px;color:#78757f;font-size:11px">'메시지 삭제하기' 로 뺀 중복 제안이에요.</p>
-        <button onclick="unhideWarns()" style="border:1px solid #dcdbe2;background:#fff;border-radius:8px;
-          padding:6px 12px;font-size:11.5px;cursor:pointer">다시 보기</button>
+      <div class="tr-hidden">
+        <div class="set-label">숨긴 제안 ${hiddenCount}개</div>
+        <p class="set-desc">「메시지 삭제하기」 로 뺀 중복 제안이에요.</p>
+        <button class="sm-btn" onclick="unhideWarns()">다시 보기</button>
       </div>` : ''}`
 }
 
@@ -1709,7 +1986,7 @@ function unhideWarns() {
 
 async function loadTrash() {
   const pane = document.getElementById('trash-pane')
-  pane.innerHTML = '<div style="padding:30px 0;text-align:center;color:#888;font-size:12px">중복을 찾는 중…</div>'
+  pane.innerHTML = '<div class="pane-msg">중복을 찾는 중이에요</div>'
   // ⚠️ 되돌릴 길이 없으면 '휴지통' 이 아니라 즉시 삭제다. 넣은 것도 같이 보여준다.
   /* ⚠️ 예전엔 .catch(() => null) 로 실패를 조용히 삼켰다.
      서버 조회가 색인 문제로 통째로 실패하고 있었는데 화면엔 아무 말도 없어서,
@@ -1718,7 +1995,7 @@ async function loadTrash() {
   trashedList = await window.api.listTrashed().catch(e => ({ error: e?.message || '알 수 없는 문제' }))
   const r = await window.api.findDuplicates()
   if (r?.error) {
-    pane.innerHTML = `<div style="padding:30px 0;text-align:center;color:#b0624a;font-size:12px">${esc(r.error)}</div>`
+    pane.innerHTML = `<div class="pane-msg red">${esc(오류까닭(r.error) || '중복을 찾지 못했어요. 잠시 뒤 다시 해 주세요.')}</div>`
     return
   }
   trashData = r
@@ -1738,7 +2015,7 @@ function renderTrash() {
   const pane = document.getElementById('trash-pane')
   const d = trashData
   if (!d || !d.groups.length) {
-    pane.innerHTML = '<div style="padding:36px 0;text-align:center;color:#888;font-size:12px">중복된 파일이 없어요</div>'
+    pane.innerHTML = `<div class="empty-state"><span class="empty-ico">${ic('check', 26)}</span><p>중복된 파일이 없어요</p></div>`
     return
   }
   // 고객이 고른 대로 다시 계산 — 남길 것 빼고 나머지가 비는 값
@@ -1755,43 +2032,34 @@ function renderTrash() {
     g.items.slice(1).forEach(a => { maxFree += a.fileSize })
   })
 
+  /* 위 카드 — 쓰는 양(큰 숫자 28) · 비울 수 있는 양 · 휴지통으로 옮기기 */
   const head = `
-    <div style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:14px 16px;
-                display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
-      <div><div style="font-size:20px;font-weight:700">${tGB(d.usedBytes)} GB</div>
-           <div style="font-size:11px;color:#8b8892">쓰는 중 · 파일 ${d.assetCount}개</div></div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-        <span style="font-size:15px">🗑</span>
-        <b style="font-size:17px;color:${picked ? '#1f9d55' : '#8b8892'}">${picked ? '' : '최대 '}${tGB(picked ? free : maxFree)} GB</b>
-        <span style="font-size:11px;color:#8b8892">비울 수 있어요</span>
-        <button onclick="applyTrash()" ${picked ? '' : 'disabled'}
-          style="background:${picked ? '#17161c' : '#c9c8cf'};color:#fff;border:0;border-radius:8px;
-                 padding:9px 16px;font-size:12px;font-weight:600;white-space:nowrap;
-                 cursor:${picked ? 'pointer' : 'default'}">${picked ? `${picked}개 휴지통으로 이동` : '휴지통으로 이동'}</button>
+    <section class="card dp-head">
+      <div><div class="dp-num">${tGB(d.usedBytes)} GB</div>
+           <div class="dp-sub">쓰는 중 · 파일 ${d.assetCount}개</div></div>
+      <div class="dp-free">
+        <b class="${picked ? 'on' : ''}">${picked ? '' : '최대 '}${tGB(picked ? free : maxFree)} GB</b>
+        <span>비울 수 있어요</span>
+        <button class="sm-btn dark" onclick="applyTrash()" ${picked ? '' : 'disabled'}>${ic('trash', 16)}${picked ? `${picked}개 휴지통으로 옮기기` : '휴지통으로 옮기기'}</button>
       </div>
-    </div>`
+    </section>`
 
   // ── 휴지통에 넣은 것 — 30일 안에는 되돌릴 수 있다 ──
   const t = trashedList
   /* 못 불러왔으면 그렇게 말한다. 빈 것과 다르다. */
+  const 휴지통까닭 = (t && t.error) ? 오류까닭(t.error) : ''
   const trashedErr = (t && t.error) ? `
-    <section style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:12px;padding:12px 14px;
-                    margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55">
-      휴지통 목록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.
-      <div style="margin-top:4px;color:#a8836f;font-size:10.5px">${esc(String(t.error).slice(0, 90))}</div>
-    </section>` : ''
+    <div class="dp-note">휴지통 목록을 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.${휴지통까닭 ? `<small>${esc(휴지통까닭.slice(0, 90))}</small>` : ''}</div>` : ''
   /* ⚠️ 휴지통 목록이 중복 정리 화면 안에 묻혀 있었다. 지우고 나서
-     어디로 갔는지 찾을 수가 없었다. 별도 창으로 뺀다 (아래 openTrash).
+     어디로 갔는지 찾을 수가 없었다. 별도 창으로 뺀다 (위 openTrash).
      여기서는 '몇 개 들어 있다' 만 알리고 들어가는 자리를 둔다. */
   const inBin = (t && !t.error && t.items?.length) ? t.items.length : 0
   const trashed = inBin ? `
-    <button onclick="openTrash()"
-      style="width:100%;text-align:left;background:#fff;border:1px solid #e3e2e8;border-radius:12px;
-             padding:12px 15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:9px">
-      <span style="font-size:14px">🗑</span>
-      <b style="font-size:12.5px">휴지통에 ${inBin}개</b>
-      <span style="font-size:11px;color:#8b8892">${tGB(t.bytes)} GB · 30일 안에는 되돌릴 수 있어요</span>
-      <span style="margin-left:auto;font-size:11.5px;color:#6c6976">열기 →</span>
+    <button class="dp-bin" onclick="openTrash()">
+      <span class="bi">${ic('trash', 20)}</span>
+      <b>휴지통에 ${inBin}개</b>
+      <span>${tGB(t.bytes)} GB · 30일 안에는 되돌릴 수 있어요</span>
+      <span class="go">열기${ic('next', 14)}</span>
     </button>` : ''
 
   /* 숨긴 제안은 목록에서 아예 뺀다 — 메시지만 감추는 게 아니다. */
@@ -1801,16 +2069,12 @@ function renderTrash() {
     const del = trashDel
     const allGone = g.items.every(a => del.has(a.id))
     const picked0 = g.items.filter(a => del.has(a.id)).length
-    const lastOne = g.items.length - del.size <= 1   // 마지막 한 장은 못 지운다
     const thumb = g.items.find(a => a.thumb)
     const one = g.level === 'sure'
     // ⚠️ 사진에 '재생' 을 붙이면 안 된다. 영상만.
     const play = a => (a.isVideo && a.play)
-      ? `<button onclick="window.api.openExternal('${esc(a.play)}')"
-           style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.62);color:#fff;border:0;
-                  border-radius:99px;padding:4px 10px;font-size:10.5px;cursor:pointer">▶ 재생</button>` : ''
-    const reveal = a => `<button onclick="revealAsset('${esc(a.folder)}','${esc(a.fileName)}')"
-        style="background:#fff;border:1px solid #dcdbe2;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer">📁 폴더 열기</button>`
+      ? `<button class="dp-play" onclick="window.api.openExternal('${jsq(a.play)}')">${ic('play', 14)}재생</button>` : ''
+    const reveal = a => `<button class="dp-btn" onclick="revealAsset('${jsq(a.folder)}','${jsq(a.fileName)}')">${ic('folder', 15)}폴더 열기</button>`
     /* ⚠️ 예전엔 '삭제함 · 되돌리기' 라고 썼다. 아직 아무것도 안 지웠는데
        이미 지운 것처럼 읽혀서 "왜 삭제한다고 안 했는데 삭제됐냐" 는 말을 들었다.
        지금은 '앞으로 이렇게 할 계획' 이라는 게 드러나는 말만 쓴다. */
@@ -1823,8 +2087,7 @@ function renderTrash() {
       // 프로젝트에 든 걸 지우고 어디에도 없는 걸 남기려 한다 — 대개 반대로 하려던 것이다
       const losingLive = g.items.some(x => del.has(x.id) && !x.orphan)
       if (!(a.orphan && losingLive)) return ''
-      return `<span style="font-size:10.5px;color:#a3402c;margin-top:2px;line-height:1.5">
-        프로젝트에 있는 쪽을 남기는 게 좋아요</span>`
+      return `<span class="dp-why">프로젝트에 있는 쪽을 남기는 게 좋아요</span>`
     }
     const delBtn = a => {
       /* ⚠️ **두 프로젝트에 걸친 것은 지우지 못하게 한다** — 2026-09-08 대표님 결정.
@@ -1832,55 +2095,32 @@ function renderTrash() {
             원래 프로젝트가 통째로 비었다. 본인은 지운 줄도 몰라 "누락" 으로 제보했다.
             "중복이니 하나만 남겨라" 라고 해놓고 작업물이 빠지면 말과 동작이 갈라진 것이다.
             애초에 지울 이유도 없다 — 저장 공간이 줄지도 않는다. */
-      if (g.kind === 'shared') return `<span style="border:1px solid #cfe0cd;border-radius:6px;padding:4px 10px;
-        font-size:11px;color:#4a7a44;background:#f2f8f1">그대로 둡니다</span>`
+      if (g.kind === 'shared') return `<span class="dp-tag keep">${ic('check', 14)}그대로 둬요</span>`
       const on = del.has(a.id)
       /* 짝이 되는 말이어야 한다 — 하기 ↔ 되돌리기.
          '지울 예정 / 그냥 두기' 는 짝이 안 맞아 뭘 누르는 건지 헷갈렸다. */
-      /* 마지막 한 장은 못 지운다 — 무리째 사라지면 되돌리기가 곤란하다.
-         단, 아무것도 안 고른 상태에서는 이 딱지를 안 보여준다 (아직 고를 게 남았다). */
       /* 이 무리에서 하나라도 골랐고 이건 안 골랐으면 = 남을 것.
          누르면 이것도 지울 수 있다 (무리째 지우는 것도 이제 허용한다). */
-      if (!on && picked0 > 0) return `<span style="display:inline-flex;align-items:center;gap:6px">
-          <span style="border:1px solid #cfe0cd;border-radius:6px;padding:4px 10px;
-                       font-size:11px;color:#4a7a44;background:#f2f8f1">남길 것</span>
-          <button onclick="toggleDel(${i},'${a.id}')"
-            style="border:1px solid #e2c4bb;border-radius:6px;padding:4px 10px;
-                   font-size:11px;cursor:pointer;background:#fff;color:#a3402c">삭제하기</button>
-        </span>`
+      if (!on && picked0 > 0) return `<span class="dp-tag keep">${ic('check', 14)}남길 것</span>
+          <button class="dp-btn red" onclick="toggleDel(${i},'${jsq(a.id)}')">${ic('trash', 15)}삭제하기</button>`
       /* ⚠️ 여기 '삭제됨' 이라고 썼다가, 아직 아무것도 안 지웠는데 지운 것처럼
          읽혀서 "삭제가 된 거야 만 거야" 라는 말을 들었다.
          실제로 지우는 건 아래 막대의 '휴지통으로 옮기기' 다. 그때까지는 표시일 뿐이다. */
-      if (on) return `<span style="display:inline-flex;align-items:center;gap:6px">
-          <span style="background:#c0392b;color:#fff;border-radius:6px;padding:4px 10px;
-                       font-size:11px;font-weight:600">지울 것</span>
-          <button onclick="toggleDel(${i},'${a.id}')"
-            style="border:1px solid #dcdbe2;border-radius:6px;padding:4px 10px;
-                   font-size:11px;cursor:pointer;background:#fff;color:#6c6976">되돌리기</button>
-        </span>`
-      return `<button onclick="toggleDel(${i},'${a.id}')"
-        style="border:1px solid #d9b3a8;border-radius:6px;padding:4px 11px;
-               font-size:11px;cursor:pointer;background:#fff;color:#a3402c">삭제하기</button>`
+      if (on) return `<span class="dp-tag del">지울 것</span>
+          <button class="dp-btn" onclick="toggleDel(${i},'${jsq(a.id)}')">${ic('undo', 15)}되돌리기</button>`
+      return `<button class="dp-btn red" onclick="toggleDel(${i},'${jsq(a.id)}')">${ic('trash', 15)}삭제하기</button>`
     }
     const loc = a => `
-      <div style="border:1px solid ${del.has(a.id) ? '#e8c4bd' : '#17161c'};border-radius:8px;padding:9px 10px;
-                  background:${del.has(a.id) ? '#fdf6f4' : '#fff'};opacity:${del.has(a.id) ? '.72' : '1'};
-                  display:flex;flex-direction:column;gap:3px;min-width:0">
-        <span style="font-size:11px;padding:2px 6px;border-radius:4px;align-self:flex-start;max-width:100%;
-                     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-                     background:${a.orphan ? '#fbe9e4' : '#eceaf0'};color:${a.orphan ? '#a3543c' : '#4a4854'}">
-          ${a.orphan ? '프로젝트 없음' : esc(a.folder)}</span>
-        <b style="font-size:12px;word-break:break-all">${esc(a.fileName)}</b>
-        <span style="font-size:10.5px;color:#a4a1ab">
-          ${tMB(a.fileSize)} MB · ${esc((a.createdAt || '').slice(0, 10))}</span>
+      <div class="dp-loc ${del.has(a.id) ? 'del' : ''}">
+        <span class="dp-pill ${a.orphan ? 'orphan' : ''}" title="${esc(a.folder || '')}">${a.orphan ? '프로젝트 없음' : esc(a.folder)}</span>
+        <b class="dp-fn">${esc(a.fileName)}</b>
+        <span class="dp-fs">${tMB(a.fileSize)} MB · ${esc((a.createdAt || '').slice(0, 10))}</span>
         ${keepWhy(a)}
-        <span style="display:flex;gap:5px;margin-top:4px">${reveal(a)}${delBtn(a)}</span>
+        <span class="dp-acts">${reveal(a)}${delBtn(a)}</span>
       </div>`
     const card = a => `
-      <div style="flex:1 1 200px;min-width:0;border:1px solid #e6e5ea;border-radius:9px;overflow:hidden;background:#fafafa">
-        <div style="position:relative;aspect-ratio:16/10;background:#111;display:grid;place-items:center;overflow:hidden">
-          ${a.thumb ? `<img src="${esc(a.thumb)}" style="width:100%;height:100%;object-fit:cover">`
-                    : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${play(a)}</div>
+      <div class="dp-card">
+        <div class="dp-img">${a.thumb ? `<img src="${esc(a.thumb)}" alt="">` : '미리보기 없음'}${play(a)}</div>
         ${loc(a)}
       </div>`
     /* ⚠️ 같은 사진을 두 프로젝트에 '일부러' 넣어두는 경우가 있다.
@@ -1890,41 +2130,28 @@ function renderTrash() {
        이 무리를 제안에서 통째로 빼는 것이다 (일부러 두 곳에 넣은 사람에게는
        매번 뜨는 잔소리다). 실수로 눌렀으면 휴지통의 '숨긴 제안' 에서 되살린다. */
     const warn = (g.kind === 'shared' && !warnHidden.has(groupKey(g)))
-      ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;padding:9px 11px;
-                     margin-bottom:10px;font-size:11.5px;color:#8a4a2c;line-height:1.55;
-                     display:flex;gap:8px;align-items:flex-start">
-           <span style="flex:1"><b>두 프로젝트에서 같이 쓰는 사진이에요</b> — 중복이 아니에요.
-           지워도 저장 공간은 안 줄고 <b>그 프로젝트에서만 사진이 없어지기</b> 때문에, 지우지 않습니다.</span>
-           <button onclick="hideWarn('${groupKey(g)}')"
-             style="flex:0 0 auto;background:#fff;border:1px solid #e6cdbc;border-radius:6px;
-                    padding:3px 9px;font-size:11px;color:#8a4a2c;cursor:pointer;
-                    white-space:nowrap">메시지 삭제하기</button>
+      ? `<div class="dp-note dp-warn">
+           <span><b>두 프로젝트에서 같이 쓰는 사진이에요</b> — 중복이 아니에요.
+           지워도 저장 공간은 안 줄고 <b>그 프로젝트에서만 사진이 없어지기</b> 때문에 지우지 않아요.</span>
+           <button class="dp-btn" onclick="hideWarn('${jsq(groupKey(g))}')">메시지 삭제하기</button>
          </div>` : ''
     const inner = one
-      ? `<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
-           <div style="position:relative;flex:1 1 190px;min-width:150px;max-width:260px;aspect-ratio:16/10;background:#111;border-radius:8px;
-                       display:grid;place-items:center;overflow:hidden">
-             ${thumb ? `<img src="${esc(thumb.thumb)}" style="width:100%;height:100%;object-fit:cover">`
-                     : '<span style="color:#666;font-size:11px">미리보기 없음</span>'}${thumb ? play(thumb) : ''}</div>
-           <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:7px">${g.items.map(loc).join('')}</div>
+      ? `<div class="dp-one">
+           <div class="dp-img">${thumb ? `<img src="${esc(thumb.thumb)}" alt="">` : '미리보기 없음'}${thumb ? play(thumb) : ''}</div>
+           <div class="dp-locs">${g.items.map(loc).join('')}</div>
          </div>`
-      : `<div style="display:flex;gap:10px;flex-wrap:wrap">${g.items.map(card).join('')}</div>`
+      : `<div class="dp-cards">${g.items.map(card).join('')}</div>`
     return `
-      <section style="background:#fff;border:1px solid #e3e2e8;border-radius:12px;padding:13px 15px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-          <i style="width:8px;height:8px;border-radius:50%;background:${lv.c};display:inline-block"></i>
-          <b style="font-size:13px">${lv.t}</b>
-          <em style="font-style:normal;color:#8b8892;font-size:11px;margin-left:auto">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
-          ${g.kind === 'shared' ? '' : `<button onclick="toggleWholeGroup(${i})"
-            style="border:1px solid ${allGone ? '#dcdbe2' : '#e2c4bb'};border-radius:6px;padding:3px 9px;
-                   font-size:11px;cursor:pointer;white-space:nowrap;background:#fff;
-                   color:${allGone ? '#6c6976' : '#a3402c'}">${allGone
-                     ? '되돌리기' : (g.items.length === 2 ? '둘 다 삭제' : `${g.items.length}개 모두 삭제`)}</button>`}
+      <section class="card dp-group">
+        <div class="dp-gh">
+          <i class="dp-dot" style="background:${lv.c}"></i>
+          <b class="dp-gt">${lv.t}</b>
+          <em class="dp-gm" style="font-style:normal">${tMB(g.items[0].fileSize)} MB × ${g.items.length}개</em>
+          ${g.kind === 'shared' ? '' : `<button class="dp-btn ${allGone ? '' : 'red'}" onclick="toggleWholeGroup(${i})">${allGone
+                     ? `${ic('undo', 15)}되돌리기` : (g.items.length === 2 ? '둘 다 삭제' : `${g.items.length}개 모두 삭제`)}</button>`}
         </div>
-        ${allGone ? `<div style="background:#fdf3ec;border:1px solid #f0d9c8;border-radius:8px;
-             padding:8px 10px;margin:8px 0 0;font-size:11.5px;color:#8a4a2c;line-height:1.5">
-             이 파일은 한 장도 안 남아요. 30일 안에는 되돌릴 수 있어요.</div>` : ''}
-        ${lv.sub ? `<p style="margin:0 0 11px;color:#78757f;font-size:11px">${lv.sub}</p>` : '<div style="height:9px"></div>'}
+        ${allGone ? `<div class="dp-note red" style="margin:12px 0 0">이 파일은 한 장도 안 남아요. 30일 안에는 되돌릴 수 있어요.</div>` : ''}
+        ${lv.sub ? `<p class="dp-gsub">${lv.sub}</p>` : '<div class="dp-gap"></div>'}
         ${warn}${inner}
       </section>`
   }).join('')
@@ -1933,18 +2160,12 @@ function renderTrash() {
      그 버튼이 화면 밖이라, 골라놓고도 '지워진 거야 만 거야' 가 됐다.
      고른 게 있으면 아래에 붙어 따라다니는 막대를 띄운다. */
   const barHtml = picked ? `
-    <div style="position:sticky;bottom:0;z-index:5;margin:12px -2px 0;padding:11px 13px;
-                background:#17161c;border-radius:12px;display:flex;align-items:center;gap:10px;
-                box-shadow:0 -6px 22px rgba(0,0,0,.22)">
-      <b style="color:#fff;font-size:13px">${picked}개 선택</b>
-      <span style="color:#a8a5b2;font-size:11.5px">${tMB(pickedBytes)} MB${
+    <div class="dp-bar">
+      <b>${picked}개 고름</b>
+      <span>${tMB(pickedBytes)} MB${
         free < pickedBytes ? ` · 공간은 ${tMB(free)} MB 만 줄어요` : ''}</span>
-      <button onclick="clearTrashPick()"
-        style="margin-left:auto;background:none;border:1px solid #45434f;border-radius:8px;
-               padding:7px 12px;font-size:12px;color:#c9c7d0;cursor:pointer">선택 해제</button>
-      <button onclick="applyTrash()"
-        style="background:#fff;color:#17161c;border:0;border-radius:8px;padding:8px 15px;
-               font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">휴지통으로 옮기기</button>
+      <button class="ghost gap" onclick="clearTrashPick()">고르기 풀기</button>
+      <button class="main" onclick="applyTrash()">휴지통으로 옮기기</button>
     </div>` : ''
   pane.innerHTML = head + trashedErr + trashed + body + barHtml
 }
@@ -1955,8 +2176,10 @@ function markTrashTab() {
   if (!btn || !trashData) return
   /* ⚠️ 여기서 매번 글자를 덮어써서, index.html 에서 '중복 파일' 로 바꿔놔도
      화면에는 계속 '휴지통' 이 떴다. 이름은 한 곳에서만 정한다. */
+  /* 새 꼴(11/13): 칸 이름은 정답 그림대로 「중복」, 용량은 옆 작은 알약(좁은 창에선 알약을 숨긴다) */
   const g = tGB(trashData.freeableBytes || 0)
-  btn.textContent = Number(g) > 0.01 ? `중복 파일 ${g}GB` : '중복 파일'
+  btn.innerHTML = Number(g) > 0.01 ? `중복<span class="seg-pill">${g}GB</span>` : '중복'
+  btn.title = Number(g) > 0.01 ? `중복 파일 — ${g}GB 비울 수 있어요` : '중복 파일'
 }
 
 /* 앱을 켜두면 한 번은 조용히 확인해 둔다. 탭을 안 눌러도 용량이 보이게. */
@@ -2002,27 +2225,36 @@ function toggleWholeGroup(groupIdx) {
 
 async function revealAsset(folder, fileName) {
   const r = await window.api.revealInFolder({ folder, fileName })
-  if (!r?.ok) alert(r?.error || '폴더를 열 수 없습니다')
+  if (!r?.ok) 실패알림({ 제목: '폴더를 열지 못했어요', 어떻게: '', 오류: r?.error || '폴더를 찾지 못했어요.' })
 }
 
 async function restoreOne(id) {
   const r = await window.api.untrashAssets([id])
-  if (r?.error) { alert(r.error); return }
+  if (r?.error) { 실패알림({ 제목: '되돌리지 못했어요', 오류: r.error }); return }
   loadTrash()
+  if (document.getElementById('trash-modal')) openTrash()
 }
 
+/* ⚠️ 예전 확인 글이 「…휴지통으로 옮길게요」 였고(되돌리는 단추인데), 그 글을 만들다 없는 값(bytes)을 불러
+      단추를 누르면 아무 일 없이 멈췄다 — 11/13 단추 눌러 보기에서 찾음. 되돌린다는 말로 고치고 크기는 휴지통 합으로. */
 async function restoreAll() {
   const ids = (trashedList?.items || []).map(a => a.id)
   if (!ids.length) return
-  if (!confirm(`파일 ${ids.length}개(${tGB(bytes)}GB)를 휴지통으로 옮길게요.\n30일 안에는 되돌릴 수 있어요.\n\n계속할까요?`)) return
+  if (!await 묻기({
+    제목: `파일 ${ids.length}개를 모두 되돌릴까요?`,
+    글: `${tGB(trashedList?.bytes || 0)}GB · 웹 포트폴리오와 컴퓨터 폴더의 원래 자리로 돌아가요.`,
+    예: '전부 되돌리기',
+  })) return
   const r = await window.api.untrashAssets(ids)
-  if (r?.error) { alert(r.error); return }
-  alert(`${r.restored}개를 되돌렸어요.`)
+  if (r?.error) { 실패알림({ 제목: '되돌리지 못했어요', 오류: r.error }); return }
+  await 알리기({ 제목: `${r.restored}개를 되돌렸어요` })
   loadTrash()
+  if (document.getElementById('trash-modal')) openTrash()
 }
 
 /* 휴지통 영구 비우기.
-   ⚠️ 되돌릴 수 없다. 그래서 확인을 두 겹으로 둔다 — 한 번 묻고, 개수를 손으로 적게 한다.
+   ⚠️ 되돌릴 수 없다. 그래서 그냥 「예」 로는 안 된다 — 개수를 손으로 적어야 빨간 단추가 눌린다(웹 「맞춰쓰기」 꼴).
+      예전엔 확인 창 한 번 + 숫자 적는 창 한 번, 두 창이었다. 웹과 같게 한 창 안에서 둘을 한다.
       「예」 한 번으로 사진 수백 장이 영구히 사라지면 안 된다.
    ⚠️ 컴퓨터 안 _Trash 폴더는 건드리지 않는다. 그건 사용자가 직접 보고 지울 몫이다 —
       우리가 두 곳을 한꺼번에 지우면 되돌릴 방법이 아예 없어진다. */
@@ -2031,22 +2263,18 @@ async function purgeAll() {
   const n = items.length
   if (!n) return
   const gb = tGB(trashedList?.bytes || 0)
-  if (!confirm(
-    `휴지통의 파일 ${n}개(${gb}GB)를 영구히 지울까요?\n\n` +
-    '되돌릴 수 없어요.\n' +
-    '컴퓨터 안 _Trash 폴더의 원본은 그대로 남아 있어요.'
-  )) return
-  const typed = prompt(`정말 지우려면 아래에 ${n} 을(를) 입력해주세요.`, '')
-  if (String(typed || '').trim() !== String(n)) {
-    if (typed !== null) alert('숫자가 달라서 취소했어요.')
-    return
-  }
+  const ok = await 맞춰쓰기({
+    제목: `휴지통의 파일 ${n}개(${gb}GB)를 영구히 지울까요?`,
+    글: `되돌릴 수 없어요. 지우려면 아래 칸에 ${n} 을 써 주세요.\n컴퓨터 안 _Trash 폴더의 원본은 그대로 남아 있어요.`,
+    맞출글: String(n), 예: '영구히 지우기', 위험: true,
+  })
+  if (!ok) return
   const r = await window.api.purgeTrashed(items.map(a => a.id))
-  if (!r?.ok) { alert(`비우기 실패: ${r?.error || '알 수 없는 문제'}`); return }
+  if (!r?.ok) { 실패알림({ 제목: '휴지통을 비우지 못했어요', 오류: r?.error }); return }
   if (r.failed?.length) {
-    alert(`${r.deleted}개를 지웠어요.\n${r.failed.length}개는 실패했습니다. 잠시 후 다시 시도해주세요.`)
+    await 알리기({ 제목: `${r.deleted}개를 지웠어요`, 글: `${r.failed.length}개는 지우지 못했어요. 잠시 뒤 다시 해 주세요.` })
   } else {
-    alert(`${r.deleted}개를 영구히 지웠어요.`)
+    await 알리기({ 제목: `${r.deleted}개를 영구히 지웠어요` })
   }
   loadTrash()
   openTrash()
@@ -2066,21 +2294,22 @@ async function applyTrash() {
       if (g.kind === 'shared') riskyCount++
     })
   })
-  if (!ids.length) { alert('고른 파일이 없어요.'); return }
+  if (!ids.length) { 알리기({ 제목: '고른 파일이 없어요', 글: '지울 파일의 「삭제하기」 를 먼저 눌러 주세요.' }); return }
   /* 고른 크기와 실제로 비는 크기는 다르다. 두 프로젝트에 다 있는 파일은
      지워도 저장 공간이 안 준다 — 숨기면 나중에 "왜 안 줄었냐" 가 된다. */
   let total = 0
   trashData.groups.forEach(g => g.items.forEach(a => { if (trashDel.has(a.id)) total += a.fileSize }))
-  const lines = [`파일 ${ids.length}개(${tMB(total)}MB)를 휴지통으로 옮길게요.`]
+  const lines = [`모두 ${tMB(total)}MB예요.`]
   if (riskyCount) lines.push(`이 중 ${riskyCount}개는 두 프로젝트에 모두 있어서 저장 공간은 안 줄어요.`)
   lines.push('컴퓨터의 원본도 동기화 폴더 안 _Trash 로 옮겨져요.')
-  lines.push('', '30일 안에는 되돌릴 수 있어요.', '계속할까요?')
-  if (!confirm(lines.join('\n'))) return
+  lines.push('30일 안에는 되돌릴 수 있어요.')
+  if (!await 묻기({ 제목: `파일 ${ids.length}개를 휴지통으로 옮길까요?`, 글: lines.join('\n'), 예: '휴지통으로 옮기기', 위험: true })) return
   const r = await window.api.trashAssets(ids)
-  if (r?.error) { alert(r.error); return }
-  alert(`${r.moved}개를 휴지통으로 옮겼어요.${
-    r.localMoved ? `\n컴퓨터의 원본 ${r.localMoved}개도 _Trash 로 옮겼어요.` : ''
-  }\n30일 안에는 되돌릴 수 있어요.`)
+  if (r?.error) { 실패알림({ 제목: '휴지통으로 옮기지 못했어요', 오류: r.error }); return }
+  await 알리기({
+    제목: `${r.moved}개를 휴지통으로 옮겼어요`,
+    글: `${r.localMoved ? `컴퓨터의 원본 ${r.localMoved}개도 _Trash 로 옮겼어요.\n` : ''}30일 안에는 되돌릴 수 있어요.`,
+  })
   loadTrash()
 }
 
@@ -2098,12 +2327,13 @@ async function resetAndResync() {
   const btn = document.getElementById('btn-resync')
   const msg = document.getElementById('resync-msg')
   if (!btn || btn.disabled) return
-  msg.style.color = '#777'
-  msg.textContent = '웹에 무엇이 있는지 보는 중…'
+  const 글색 = 색 => { msg.style.color = 색 === 'red' ? 'var(--ui-red)' : 색 === 'green' ? 'var(--tone-green-ink)' : '' }
+  글색()
+  msg.textContent = '웹에 무엇이 있는지 보는 중이에요'
   btn.disabled = true
 
   const 미리 = await window.api.resetAndResyncPreview().catch(e => ({ error: e?.message }))
-  if (!미리 || 미리.error) { msg.style.color = '#B0624A'; msg.textContent = 미리?.error || '확인하지 못했어요.'; btn.disabled = false; return }
+  if (!미리 || 미리.error) { 글색('red'); msg.textContent = 오류까닭(미리?.error) || '확인하지 못했어요. 잠시 뒤 다시 해 주세요.'; btn.disabled = false; return }
 
   const 수 = 미리.프로젝트수 || 0
   const 다시올릴 = 미리.다시올릴파일 ?? null
@@ -2116,39 +2346,40 @@ async function resetAndResync() {
   const 용량줄 = 다시올릴 === null
     ? ''
     : (다시올릴 === 0
-        ? `• 다시 올라갈 파일: 없음 (있는 것을 그대로 씁니다)\n`
-        : `• ⚠️ 다시 올라갈 파일: ${다시올릴}개 — 그만큼 용량과 시간이 또 듭니다\n`)
+        ? `· 다시 올라갈 파일: 없음 (있는 것을 그대로 써요)\n`
+        : `· 다시 올라갈 파일: ${다시올릴}개 — 그만큼 용량과 시간이 또 들어요\n`)
 
+  /* 브라우저 기본 확인 창 → 앱 안 창(11/13). 글은 그대로, 해요체로 */
   const 물음 =
-    `웹의 프로젝트 ${수}개를 휴지통으로 보내고, 지금 폴더를 처음부터 다시 읽습니다.\n\n` +
     (예시 ? `예: ${예시}${수 > 5 ? ' 외 ' + (수 - 5) + '개' : ''}\n\n` : '') +
-    `• 맥 폴더의 파일은 하나도 지우지 않아요\n` +
-    `• 폴더에 있는 프로젝트는 그대로 되살아나요\n` +
-    `• 폴더에 없는 것만 휴지통에 남아요 (30일 안에 되돌릴 수 있어요)\n` +
-    용량줄 +
-    `\n계속할까요?`
-  if (!confirm(물음)) { msg.textContent = ''; btn.disabled = false; return }
+    `· 컴퓨터 폴더의 파일은 하나도 지우지 않아요\n` +
+    `· 폴더에 있는 프로젝트는 그대로 되살아나요\n` +
+    `· 폴더에 없는 것만 휴지통에 남아요 (30일 안에 되돌릴 수 있어요)\n` +
+    용량줄
+  if (!await 묻기({ 제목: `웹의 프로젝트 ${수}개를 휴지통으로 보내고 폴더를 처음부터 다시 읽을까요?`, 글: 물음.trim(), 예: '다시 연결', 위험: true })) {
+    msg.textContent = ''; btn.disabled = false; return
+  }
 
   /* 다시 올릴 게 많으면 한 번 더 막는다 — 먼저 동기화를 돌리면 대개 0 이 된다 */
   if (다시올릴 > 0) {
-    const 폴더들 = (미리.다시올릴폴더 || []).slice(0, 5).map(x => `  · ${x.폴더} (${x.파일}개)`).join('\n')
+    const 폴더들 = (미리.다시올릴폴더 || []).slice(0, 5).map(x => `· ${x.폴더} (${x.파일}개)`).join('\n')
     const 두번째 =
-      `짝을 못 찾은 폴더가 있어 파일 ${다시올릴}개가 다시 올라갑니다.\n\n` +
       (폴더들 ? 폴더들 + '\n\n' : '') +
-      `앱을 켜둔 채 1~2분 기다렸다가 다시 누르면, 대개 다시 올릴 파일이 없어집니다.\n\n` +
-      `그래도 지금 진행할까요?`
-    if (!confirm(두번째)) { msg.textContent = '기다렸다가 다시 눌러주세요.'; btn.disabled = false; return }
+      `앱을 켜 둔 채 1~2분 기다렸다가 다시 누르면 대개 다시 올릴 파일이 없어져요.`
+    if (!await 묻기({ 제목: `짝을 못 찾은 폴더가 있어 파일 ${다시올릴}개가 다시 올라가요. 그래도 지금 할까요?`, 글: 두번째, 예: '지금 하기', 아니오: '기다리기', 위험: true })) {
+      msg.textContent = '기다렸다가 다시 눌러 주세요.'; btn.disabled = false; return
+    }
   }
 
-  msg.textContent = '웹을 비우고 폴더를 다시 읽는 중… 창을 닫지 마세요.'
+  msg.textContent = '웹을 비우고 폴더를 다시 읽는 중이에요. 창을 닫지 마세요.'
   const r = await window.api.resetAndResync({}).catch(e => ({ error: e?.message }))
 
   if (r?.막힘) {
-    msg.style.color = '#B0624A'
+    글색('red')
     msg.textContent = r.안내
-    if (confirm(r.안내 + '\n\n그래도 계속할까요?')) {
-      msg.style.color = '#777'
-      msg.textContent = '웹을 비우고 폴더를 다시 읽는 중…'
+    if (await 묻기({ 제목: '그래도 계속할까요?', 글: r.안내, 예: '계속', 위험: true })) {
+      글색()
+      msg.textContent = '웹을 비우고 폴더를 다시 읽는 중이에요'
       const r2 = await window.api.resetAndResync({ 강행: true }).catch(e => ({ error: e?.message }))
       finishResync(r2, btn, msg)
       return
@@ -2161,8 +2392,8 @@ async function resetAndResync() {
 
 function finishResync(r, btn, msg) {
   btn.disabled = false
-  if (!r || r.error) { msg.style.color = '#B0624A'; msg.textContent = r?.error || '다시 연결하지 못했어요.'; return }
-  msg.style.color = '#3B7A57'
+  if (!r || r.error) { msg.style.color = 'var(--ui-red)'; msg.textContent = 오류까닭(r?.error) || '다시 연결하지 못했어요. 잠시 뒤 다시 해 주세요.'; return }
+  msg.style.color = 'var(--tone-green-ink)'
   msg.textContent = `끝났어요. 프로젝트 ${r.프로젝트 || 0}개를 휴지통으로 보내고 폴더를 다시 읽는 중이에요. `
     + '잠시 뒤 웹을 새로고침하면 폴더와 같아져 있어요.'
 }
