@@ -1441,7 +1441,12 @@ function attachFileHandlers(container, projectKey) {
         return f.dataset.assetId
       })
 
-      await window.api.reorderFiles(orderedIds)
+      /* 저장이 안 되면 말한다 — 예전엔 화면 순서만 바뀌고 실패는 조용했다. 격자를 다시 불러 실제 순서로 되돌린다 */
+      const r = await window.api.reorderFiles(orderedIds)
+      if (r && r.ok === false) {
+        실패알림({ 제목: '순서를 저장하지 못했어요', 오류: r.error })
+        if (expProj && document.getElementById('exp-files')) fillExplorerFiles()
+      }
     })
   })
 }
