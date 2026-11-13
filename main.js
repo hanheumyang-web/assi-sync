@@ -144,7 +144,7 @@ function createWindow() {
       ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 14 } }
       : { frame: false }),
     transparent: false,
-    backgroundColor: require('electron').nativeTheme.shouldUseDarkColors ? '#0F0F11' : '#F1F1F2',   // 새 디자인 바탕(--ui-bg, 후보 a) · 어둡게 짝 — 화면이 그려지기 전 한순간 보이는 색 (11/13)
+    backgroundColor: require('electron').nativeTheme.shouldUseDarkColors ? '#000000' : '#FFFFFF',   // 새 디자인 바탕 e 의 종이색(--ui-page) · 어둡게 짝 — 화면이 그려지기 전 한순간 보이는 색 (11/14 대표님 「1 e」)
     icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -962,6 +962,8 @@ ipcMain.handle('cancel-folder-deletion', async (_e, info) => {
 const fsPromises = require('fs').promises
 const DEFAULT_CATS = ['FASHION', 'BEAUTY', 'CELEBRITY', 'AD', 'PORTRAIT', 'PERSONAL WORK']
 const IMG_RE = /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tif|tiff|avif|cr2|nef|arw|dng|raf|mp4|mov|avi|mkv|webm|m4v|wmv|flv)$/i
+const COVER_RE = /\.(jpg|jpeg|png|webp|gif|avif)$/i
+const 이름차례 = (a, b) => a.localeCompare(b, 'ko', { numeric: true, sensitivity: 'base' })   // 「2.jpg」 가 「10.jpg」 앞에
 
 ipcMain.handle('scan-folder-tree', async () => {
   /* ⚠️ '아직 준비 안 됨' 과 '폴더를 안 골랐음' 은 다르다 — 2026-09-08.
@@ -986,9 +988,14 @@ ipcMain.handle('scan-folder-tree', async () => {
       const full = require('path').join(dir, e.name)
       if (e.isDirectory()) {
         const children = await readDir(full, depth + 1)
-        const fileCount = (await fsPromises.readdir(full).catch(() => []))
-          .filter(n => IMG_RE.test(n)).length
-        out.push({ name: e.name, path: full, isDir: true, depth, fileCount, children })
+        const names = await fsPromises.readdir(full).catch(() => [])
+        const fileCount = names.filter(n => IMG_RE.test(n)).length
+        /* 폴더 카드 대표 사진(11/14 · 고르기 판 대표님 「7 가」) — 폴더 속 첫 사진(이름 차례). 서버에 안 묻는다(이미 읽은 목록에서 고른다).
+           화면이 바로 그릴 수 있는 꼴(jpg · png · webp · gif · avif)만. HEIC · RAW 만 있는 폴더는 폴더 그림 그대로 */
+        const 첫사진 = names.filter(n => !n.startsWith('.') && COVER_RE.test(n)).sort(이름차례)[0]
+        let cover = 첫사진 ? require('url').pathToFileURL(require('path').join(full, 첫사진)).href : ''
+        if (!cover) cover = children.find(c => c.cover)?.cover || ''   // 분류 · 중간 폴더 = 안쪽 첫 프로젝트 사진
+        out.push({ name: e.name, path: full, isDir: true, depth, fileCount, children, cover })
       }
     }
     return out

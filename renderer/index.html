@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-ui-bg="a">
+<html lang="ko" data-ui-bg="e">
 <head>
   <meta charset="UTF-8">
   <title>포폴 싱크</title>
@@ -14,15 +14,13 @@
   </script>
   <style>
     /* ══════════════════════════════════════════════════════════════
-       고를 것 — 대표님이 아직 안 고르셨다. 지금 웹 새 디자인 판(5240)과 같게 두고 여기 한 곳에 모은다.
-       웹에서 고르시면 같은 값으로 이 줄만 바꾼다.
+       고른 것 — 11/13 고르기 판에서 대표님이 고르셨다(「1 e · 6 가 · 7 가」). 웹 · 아이폰 앱과 같은 값.
 
-       ① 바탕 후보 a~e — 맨 위 <html data-ui-bg="a"> 한 글자.
-          a 무늬 없는 연회색(지금 웹 기본) · b 따뜻한 미색 · c 차가운 연회색 · d 흰 바탕 + 연회색 카드
-          e 흰 종이 + 연회색 큰 판(회의실 권고, 11/12 다듬기 8)
-          (창이 뜰 때 한순간 보이는 바탕은 main.js backgroundColor — a 는 #F1F1F2, e 는 #FFFFFF 로 같이 바꾼다)
-       ② 어둡게 — 맥 화면 모드를 따른다(위 <script>). 앱 안 밝기 설정은 원래 없었다.
-          웹은 설정의 달 단추로 고른다. 값은 웹 html.dark 와 같다.
+       ① 바탕 e — 흰 종이(--ui-page) 위 연회색 큰 판(.screen) · 흰 카드. 맨 위 <html data-ui-bg="e">.
+          (창이 뜰 때 한순간 보이는 바탕은 main.js backgroundColor — 종이색 #FFFFFF · 어둡게 #000000)
+          옛 후보 a~d 는 지웠다(11/12 판에만 남음).
+       ② 어둡게 — 컴퓨터 화면 모드를 따른다(위 <script>, 대표님 「6 가」). 앱 안 밝기 단추는 없다. 값은 웹 html.dark 와 같다.
+       ③ 폴더 카드 위 판 = 폴더 속 첫 사진(대표님 「7 가」, app.js folderCard).
        ══════════════════════════════════════════════════════════════
 
        새 디자인 값 한 벌 — 웹 src/styles/ui-tokens.css(11/11~12) 를 그대로 옮겼다. 이름도 --ui-* 그대로(웹과 한 벌로 읽히게).
@@ -56,13 +54,6 @@
       --exp-col: 150px;             /* 탐색기 카드 최소 폭 — 크기 막대로 바뀐다 */
       --tone-green-ink: #15803D; --tone-amber-ink: #B26A00; --tone-violet-ink: #5B4BD6;
     }
-    html[data-ui-bg="a"] { --ui-bg: #F1F1F2; --ui-card: #FFFFFF; --ui-grid-line: #E2E2E6; }
-    html[data-ui-bg="b"] { --ui-bg: #F4F1EB; --ui-card: #FFFFFF; --ui-grid-line: #E7E1D6;
-      --ui-shadow-card: 0 0.5px 2.2px rgba(70, 50, 20, 0.10), 0 8px 22px -3px rgba(70, 50, 20, 0.08); }
-    html[data-ui-bg="c"] { --ui-bg: #EDF0F5; --ui-card: #FFFFFF; --ui-grid-line: #DCE1EA;
-      --ui-shadow-card: 0 0.5px 2.2px rgba(20, 35, 70, 0.10), 0 8px 22px -3px rgba(20, 35, 70, 0.08); }
-    html[data-ui-bg="d"] { --ui-bg: #FFFFFF; --ui-card: #F6F6F7; --ui-grid-line: #EBEBEE;
-      --ui-shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.035), 0 6px 18px -8px rgba(0, 0, 0, 0.10); }
     html[data-ui-bg="e"] { --ui-page: #FFFFFF; --ui-bg: #F2F4F6; --ui-card: #FFFFFF; --ui-grid-line: #E5E8EB; --ui-hover: #E8EBEE; --ui-switch-off: #E5E8EB;
       --ui-ink: #191F28; --ui-ink-sub: #6B7684; --ui-ink-dim: #B0B8C1;
       --ui-shadow-card: 0 0 0 1px rgba(2, 32, 71, 0.03), 0 6px 24px -6px rgba(2, 32, 71, 0.10); }
@@ -76,11 +67,7 @@
       --tone-green-ink: #4ADE80; --tone-amber-ink: #FFC56B; --tone-violet-ink: #B9AFFF;
       color-scheme: dark;
     }
-    html.dark, html.dark[data-ui-bg="a"] { --ui-bg: #0F0F11; --ui-card: #1C1C1F; --ui-grid-line: #2C2C31; --ui-hover: #2A2A2F; --ui-switch-off: #3A3A40; }
-    html.dark[data-ui-bg="b"] { --ui-bg: #12100D; --ui-card: #1F1B17; --ui-grid-line: #302A23; --ui-hover: #2C2620; --ui-switch-off: #3D362E; }
-    html.dark[data-ui-bg="c"] { --ui-bg: #0C1016; --ui-card: #171D26; --ui-grid-line: #26303C; --ui-hover: #222A35; --ui-switch-off: #343E4B; }
-    html.dark[data-ui-bg="d"] { --ui-bg: #000000; --ui-card: #161618; --ui-grid-line: #26262A; --ui-hover: #232326; --ui-switch-off: #36363B;
-      --ui-shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 22px -10px rgba(0, 0, 0, 0.8); }
+    html.dark { --ui-bg: #0F0F11; --ui-card: #1C1C1F; --ui-grid-line: #2C2C31; --ui-hover: #2A2A2F; --ui-switch-off: #3A3A40; }
     html.dark[data-ui-bg="e"] { --ui-page: #000000; --ui-bg: #111317; --ui-card: #1C1E22; --ui-grid-line: #2A2D33; --ui-hover: #262930; --ui-switch-off: #363940;
       --ui-ink: #F2F4F6; --ui-ink-sub: #A0A6AF; --ui-ink-dim: #6B7079;
       --ui-shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 32px -8px rgba(0, 0, 0, 0.6); }
@@ -326,6 +313,10 @@
     .exp-thumb { position: relative; aspect-ratio: 1; border-radius: var(--ui-r-m); display: grid; place-items: center; background: var(--ui-bg); color: var(--ui-accent); }
     .exp-thumb > .ic { width: 42%; height: auto; }
     .exp-card[data-depth="0"] .exp-thumb { background: var(--ui-accent-soft); color: var(--ui-accent-ink); }
+    /* 대표 사진(11/14) — 위 판을 꽉 채운다. 사진이 있으면 폴더 그림은 숨긴다(사진을 못 읽으면 onerror 가 has-cover 를 떼서 다시 보인다) */
+    .exp-thumb.has-cover { overflow: hidden; background: var(--ui-bg); }
+    .exp-thumb.has-cover > .ic { display: none; }
+    .exp-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; pointer-events: none; }
     .exp-st { position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--ui-green); box-shadow: 0 2px 6px -2px rgba(0,0,0,.3); }
     .exp-st.wait { background: var(--ui-card); color: var(--ui-ink-sub); box-shadow: var(--ui-shadow-card); }
     .exp-st.warn { background: var(--ui-yellow); }
@@ -527,14 +518,21 @@
     .tr-foot .sm-btn { flex: 1; height: var(--ui-h-part); border-radius: var(--ui-r-m); font-size: var(--ui-fs-sub); }
     .tr-hidden { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--ui-grid-line); }
 
-    /* 새 폴더 알림 · 업데이트 창 */
-    .folder-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 12px;
-      width: min(360px, calc(100vw - 32px)); padding: 12px 16px 12px 12px; border-radius: 20px; background: var(--ui-card);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent), 0 18px 40px -12px rgba(0,0,0,.3); animation: slideUp .3s ease; }
-    @keyframes slideUp { from { transform: translateX(-50%) translateY(20px); opacity: 0; } }
-    .toast-main { flex: 1; min-width: 0; }
-    .toast-title { font-size: var(--ui-fs-sub); font-weight: var(--ui-fw-sb); color: var(--ui-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .toast-desc { margin-top: 2px; font-size: var(--ui-fs-tiny); font-weight: var(--ui-fw-sb); color: var(--tone-green-ink); }
+    /* 잠깐 알림(11/14 — 웹 parts.css .u2-toast 와 같은 꼴, app.js 잠깐알림) · 업데이트 창
+       다 됐다는 알림 · 새 폴더 알림이 같은 꼴. 아래 진행 줄(「전부 다시 시도」) 위 — 예전 새 폴더 알림 자리 84 · 카드 색 · 초록 동그라미 · 2.6초 뒤 사라진다. 누르면 바로 닫힌다 */
+    .u2-toast-wrap { position: fixed; left: 0; right: 0; bottom: 84px; z-index: 9000; display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
+    .u2-toast { pointer-events: auto; max-width: min(420px, 100%); width: max-content; min-height: var(--ui-h-main); padding: 12px 20px 12px 14px; border: 0; cursor: pointer;
+      display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; font-family: var(--ui-font);
+      border-radius: var(--ui-r-l); background: var(--ui-card); color: var(--ui-ink);
+      box-shadow: var(--ui-shadow-card), 0 12px 32px -12px rgba(0, 0, 0, .28); animation: u2-toast-in .22s ease-out both; }
+    .u2-toast[data-out] { animation: u2-toast-out .18s ease-in both; }
+    .u2-toast-ok { width: 28px; height: 28px; flex: none; border-radius: 999px; display: grid; place-items: center; background: var(--ui-green); color: #fff; }
+    .u2-toast-ok.is-folder { background: var(--ui-accent-soft); color: var(--ui-accent-ink); }
+    .u2-toast-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .u2-toast-tx b { font-size: var(--ui-fs-sub); font-weight: var(--ui-fw-sb); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .u2-toast-tx small { font-size: var(--ui-fs-tiny); color: var(--ui-ink-sub); overflow-wrap: anywhere; }
+    @keyframes u2-toast-in { from { opacity: 0; transform: translateY(12px); } }
+    @keyframes u2-toast-out { to { opacity: 0; transform: translateY(8px); } }
     #update-banner { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: min(360px, calc(100vw - 32px)); padding: 20px;
       border-radius: var(--ui-r-l); background: var(--ui-card); color: var(--ui-ink); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent), 0 24px 60px -12px rgba(0,0,0,.35); }
     .upd { display: flex; flex-direction: column; gap: 16px; }
@@ -568,7 +566,7 @@
     @keyframes u2-conf-in { from { background: rgba(0,0,0,0); } }
     @keyframes u2-conf-up { from { opacity: 0; transform: translateY(12px) scale(.98); } }
     @media (prefers-reduced-motion: reduce) {
-      .u2-ask, .u2-ask-card, .sheet-card, .folder-toast { animation: none; }
+      .u2-ask, .u2-ask-card, .sheet-card, .u2-toast, .u2-toast[data-out] { animation: none; }
       .hero[data-busy] .dots i, .spin > .ic, .ic.spin, .lg-spin { animation-duration: 3s; }
     }
 
@@ -849,7 +847,6 @@
   </div>
 
   <div id="update-banner" style="display:none" role="status"></div>
-  <div id="folder-toasts"></div>
   <script src="app.js"></script>
 </body>
 </html>

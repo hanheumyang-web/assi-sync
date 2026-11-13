@@ -121,6 +121,34 @@ function 창띄우기({ 제목, 글, 예 = '확인', 아니오 = '취소', 위�
 function 묻기(o) { return 창띄우기(묻기나누기(o)) }
 function 맞춰쓰기(o) { return 창띄우기(o) }
 function 알리기(o) { return 창띄우기({ ...묻기나누기(o), 아니오: null }).then(() => {}) }
+/* 잠깐 알림(11/14 · 고르기 판 대표님 「4 가」 — 웹 ui2/Ask.jsx 잠깐알림 · parts.css .u2-toast 와 같은 꼴)
+   다 됐다는 알림은 창 대신 아래에 2.6초 떴다 사라진다. 누르면 바로 닫힌다. 하나만 — 새로 뜨면 앞의 것을 지운다.
+   안 된 일(실패 · 일부만 됨)은 지금처럼 창(알리기 · 실패알림). 그림: 'ok' = 초록 ✓(기본) · 'folder' = 새 폴더 */
+let 앞알림 = null
+function 잠깐알림({ 제목, 글, 그림 = 'ok' }) {
+  앞알림?.()
+  const 판 = document.createElement('div')
+  판.className = 'u2-toast-wrap'
+  판.innerHTML = `<button type="button" class="u2-toast" role="status" aria-live="polite">
+      <span class="u2-toast-ok${그림 === 'folder' ? ' is-folder' : ''}" aria-hidden="true">${ic(그림 === 'folder' ? 'folder' : 'check', 18)}</span>
+      <span class="u2-toast-tx"><b></b>${글 ? '<small></small>' : ''}</span></button>`
+  판.querySelector('b').textContent = 제목 || ''
+  if (글) 판.querySelector('small').textContent = 글
+  let 끝남 = false
+  const 닫기 = () => {
+    if (끝남) return
+    끝남 = true
+    if (앞알림 === 닫기) 앞알림 = null
+    clearTimeout(t1); clearTimeout(t2)
+    판.remove()
+  }
+  const 단추 = 판.querySelector('.u2-toast')
+  단추.addEventListener('click', 닫기)
+  const t1 = setTimeout(() => 단추.setAttribute('data-out', ''), 2600)
+  const t2 = setTimeout(닫기, 2600 + 200)
+  앞알림 = 닫기
+  document.body.appendChild(판)
+}
 /* 오류 글 고르기 — 우리말 오류는 보여 주고, 영어 기술 오류는 손님 말로 바꾸거나 숨긴다(개발자 콘솔에는 남는다) */
 function 오류까닭(e) {
   const 글 = String(e?.message ?? e ?? '').trim()
@@ -585,20 +613,8 @@ window.api.onSyncError((data) => {
 
 // ── New Folder Auto-Sync Notification ──
 window.api.onNewFolder((data) => {
-  // 자동 승인 — 간단한 알림만 표시
-  const container = document.getElementById('folder-toasts')
-  const toast = document.createElement('div')
-  toast.className = 'folder-toast'
-  toast.setAttribute('role', 'status')
-  const fileText = data.fileCount > 0 ? ` · ${data.fileCount}개` : ''
-  toast.innerHTML = `
-    <span class="tile tile-folder tile-sm" aria-hidden="true">${ic('folder', 22)}</span>
-    <div class="toast-main">
-      <div class="toast-title">${esc(data.name)}${fileText}</div>
-      <div class="toast-desc">올리기 시작했어요</div>
-    </div>`
-  container.appendChild(toast)
-  setTimeout(() => toast.remove(), 3000)
+  // 자동 승인 — 간단한 알림만 표시(11/14 잠깐 알림 한 꼴로 — 예전 따로 놀던 새 폴더 알림 판)
+  잠깐알림({ 제목: `${data.name}${data.fileCount > 0 ? ` · ${data.fileCount}개` : ''}`, 글: '올리기 시작했어요', 그림: 'folder' })
 })
 
 // ── Pending Folders ──
@@ -944,8 +960,9 @@ let expCat = null    // 지금 열어본 분류 (null 이면 분류 목록)
 let expProj = null   // 지금 열어본 프로젝트 { key, name } — 파일까지 보여준다
 
 /* 카드 한 장 — 웹 정답 그림의 폴더 카드 꼴(흰 카드 24 · 위 정사각 판 · 아래 이름 + 수 · 오른쪽 위 상태 원).
-   ⚠️ 대표 사진은 아직 못 넣는다 — 앱이 폴더 속 사진 주소를 아는 때는 프로젝트를 연 뒤(서버에 묻는다)뿐이다.
-      프로젝트마다 서버에 두 번씩 묻게 되면 폴더가 많은 손님(170개 넘는 분도 있다)에게 무겁다. 그래서 폴더 그림으로 둔다.
+   위 판 = 대표 사진(11/14 고르기 판 대표님 「7 가」). 사진 주소는 폴더를 읽을 때 컴퓨터 쪽(main.js scan-folder-tree)이
+   폴더 속 첫 사진으로 같이 준다 — 서버에 안 묻는다. 분류 카드는 안쪽 첫 프로젝트 사진. 사진이 없거나 못 읽으면 폴더 그림.
+   큰 사진이 많아도 무겁지 않게 화면에 보이는 카드만 읽는다(loading=lazy).
    ⚠️ .node-name · .btn-rename 은 이름 바꾸기 처리기가 찾는 이름이다(예전엔 격자 카드에 .node-name 이 없어 이름 바꾸기가 조용히 깨져 있었다). */
 function folderCard(n, root, big) {
   const isProject = n.depth === 1
@@ -958,7 +975,7 @@ function folderCard(n, root, big) {
   return `<div class="tree-node exp-card" data-path="${esc(n.path)}"
        data-depth="${n.depth}" data-project-key="${esc(key)}" draggable="${n.depth !== 0}"
        data-cat="${n.depth === 0 ? esc(n.name) : ''}" tabindex="-1">
-    <div class="exp-thumb">${ic('folder', 64)}${badgeHtml(n.badge2) || badgeHtml(n.badge)}</div>
+    <div class="exp-thumb${n.cover ? ' has-cover' : ''}">${ic('folder', 64)}${n.cover ? `<img class="exp-cover" src="${esc(n.cover)}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.parentNode.classList.remove('has-cover');this.remove()">` : ''}${badgeHtml(n.badge2) || badgeHtml(n.badge)}</div>
     <div class="exp-meta"><span class="exp-name node-name" title="${esc(n.name)}">${esc(n.name)}</span>${수}</div>
     ${isProject ? `<div class="node-actions"><button class="btn-rename" title="이름 바꾸기" aria-label="이름 바꾸기">${ic('pencil', 16)}</button></div>` : ''}
   </div>`
@@ -2252,7 +2269,7 @@ async function restoreAll() {
   })) return
   const r = await window.api.untrashAssets(ids)
   if (r?.error) { 실패알림({ 제목: '되돌리지 못했어요', 오류: r.error }); return }
-  await 알리기({ 제목: `${r.restored}개를 되돌렸어요` })
+  잠깐알림({ 제목: `${r.restored}개를 되돌렸어요` })
   loadTrash()
   if (document.getElementById('trash-modal')) openTrash()
 }
@@ -2279,7 +2296,7 @@ async function purgeAll() {
   if (r.failed?.length) {
     await 알리기({ 제목: `${r.deleted}개를 지웠어요`, 글: `${r.failed.length}개는 지우지 못했어요. 잠시 뒤 다시 해 주세요.` })
   } else {
-    await 알리기({ 제목: `${r.deleted}개를 영구히 지웠어요` })
+    잠깐알림({ 제목: `${r.deleted}개를 영구히 지웠어요` })
   }
   loadTrash()
   openTrash()
@@ -2311,9 +2328,9 @@ async function applyTrash() {
   if (!await 묻기({ 제목: `파일 ${ids.length}개를 휴지통으로 옮길까요?`, 글: lines.join('\n'), 예: '휴지통으로 옮기기', 위험: true })) return
   const r = await window.api.trashAssets(ids)
   if (r?.error) { 실패알림({ 제목: '휴지통으로 옮기지 못했어요', 오류: r.error }); return }
-  await 알리기({
+  잠깐알림({
     제목: `${r.moved}개를 휴지통으로 옮겼어요`,
-    글: `${r.localMoved ? `컴퓨터의 원본 ${r.localMoved}개도 _Trash 로 옮겼어요.\n` : ''}30일 안에는 되돌릴 수 있어요.`,
+    글: `${r.localMoved ? `컴퓨터의 원본 ${r.localMoved}개도 _Trash 로 옮겼어요. ` : ''}30일 안에는 되돌릴 수 있어요.`,
   })
   loadTrash()
 }
