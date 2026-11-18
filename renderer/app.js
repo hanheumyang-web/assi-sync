@@ -560,7 +560,9 @@ window.api.onSyncProgress((data) => {
   } else if (data.phase === 'site_ready') {
     /* 첫 동기화 뒤 서버가 웹 포트폴리오를 만들었다(또는 새 것을 실었다) */
     showMySite(data.slug)
-    const n = data.madePublic ? ` · 최신 ${data.madePublic}개를 실었어요` : ''
+    /* 몇 개를 공개했는지 숫자는 적지 않는다 — 「최신 ○개」 는 한도처럼 읽힌다(company/banned-words.md · 11/18 회의실 전달, 대표님 「모두 권고대로」).
+       첫 동기화는 최근 작업 몇 개만 공개하므로(나머지는 초안) 「다 공개했어요」 로 읽히지 않게 「최근 작업부터」 */
+    const n = data.madePublic ? ' · 최근 작업부터 공개했어요' : ''
     showNotice('ok', data.created
       ? `<b>내 웹 포트폴리오가 생겼어요</b> pofol.co/p/${esc(data.slug)}${n}`
       : `<b>내 웹 포트폴리오에 올렸어요</b> pofol.co/p/${esc(data.slug)}${n}`,
