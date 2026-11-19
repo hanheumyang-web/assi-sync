@@ -161,13 +161,12 @@
 
     /* 폴더 → 웹 포트폴리오 그림(로그인 · 동기화 위 카드) */
     .tile { width: 72px; height: 72px; border-radius: 20px; flex: none; position: relative; display: grid; place-items: center; }
-    .tile-folder { background: linear-gradient(165deg, #66D0FB 0%, var(--ui-sky) 48%, #2C9FE8 100%); color: #fff;
-      box-shadow: 0 12px 24px -12px rgba(14, 116, 190, .6), inset 0 1px 0 rgba(255,255,255,.35); }
-    .tile-photo { box-shadow: var(--ui-shadow-photo); }
-    .tile-photo > svg { width: 100%; height: 100%; display: block; border-radius: inherit; }
+    /* 11/19 대표님 「웹에 비해 왤캐 유채색이많냐」 → 「권고대로」: 하늘색 폴더 · 보라 노을 그림을 회색 한 가지로(웹 새 디자인처럼 색은 파랑 하나만 아껴 쓴다) */
+    .tile-folder, .tile-site { background: var(--ui-bg); color: var(--ui-ink-sub); }
+    .lg-hero .tile { background: var(--ui-card); box-shadow: var(--ui-shadow-card); }   /* 로그인 화면은 바탕이 회색이라 흰 칸 */
     .tile-sm { width: 48px; height: 48px; border-radius: 14px; }
     .dots { display: flex; align-items: center; justify-content: center; gap: 12px; }
-    .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-accent); opacity: .9; }
+    .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-ink-dim); opacity: .9; }
 
     /* ── 로그인 ── */
     #login-screen { align-items: center; justify-content: safe center; overflow-y: auto; padding: 0 24px 28px; }
@@ -247,14 +246,14 @@
     .hero-mid { height: 72px; display: grid; place-items: center; flex: none; }
     .tile-badge { position: absolute; right: -8px; top: -8px; width: 32px; height: 32px; border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
       background: var(--ui-card); color: var(--ui-ink); box-shadow: var(--ui-shadow-card), 0 4px 10px -4px rgba(0,0,0,.25); }
-    .state { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--ui-green);
-      box-shadow: var(--ui-shadow-color-y) color-mix(in srgb, var(--ui-green) 60%, #000); transition: background .2s; }
+    .state { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--ui-ink-sub); background: var(--ui-bg);
+      transition: background .2s; }   /* 다 됨 = 회색 동그라미 + 체크(11/19 색 줄이기 — 예전 초록) */
     .state > .ic { display: none; }
     .state[data-state="watching"] > .st-ok, .state[data-state="syncing"] > .st-up, .state[data-state="scanning"] > .st-scan, .state[data-state="error"] > .st-err, .state[data-state="idle"] > .st-up { display: block; }
-    .state[data-state="syncing"], .state[data-state="scanning"] { background: var(--ui-accent); box-shadow: var(--ui-shadow-color-y) color-mix(in srgb, var(--ui-accent) 60%, #000); }
-    .state[data-state="error"] { background: var(--ui-red); box-shadow: var(--ui-shadow-color-y) color-mix(in srgb, var(--ui-red) 60%, #000); }
-    .state[data-state="idle"] { background: var(--ui-ink-dim); box-shadow: none; }
-    .hero[data-busy] .dots i { animation: flow 1.4s ease-in-out infinite; }
+    .state[data-state="syncing"], .state[data-state="scanning"] { background: var(--ui-accent-soft); color: var(--ui-accent-ink); }   /* 올리는 중 = 웹 「고른 칸」 처럼 옅은 파랑 */
+    .state[data-state="error"] { background: var(--ui-red); color: #fff; }   /* 안 된 일만 빨강 그대로(꼭 알아봐야 하는 곳) */
+    .state[data-state="idle"] { background: var(--ui-bg); color: var(--ui-ink-dim); }
+    .hero[data-busy] .dots i { background: var(--ui-accent); animation: flow 1.4s ease-in-out infinite; }   /* 올리는 중일 때만 파랑 점이 흐른다 */
     .hero[data-busy] .dots i:nth-child(2) { animation-delay: .14s; } .hero[data-busy] .dots i:nth-child(3) { animation-delay: .28s; }
     .hero[data-busy] .dots i:nth-child(4) { animation-delay: .42s; } .hero[data-busy] .dots i:nth-child(5) { animation-delay: .56s; }
     @keyframes flow { 0%, 100% { opacity: .25; transform: scale(.85); } 40% { opacity: 1; transform: scale(1.15); } }
@@ -267,10 +266,10 @@
     /* 알림 줄 — 웹 포트폴리오가 생겼을 때 · 요금제 상한 · 로그인 만료 */
     .notice { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 12px; padding: 10px 10px 10px 12px; border-radius: var(--ui-r-m);
       font-size: var(--ui-fs-tiny); line-height: 1.5; color: var(--ui-ink); }
-    .notice[data-kind="ok"] { background: color-mix(in srgb, var(--ui-green) 13%, var(--ui-card)); }
-    .notice[data-kind="warn"] { background: color-mix(in srgb, var(--ui-yellow) 20%, var(--ui-card)); }
-    .notice[data-kind="error"] { background: color-mix(in srgb, var(--ui-red) 13%, var(--ui-card)); }
-    .n-ico { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; background: var(--ui-green); }
+    /* 11/19 색 줄이기 — 초록 · 주황 · 빨강 띠를 흰 카드 하나로. 알림 종류는 왼쪽 작은 점 색만(된 일 파랑 · 살필 일 노랑 · 안 된 일 빨강) */
+    .notice { background: var(--ui-card); box-shadow: var(--ui-shadow-card); }
+    .n-ico { width: 8px; height: 8px; border-radius: 50%; flex: none; margin: 0 2px 0 4px; align-self: center; background: var(--ui-accent); }
+    .n-ico > * { display: none; }
     .notice[data-kind="warn"] .n-ico { background: var(--ui-yellow); }
     .notice[data-kind="error"] .n-ico { background: var(--ui-red); }
     .n-text { flex: 1 1 200px; min-width: 0; color: var(--ui-ink-sub); word-break: keep-all; overflow-wrap: anywhere; }
@@ -538,7 +537,7 @@
     .upd { display: flex; flex-direction: column; gap: 16px; }
     .upd-row { display: flex; align-items: center; gap: 12px; }
     .upd-ico { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--ui-accent-soft); color: var(--ui-accent-ink); }
-    .upd-ico.ok { background: color-mix(in srgb, var(--ui-green) 16%, transparent); color: var(--tone-green-ink); }
+    .upd-ico.ok { background: var(--ui-accent-soft); color: var(--ui-accent-ink); }
     .upd-ico.bad { background: color-mix(in srgb, var(--ui-red) 14%, transparent); color: var(--ui-red); }
     .update-text { flex: 1; min-width: 0; font-size: var(--ui-fs-sub); font-weight: var(--ui-fw-sb); line-height: 1.4; word-break: keep-all; }
     .update-text small { display: block; margin-top: 2px; font-size: var(--ui-fs-tiny); font-weight: var(--ui-fw-m); color: var(--ui-ink-sub); }
@@ -605,12 +604,6 @@
       </linearGradient>
       <linearGradient id="ui-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4B44D8"/><stop offset="1" stop-color="#2A2591"/></linearGradient>
     </defs>
-    <symbol id="sunset" viewBox="0 0 72 72">
-      <rect width="72" height="72" fill="url(#ui-sky)"/>
-      <circle cx="36" cy="47" r="12" fill="#FFE7B8"/>
-      <rect y="47" width="72" height="25" fill="url(#ui-sea)"/>
-      <path d="M10 54h14M31 54h18M55 54h8M16 61h20M43 61h14M27 67h18" stroke="#fff" stroke-opacity=".55" stroke-width="2.3" stroke-linecap="round" fill="none"/>
-    </symbol>
   </svg>
 
   <!-- 제목줄 -->
@@ -639,7 +632,7 @@
       <div class="lg-hero" aria-hidden="true">
         <div class="tile tile-folder"><i data-ic="folder" data-s="34"></i></div>
         <div class="dots"><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="tile tile-photo"><svg viewBox="0 0 72 72"><use href="#sunset"/></svg></div>
+        <div class="tile tile-site"><i data-ic="globe" data-s="34"></i></div>
       </div>
       <h1 class="lg-logo">pofol</h1>
       <!-- 단추 넷 같은 크기(56 · 둥글기 16). 글은 웹 로그인 창과 같다(11/11 「카카오 로그인」 결정 · 판 「Apple로 로그인 · Google로 로그인 · 이메일로 로그인」) -->
@@ -741,7 +734,7 @@
         </div>
         <div class="dots"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="hero-end">
-          <div class="tile tile-photo" id="hero-site" role="button" tabindex="0" title="웹 포트폴리오" aria-label="웹 포트폴리오"><svg viewBox="0 0 72 72"><use href="#sunset"/></svg></div>
+          <div class="tile tile-site" id="hero-site" role="button" tabindex="0" title="웹 포트폴리오" aria-label="웹 포트폴리오"><i data-ic="globe" data-s="34"></i></div>
           <div class="hero-cap" title="맞춘 파일"><i data-ic="image" data-s="18"></i><span id="hero-count"></span></div>
         </div>
       </div>
